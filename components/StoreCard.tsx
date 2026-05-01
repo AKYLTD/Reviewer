@@ -6,7 +6,8 @@ import { CHANNEL_META } from "@/lib/types";
 import { Stars } from "./Stars";
 import { ChannelBadge } from "./ChannelBadge";
 import { ReviewItem } from "./ReviewItem";
-import { ChevronDownIcon, StoreIcon } from "./icons";
+import { StoreLogo } from "./StoreLogo";
+import { ChevronDownIcon } from "./icons";
 
 export function StoreCard({
   summary,
@@ -47,12 +48,23 @@ export function StoreCard({
         onClick={() => setExpanded((v) => !v)}
         className="flex w-full items-start gap-3 p-4 text-left sm:p-5"
       >
-        <span className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200">
-          <StoreIcon size={18} />
-        </span>
+        <StoreLogo name={summary.store.name} src={summary.store.photoUrl} size={40} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h3 className="truncate text-base font-semibold sm:text-lg">{summary.store.name}</h3>
+            {summary.store.url ? (
+              <a
+                href={summary.store.url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="truncate text-base font-semibold hover:underline sm:text-lg"
+              >
+                {summary.store.name}
+                <span className="ml-1 align-middle text-xs text-ink-400">↗</span>
+              </a>
+            ) : (
+              <h3 className="truncate text-base font-semibold sm:text-lg">{summary.store.name}</h3>
+            )}
             <span className="text-xs text-ink-500">{summary.store.address}</span>
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">

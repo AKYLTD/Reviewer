@@ -18,6 +18,10 @@ export interface Store {
   lat?: number;
   lng?: number;
   channels: Channel[];
+  /** External page (e.g. Google Maps) for this store. */
+  url?: string;
+  /** Logo / photo URL. May be a relative API route (e.g. /api/place-photo?ref=...). */
+  photoUrl?: string;
 }
 
 export interface Review {

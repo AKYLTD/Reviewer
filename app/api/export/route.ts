@@ -15,8 +15,16 @@ export async function GET(req: Request) {
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
 
+  const exclude = new Set(
+    (url.searchParams.get("exclude") ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
   const { stores, reviews } = await gatherForBrand(brand);
-  const report = buildReport(brand, stores, reviews, { from, to });
+  const keptStores = stores.filter((s) => !exclude.has(s.id));
+  const keptReviews = reviews.filter((r) => !exclude.has(r.storeId));
+  const report = buildReport(brand, keptStores, keptReviews, { from, to });
   const stamp = new Date().toISOString().slice(0, 10);
   const filename = `${safeName(brand)}-reviews-${stamp}`;
 

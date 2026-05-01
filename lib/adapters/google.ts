@@ -15,6 +15,8 @@ interface GooglePlace {
   name: string;
   formatted_address?: string;
   geometry?: { location?: { lat: number; lng: number } };
+  url?: string;
+  photos?: Array<{ photo_reference: string; width?: number; height?: number }>;
 }
 
 interface GoogleReview {
@@ -43,7 +45,7 @@ async function placeDetails(
   placeId: string,
   key: string,
 ): Promise<{ place: GooglePlace; reviews: GoogleReview[] } | null> {
-  const fields = "place_id,name,formatted_address,geometry,reviews";
+  const fields = "place_id,name,formatted_address,geometry,reviews,url,photos";
   const url = `${BASE}/details/json?place_id=${placeId}&fields=${fields}&key=${key}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return null;
@@ -63,15 +65,20 @@ export function makeGoogleAdapter(apiKey: string | undefined): ChannelAdapter {
     async findStores(brand: string) {
       if (!apiKey) return [];
       const places = await textSearch(brand, apiKey);
-      return places.map<Store>((p) => ({
-        id: `google:${p.place_id}`,
-        brand,
-        name: p.name,
-        address: p.formatted_address ?? "",
-        lat: p.geometry?.location?.lat,
-        lng: p.geometry?.location?.lng,
-        channels: ["google"],
-      }));
+      return places.map<Store>((p) => {
+        const ref = p.photos?.[0]?.photo_reference;
+        return {
+          id: `google:${p.place_id}`,
+          brand,
+          name: p.name,
+          address: p.formatted_address ?? "",
+          lat: p.geometry?.location?.lat,
+          lng: p.geometry?.location?.lng,
+          channels: ["google"],
+          url: `https://www.google.com/maps/place/?q=place_id:${p.place_id}`,
+          photoUrl: ref ? `/api/place-photo?ref=${encodeURIComponent(ref)}&w=160` : undefined,
+        };
+      });
     },
     async fetchReviews(store: Store) {
       if (!apiKey) return [];

@@ -8,11 +8,13 @@ export function ExportMenu({
   from,
   to,
   disabled,
+  excludedStoreIds,
 }: {
   brand: string;
   from: string | null;
   to: string | null;
   disabled?: boolean;
+  excludedStoreIds?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -29,6 +31,9 @@ export function ExportMenu({
     const params = new URLSearchParams({ brand, format });
     if (from) params.set("from", from);
     if (to) params.set("to", to);
+    if (excludedStoreIds && excludedStoreIds.length > 0) {
+      params.set("exclude", excludedStoreIds.join(","));
+    }
     return `/api/export?${params.toString()}`;
   };
 

@@ -10,6 +10,7 @@ import { Summary } from "@/components/Summary";
 import { StoreCard } from "@/components/StoreCard";
 import { Skeleton } from "@/components/Skeleton";
 import { ExportMenu } from "@/components/ExportMenu";
+import { StorePicker } from "@/components/StorePicker";
 import { InfoIcon, SparkIcon } from "@/components/icons";
 
 interface ApiResponse {
@@ -43,6 +44,8 @@ export default function Home() {
     query: "",
     sort: "recent",
   });
+  const [excludedStores, setExcludedStores] = useState<Set<string>>(new Set());
+  const [strictMatch, setStrictMatch] = useState(false);
 
   // Resolve preset → from/to
   const resolvedRange = useMemo(() => {
@@ -51,6 +54,10 @@ export default function Home() {
   }, [filters.range, filters.from, filters.to]);
 
   const search = async (q: string) => {
+    if (q !== brand) {
+      setExcludedStores(new Set());
+      setStrictMatch(false);
+    }
     setBrand(q);
     setLoading(true);
     setError(null);
@@ -82,10 +89,39 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.range, filters.from, filters.to]);
 
+  const filteredReport = useMemo(() => {
+    if (!data) return null;
+    const stores = data.report.stores.filter((s) => !excludedStores.has(s.store.id));
+    let total = 0;
+    let sum = 0;
+    const byChannel: BrandReport["totals"]["byChannel"] = {};
+    for (const s of stores) {
+      for (const r of s.reviews) {
+        total++;
+        sum += r.rating;
+        const bc = byChannel[r.channel] ?? { count: 0, average: 0 };
+        const newCount = bc.count + 1;
+        bc.average = (bc.average * bc.count + r.rating) / newCount;
+        bc.count = newCount;
+        byChannel[r.channel] = bc;
+      }
+    }
+    return {
+      ...data.report,
+      stores,
+      totals: {
+        stores: stores.length,
+        reviews: total,
+        averageRating: total ? sum / total : 0,
+        byChannel,
+      },
+    };
+  }, [data, excludedStores]);
+
   const allReviews: Review[] = useMemo(() => {
-    if (!data) return [];
-    return data.report.stores.flatMap((s) => s.reviews);
-  }, [data]);
+    if (!filteredReport) return [];
+    return filteredReport.stores.flatMap((s) => s.reviews);
+  }, [filteredReport]);
 
   const channelOptions = useMemo<Channel[]>(() => {
     const set = new Set<Channel>();
@@ -157,28 +193,38 @@ export default function Home() {
         </div>
       )}
 
-      {data && !loading && (
+      {data && filteredReport && !loading && (
         <div className="mt-6 space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-                {data.report.brand}
+                {filteredReport.brand}
               </h1>
               <p className="text-xs text-ink-500">
-                {summarisePeriod(data.report.range)} ·{" "}
-                {data.report.totals.reviews.toLocaleString()} reviews across{" "}
-                {data.report.totals.stores.toLocaleString()} stores
+                {summarisePeriod(filteredReport.range)} ·{" "}
+                {filteredReport.totals.reviews.toLocaleString()} reviews across{" "}
+                {filteredReport.totals.stores.toLocaleString()} stores
               </p>
             </div>
             <ExportMenu
-              brand={data.report.brand}
+              brand={filteredReport.brand}
               from={resolvedRange.from}
               to={resolvedRange.to}
-              disabled={data.report.totals.reviews === 0}
+              excludedStoreIds={Array.from(excludedStores)}
+              disabled={filteredReport.totals.reviews === 0}
             />
           </div>
 
-          <Summary report={data.report} />
+          <StorePicker
+            brand={filteredReport.brand}
+            stores={data.report.stores.map((s) => s.store)}
+            excluded={excludedStores}
+            setExcluded={setExcludedStores}
+            strict={strictMatch}
+            setStrict={setStrictMatch}
+          />
+
+          <Summary report={filteredReport} />
 
           <Filters
             state={filters}
@@ -188,12 +234,12 @@ export default function Home() {
           />
 
           <div className="space-y-3">
-            {data.report.stores.length === 0 ? (
+            {filteredReport.stores.length === 0 ? (
               <div className="rounded-2xl border border-black/5 bg-white p-8 text-center text-sm text-ink-500 shadow-card dark:border-white/10 dark:bg-ink-900">
-                No stores found for "{data.report.brand}".
+                No stores selected. Use "Stores included" above to add some.
               </div>
             ) : (
-              data.report.stores.map((s) => (
+              filteredReport.stores.map((s) => (
                 <StoreCard
                   key={s.store.id}
                   summary={s}
@@ -206,7 +252,7 @@ export default function Home() {
             )}
           </div>
 
-          <ChannelLegend channels={(Object.keys(data.report.totals.byChannel) as Channel[])} />
+          <ChannelLegend channels={(Object.keys(filteredReport.totals.byChannel) as Channel[])} />
         </div>
       )}
     </main>
