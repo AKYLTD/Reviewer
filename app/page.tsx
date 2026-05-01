@@ -15,7 +15,7 @@ import { InfoIcon, SparkIcon } from "@/components/icons";
 
 interface ApiResponse {
   ok: boolean;
-  mode: "live" | "demo";
+  mode: "live" | "demo" | "scrape";
   channels: string[];
   report: BrandReport;
 }
@@ -151,9 +151,19 @@ export default function Home() {
           {data ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-black/5 bg-white px-2.5 py-1 dark:border-white/10 dark:bg-ink-900">
               <span
-                className={`h-1.5 w-1.5 rounded-full ${data.mode === "live" ? "bg-emerald-500" : "bg-amber-500"}`}
+                className={`h-1.5 w-1.5 rounded-full ${
+                  data.mode === "live"
+                    ? "bg-emerald-500"
+                    : data.mode === "scrape"
+                      ? "bg-sky-500"
+                      : "bg-amber-500"
+                }`}
               />
-              {data.mode === "live" ? "Live data" : "Demo data"}
+              {data.mode === "live"
+                ? "Live API"
+                : data.mode === "scrape"
+                  ? "Scraped data"
+                  : "Demo data"}
             </span>
           ) : null}
         </span>

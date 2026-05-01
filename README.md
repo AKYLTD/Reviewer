@@ -33,13 +33,38 @@ so you can explore the UI immediately.
 
 ## Going live
 
-Copy `.env.example` to `.env.local` and set:
+Three data modes, configured via `DATA_MODE` in `.env.local`:
+
+### `live` — official APIs (recommended for production)
 
 ```
 DATA_MODE=live
 GOOGLE_PLACES_API_KEY=AIza...        # required for Google
-DELIVEROO_FEED_URL=https://...       # optional, your own scraper/feed
+DELIVEROO_FEED_URL=https://...       # optional, your own feed
 ```
+
+Stable, fast, but Places Details only returns the latest 5 reviews per place
+and has per-call cost.
+
+### `scrape` — free Google Maps scraping (no API key)
+
+```
+DATA_MODE=scrape
+```
+
+Uses Playwright to drive a real Chromium and pull every public review for each
+discovered store. After `npm install`, run once:
+
+```
+npx playwright install chromium
+```
+
+Trade-offs: ~10-20 seconds per brand search (it's driving a real browser),
+fragile to Google DOM changes, and Google may temporarily rate-limit your IP
+if hammered. Fine for personal/internal use; not appropriate for a public
+SaaS without proper proxying and caching. Note: Deliveroo and Uber Eats do
+**not** publish individual customer reviews on their public pages, only
+aggregate ratings — so there is nothing to scrape there.
 
 ### Channels
 

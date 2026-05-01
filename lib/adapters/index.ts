@@ -4,6 +4,8 @@ import { makeGoogleAdapter } from "./google";
 import { makeDeliverooAdapter } from "./deliveroo";
 import { makeDemoAdapter } from "./demo";
 
+export type DataMode = "live" | "demo" | "scrape";
+
 function liveAdapters(): ChannelAdapter[] {
   return [
     makeGoogleAdapter(process.env.GOOGLE_PLACES_API_KEY),
@@ -20,11 +22,30 @@ function demoAdapters(): ChannelAdapter[] {
   ];
 }
 
-function activeAdapters(): { adapters: ChannelAdapter[]; mode: "live" | "demo" } {
-  const mode = (process.env.DATA_MODE ?? "demo").toLowerCase();
+async function scrapeAdapters(): Promise<ChannelAdapter[]> {
+  // Lazy-load the scraper so a missing/uninstalled Playwright doesn't break
+  // demo or live mode. Falls back gracefully if the import fails.
+  try {
+    const mod = await import("./google-scrape");
+    return [mod.makeGoogleScraperAdapter()];
+  } catch (err) {
+    console.warn(
+      "[reviewer] scrape mode requested but Playwright is unavailable. Run `npm install` and `npx playwright install chromium`. Falling back to demo data.",
+      err instanceof Error ? err.message : err,
+    );
+    return [];
+  }
+}
+
+async function activeAdapters(): Promise<{ adapters: ChannelAdapter[]; mode: DataMode }> {
+  const mode = (process.env.DATA_MODE ?? "demo").toLowerCase() as DataMode;
   if (mode === "live") {
     const live = liveAdapters();
     if (live.length > 0) return { adapters: live, mode: "live" };
+  }
+  if (mode === "scrape") {
+    const scrape = await scrapeAdapters();
+    if (scrape.length > 0) return { adapters: scrape, mode: "scrape" };
   }
   return { adapters: demoAdapters(), mode: "demo" };
 }
@@ -50,10 +71,10 @@ function mergeStores(lists: Store[][]): Store[] {
 export async function gatherForBrand(brand: string): Promise<{
   stores: Store[];
   reviews: Review[];
-  mode: "live" | "demo";
+  mode: DataMode;
   channels: string[];
 }> {
-  const { adapters, mode } = activeAdapters();
+  const { adapters, mode } = await activeAdapters();
   const storeLists = await Promise.all(adapters.map((a) => a.findStores(brand).catch(() => [])));
   const stores = mergeStores(storeLists);
 
