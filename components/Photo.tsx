@@ -1,22 +1,30 @@
 import Image from "next/image";
 
 interface PhotoProps {
-  /** Path to the photograph, e.g. /images/hero-bagels.jpg. When omitted, an
-   *  intentional graphite plate is rendered — a holding frame, not a broken
-   *  image. Photography for this site is intentionally being commissioned
-   *  fresh; the brief calls for a post-makeover interior shoot and a
-   *  golden-hour shopfront. */
   src?: string;
   alt: string;
   width?: number;
   height?: number;
-  /** Aspect ratio for the holding frame (CSS aspect-ratio string). */
   aspect?: string;
   caption?: string;
   priority?: boolean;
   className?: string;
+  /** Visual tone for the placeholder when no src is provided. */
+  tone?: "ink" | "warm" | "ember" | "bone";
 }
 
+const TONES: Record<NonNullable<PhotoProps["tone"]>, string> = {
+  ink: "from-[#1a1814] to-[#3a342b] text-bone",
+  warm: "from-[#d6c9b0] to-[#a8997d] text-ink",
+  ember: "from-[#A4422A] to-[#6e2a18] text-bone",
+  bone: "from-[#f0e9d8] to-[#d6cdb6] text-ink",
+};
+
+/**
+ * Photography frame. With a real `src` it renders the optimised image with a
+ * film-grain overlay. Without one, it renders an intentional tonal plate —
+ * cinematic gradient, the alt as small caption, no "broken image" feel.
+ */
 export function Photo({
   src,
   alt,
@@ -26,11 +34,12 @@ export function Photo({
   caption,
   priority = false,
   className = "",
+  tone = "warm",
 }: PhotoProps) {
   return (
     <figure className={className}>
       <div
-        className="relative w-full overflow-hidden bg-bone"
+        className="relative w-full overflow-hidden grain"
         style={{ aspectRatio: aspect }}
       >
         {src ? (
@@ -43,7 +52,7 @@ export function Photo({
             className="h-full w-full object-cover"
           />
         ) : (
-          <PlaceholderPlate label={alt} />
+          <PlaceholderPlate label={alt} tone={tone} />
         )}
       </div>
       {caption && (
@@ -53,28 +62,28 @@ export function Photo({
   );
 }
 
-function PlaceholderPlate({ label }: { label: string }) {
+function PlaceholderPlate({ label, tone }: { label: string; tone: NonNullable<PhotoProps["tone"]> }) {
   return (
-    <div className="absolute inset-0 flex items-end justify-between p-5">
-      <svg
+    <div
+      className={`absolute inset-0 bg-gradient-to-br ${TONES[tone]} flex items-end p-6`}
+    >
+      {/* Soft vignette */}
+      <div
         aria-hidden
-        className="absolute inset-0 h-full w-full text-ink/8"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="currentColor" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect width="100" height="100" fill="url(#hatch)" />
-      </svg>
-      <span className="relative font-sans text-[0.65rem] font-light uppercase tracking-widest text-ink/55">
-        Photograph &mdash; {label}
-      </span>
-      <span className="relative font-editorial italic text-[0.85rem] text-ink/55">
-        to be commissioned
-      </span>
+        className="absolute inset-0 mix-blend-multiply"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.18) 100%)",
+        }}
+      />
+      <div className="relative flex w-full items-end justify-between gap-6">
+        <span className="font-sans text-[0.62rem] font-light uppercase tracking-widest opacity-70">
+          {label}
+        </span>
+        <span className="font-editorial italic text-[0.85rem] opacity-70">
+          photograph pending
+        </span>
+      </div>
     </div>
   );
 }

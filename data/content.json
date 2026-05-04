@@ -1,0 +1,59 @@
+{
+  "brand": {
+    "wordmark": "RONI'S",
+    "subtitle": "Belsize Village",
+    "descriptor": "BAGEL BAKERY & CAFÉ",
+    "addressNumber": "37—39",
+    "logoSrc": "",
+    "tagline": "Boiled in the morning, eaten before the lunch rush."
+  },
+  "hero": {
+    "headline": "A bagel bakery and café on Belsize Lane.",
+    "subhead": "Boiled, baked, and handed across the counter since 2011.",
+    "primaryCta": { "label": "Order ahead", "href": "/click-collect" },
+    "secondaryCta": { "label": "Catering enquiry", "href": "/catering" }
+  },
+  "openingNote": {
+    "title": "Boiled in the morning, eaten before the lunch rush.",
+    "body": [
+      "Our dough is mixed the night before and rested cold so the crust cracks rather than tears. Each bagel is hand-rolled, kettled in barley malt, and baked through to a chestnut top. We sell what we bake; when the rack runs out, we stop.",
+      "Behind the counter is a kitchen that turns those bagels into breakfast platters, weekday sandwiches, weekend brunches, and celebration trays. The till sends every order straight to the kitchen printer — the queue you see on the screen is the queue we're working through."
+    ]
+  },
+  "process": [
+    { "n": "i", "label": "Kettled in barley-malt water" },
+    { "n": "ii", "label": "Hand-rolled, rested cold" },
+    { "n": "iii", "label": "Across the counter" }
+  ],
+  "hours": [
+    { "day": "Monday — Friday", "hours": "7:00 — 20:00" },
+    { "day": "Saturday", "hours": "8:00 — 20:00" },
+    { "day": "Sunday", "hours": "8:00 — 18:00" }
+  ],
+  "address": {
+    "line1": "37–39 Belsize Lane",
+    "line2": "London NW3 5AS",
+    "phone": "020 7794 8133",
+    "email": "hello@ronisbelsize.com"
+  },
+  "story": {
+    "intro": "From West Hampstead in 1989 to Belsize Village in 2011 — the long version.",
+    "milestones": [
+      {
+        "year": "1989",
+        "place": "West Hampstead",
+        "body": "Roni Avital opened the first shop on West End Lane with a small kettle, a stone deck oven, and an unfashionable stubbornness about boiling bagels."
+      },
+      {
+        "year": "2011",
+        "place": "Belsize Village",
+        "body": "The second shop opened on Belsize Lane. Same recipe, longer counter, a small dining room that became a Saturday-morning fixture."
+      },
+      {
+        "year": "2025",
+        "place": "The new sign",
+        "body": "We took the building back to its bones, kept the bake exactly as it was, and re-cut the shopfront sign."
+      }
+    ]
+  }
+}

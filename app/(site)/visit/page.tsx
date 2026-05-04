@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/Section";
 import { Photo } from "@/components/Photo";
+import { getContent } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Visit",
@@ -8,11 +9,7 @@ export const metadata: Metadata = {
     "Roni's Belsize Village — 37–39 Belsize Lane, London NW3 5AS. Hours, transport and parking.",
 };
 
-const HOURS = [
-  { day: "Monday — Friday", hours: "7:00 — 20:00" },
-  { day: "Saturday", hours: "8:00 — 20:00" },
-  { day: "Sunday", hours: "8:00 — 18:00" },
-];
+export const revalidate = 60;
 
 const TRANSPORT = [
   { label: "Belsize Park", detail: "Northern line · 6 min walk along Belsize Park Gardens" },
@@ -21,7 +18,9 @@ const TRANSPORT = [
   { label: "Cycle", detail: "Santander dock at Belsize Lane / Belsize Park Gardens" },
 ];
 
-export default function VisitPage() {
+export default async function VisitPage() {
+  const { brand, address, hours: HOURS } = await getContent();
+  const mapQuery = encodeURIComponent(`${address.line1}, ${address.line2}`);
   return (
     <main>
       <Section size="tall">
@@ -29,7 +28,7 @@ export default function VisitPage() {
           <div className="md:col-span-7">
             <p className="label">Visit</p>
             <h1 className="mt-6 font-display text-display-lg leading-[0.96] text-ink">
-              37&ndash;39
+              {brand.addressNumber}
               <br />
               Belsize Lane.
             </h1>
@@ -39,8 +38,10 @@ export default function VisitPage() {
               behaves.
             </p>
             <p className="editorial mt-4">
-              London NW3 5AS &middot;{" "}
-              <a className="anchor" href="tel:+442077948133">020 7794 8133</a>
+              {address.line2} &middot;{" "}
+              <a className="anchor" href={`tel:${address.phone.replace(/\s+/g, "")}`}>
+                {address.phone}
+              </a>
             </p>
           </div>
           <div className="md:col-span-5">
@@ -99,7 +100,7 @@ export default function VisitPage() {
           <div className="aspect-[16/9] w-full bg-bone">
             <iframe
               title="Roni's Belsize Village on the map"
-              src="https://www.google.com/maps?q=37-39+Belsize+Lane,+London+NW3+5AS&z=16&output=embed"
+              src={`https://www.google.com/maps?q=${mapQuery}&z=16&output=embed`}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
               className="h-full w-full"

@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Marcellus, EB_Garamond, Public_Sans } from "next/font/google";
 import "./globals.css";
-import { SiteNav } from "@/components/SiteNav";
-import { SiteFooter } from "@/components/SiteFooter";
 
 // "RONI'S" — tall, high-contrast modern serif (Didone family).
 // Marcellus is the closest free Didone-flavoured serif; it ships only one
@@ -60,11 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${display.variable} ${editorial.variable} ${sans.variable}`}
     >
-      <body className="min-h-screen antialiased">
-        <SiteNav />
-        {children}
-        <SiteFooter />
-      </body>
+      <body className="min-h-screen antialiased">{children}</body>
     </html>
   );
 }

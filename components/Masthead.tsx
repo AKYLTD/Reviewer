@@ -1,32 +1,30 @@
 import Image from "next/image";
 
 interface MastheadProps {
-  /**
-   * Optional path to the actual shopfront artwork (e.g. /logos/sign-final.png
-   * or /logos/sign.svg). When present, the artwork is used directly per the
-   * brief — the SVG reconstruction below is only a placeholder for
-   * environments where the file hasn't been added yet.
-   */
+  /** Optional path to the actual shopfront artwork (e.g. /logos/sign-final.png). */
   artwork?: string;
   artworkWidth?: number;
   artworkHeight?: number;
-  /** Variant — "hero" is the homepage masthead, "compact" is for the nav. */
   variant?: "hero" | "compact";
   className?: string;
+  /** Editable from /admin → brand. */
+  wordmark?: string;
+  subtitle?: string;
+  descriptor?: string;
+  addressNumber?: string;
 }
 
 /**
- * The shopfront sign is the brand's source of truth. This component renders
- * either the real artwork (if `artwork` is supplied — e.g. once
- * /public/logos/sign-final.png lands) or an SVG reconstruction built from the
- * three typographic registers described in the brief:
+ * The shopfront sign. Two render paths:
  *
- *   1. RONI'S        → Marcellus (Didone-family display serif)
- *   2. Belsize Village → EB Garamond Bold Italic (old-style)
- *   3. 37 BAGEL BAKERY & CAFÉ 39 → Public Sans Light, wide-tracked
+ *   1. If `artwork` is supplied, use it. The brief is right that the real
+ *      sign should win once the file is in place.
+ *   2. Otherwise, render a sign-shaped reconstruction from three typographic
+ *      registers, choreographed in three distinct motions on first paint —
+ *      the descriptor row parts outward, RONI'S settles down from above with
+ *      letter-spacing tightening, and "Belsize Village" trails in italic.
  *
- * The reconstruction is good enough to ship the site immediately; the real
- * artwork should replace it as soon as it's available.
+ * The compact variant is for the navigation lockup.
  */
 export function Masthead({
   artwork,
@@ -34,13 +32,17 @@ export function Masthead({
   artworkHeight = 900,
   variant = "hero",
   className = "",
+  wordmark = "RONI’S",
+  subtitle = "Belsize Village",
+  descriptor = "BAGEL BAKERY & CAFÉ",
+  addressNumber = "37–39",
 }: MastheadProps) {
   if (artwork) {
     return (
       <div className={className}>
         <Image
           src={artwork}
-          alt="Roni's · Belsize Village · Bagel Bakery & Café · 37–39 Belsize Lane"
+          alt={`${wordmark} ${subtitle} ${descriptor} ${addressNumber}`}
           width={artworkWidth}
           height={artworkHeight}
           priority={variant === "hero"}
@@ -54,41 +56,70 @@ export function Masthead({
     return (
       <span
         className={`inline-flex items-baseline gap-[0.18em] font-display leading-none text-ink ${className}`}
-        aria-label="Roni's Belsize Village"
+        aria-label={`${wordmark} ${subtitle}`}
       >
-        <span className="text-[1.15rem] tracking-[0.02em]">RONI&rsquo;S</span>
+        <span className="text-[1.2rem] tracking-[0.02em]">{wordmark}</span>
         <span className="font-editorial italic text-[0.95rem] font-semibold">
-          Belsize&nbsp;Village
+          {subtitle}
         </span>
       </span>
     );
   }
 
+  // Split addressNumber so we can render flanking address numerals (37 — 39).
+  const [addrLeft, addrRight] = addressNumber.includes("–")
+    ? addressNumber.split("–")
+    : addressNumber.includes("-")
+      ? addressNumber.split("-")
+      : [addressNumber, addressNumber];
+
   return (
-    <div className={`relative w-full ${className}`} aria-label="Roni's · Belsize Village · Bagel Bakery & Café · 37–39">
-      {/* Top descriptor row: 37 — BAGEL BAKERY & CAFÉ — 39 */}
-      <div className="flex items-center justify-center gap-[clamp(1rem,3vw,2.5rem)]">
-        <span className="font-sans font-extralight tracking-signage text-[clamp(0.625rem,1.1vw,0.875rem)] text-ink">
-          37
+    <div
+      className={`relative w-full ${className}`}
+      aria-label={`${wordmark} · ${subtitle} · ${descriptor} · ${addressNumber}`}
+    >
+      {/* DESCRIPTOR ROW ----------------------------------------------------- */}
+      <div className="flex items-center justify-center gap-[clamp(0.75rem,2.5vw,2rem)]">
+        <span
+          className="font-sans font-extralight tracking-signage text-[clamp(0.625rem,1.05vw,0.8rem)] text-ink animate-descriptor-part"
+          style={{ animationDelay: "0ms" }}
+        >
+          {addrLeft.trim()}
         </span>
-        <span aria-hidden className="h-px w-[clamp(1rem,3vw,3rem)] bg-ink/60" />
-        <span className="font-sans font-extralight tracking-signage text-[clamp(0.625rem,1.1vw,0.875rem)] text-ink">
-          BAGEL BAKERY &amp; CAF&Eacute;
+        <span
+          aria-hidden
+          className="h-px w-[clamp(1rem,3vw,3rem)] bg-ink/60 origin-left animate-descriptor-part"
+          style={{ animationDelay: "60ms" }}
+        />
+        <span
+          className="font-sans font-extralight tracking-signage text-[clamp(0.625rem,1.05vw,0.8rem)] text-ink whitespace-nowrap animate-descriptor-part"
+          style={{ animationDelay: "120ms" }}
+        >
+          {descriptor}
         </span>
-        <span aria-hidden className="h-px w-[clamp(1rem,3vw,3rem)] bg-ink/60" />
-        <span className="font-sans font-extralight tracking-signage text-[clamp(0.625rem,1.1vw,0.875rem)] text-ink">
-          39
+        <span
+          aria-hidden
+          className="h-px w-[clamp(1rem,3vw,3rem)] bg-ink/60 origin-right animate-descriptor-part"
+          style={{ animationDelay: "60ms" }}
+        />
+        <span
+          className="font-sans font-extralight tracking-signage text-[clamp(0.625rem,1.05vw,0.8rem)] text-ink animate-descriptor-part"
+          style={{ animationDelay: "0ms" }}
+        >
+          {addrRight.trim()}
         </span>
       </div>
 
-      {/* RONI'S — the masthead. Animation is a single, slow settle. */}
-      <h1 className="mt-[clamp(0.5rem,1.5vw,1.25rem)] text-center font-display text-display-xl text-ink animate-settle">
-        <span className="inline-block">RONI&rsquo;S</span>
+      {/* WORDMARK — RONI'S, drops & tightens ------------------------------- */}
+      <h1 className="mt-[clamp(0.5rem,1.5vw,1.25rem)] text-center font-display text-display-2xl text-ink overflow-hidden">
+        <span className="inline-block animate-wordmark-settle">{wordmark}</span>
       </h1>
 
-      {/* Belsize Village — italic old-style serif beneath. */}
-      <p className="-mt-[clamp(0.25rem,0.75vw,0.75rem)] text-center font-editorial italic font-semibold text-[clamp(1.5rem,4vw,3rem)] leading-none text-ink">
-        Belsize Village
+      {/* ITALIC SUBTITLE — trails into place -------------------------------- */}
+      <p
+        className="-mt-[clamp(0.5rem,1.25vw,1.25rem)] text-center font-editorial italic font-semibold text-[clamp(1.5rem,4vw,3rem)] leading-none text-ink animate-italic-trail"
+      >
+        {subtitle}
       </p>
     </div>
   );

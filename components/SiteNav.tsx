@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Masthead } from "./Masthead";
 
 const NAV = [
+  { href: "/menu", label: "Menu" },
   { href: "/click-collect", label: "Order ahead" },
   { href: "/catering", label: "Catering" },
   { href: "/cakes", label: "Cakes" },
