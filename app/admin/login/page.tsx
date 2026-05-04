@@ -31,21 +31,20 @@ export default function LoginPage({
   const next = searchParams.next ?? "/admin";
 
   return (
-    <main className="grid min-h-[80vh] place-items-center px-page-x">
-      <div className="w-full max-w-md">
-        <p className="label">Roni&rsquo;s · Admin</p>
-        <h1 className="mt-3 font-display text-display-md text-ink">Sign in.</h1>
-        <p className="editorial mt-4 text-muted">
+    <main className="grid min-h-screen place-items-center bg-cream px-page-x">
+      <div className="card w-full max-w-md p-10">
+        <span className="label">Admin</span>
+        <h1 className="mt-3 font-display font-700 text-display-md text-coffee leading-tight">
+          Sign in.
+        </h1>
+        <p className="editorial mt-3">
           Edit brand text, hours, menu items, and prices.
         </p>
 
-        <form action={signIn} className="mt-10 space-y-6">
+        <form action={signIn} className="mt-8 space-y-5">
           <input type="hidden" name="next" value={next} />
           <div>
-            <label
-              htmlFor="password"
-              className="label block"
-            >
+            <label htmlFor="password" className="block font-sans font-600 text-sm uppercase tracking-wide text-coffee">
               Password
             </label>
             <input
@@ -54,16 +53,16 @@ export default function LoginPage({
               type="password"
               required
               autoFocus
-              className="mt-3 w-full border-0 border-b border-hairline bg-transparent px-0 py-3 font-editorial text-[1.0625rem] text-ink placeholder:text-muted focus:border-ink focus:outline-none focus:ring-0"
+              className="mt-2 w-full rounded-md bg-cream/60 border border-hairline px-4 py-3 font-sans text-[1rem] text-coffee placeholder:text-muted focus:bg-cream focus:border-brick focus:outline-none focus:ring-2 focus:ring-brick/20 transition"
               placeholder="Enter admin password"
             />
           </div>
           {error && (
-            <p className="font-editorial italic text-[0.95rem] text-ember">
+            <p className="font-display text-brick">
               That password didn&rsquo;t match. Try again.
             </p>
           )}
-          <button type="submit" className="btn-ink w-full">
+          <button type="submit" className="btn-primary w-full">
             <span>Sign in</span>
           </button>
         </form>

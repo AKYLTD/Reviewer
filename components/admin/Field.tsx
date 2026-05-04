@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 const INPUT =
-  "w-full border-0 border-b border-hairline bg-transparent px-0 py-3 font-editorial text-[1.0625rem] text-ink placeholder:text-muted focus:border-ink focus:outline-none focus:ring-0";
+  "w-full rounded-md bg-ivory border border-hairline px-4 py-3 font-sans text-[1rem] text-coffee placeholder:text-muted focus:border-brick focus:outline-none focus:ring-2 focus:ring-brick/20 transition";
 
 export function Field({
   label,
@@ -14,9 +14,11 @@ export function Field({
 }) {
   return (
     <div>
-      <span className="label block">{label}</span>
+      <label className="block font-sans font-600 text-sm uppercase tracking-wide text-coffee">
+        {label}
+      </label>
       <div className="mt-2">{children}</div>
-      {hint && <p className="mt-2 font-editorial italic text-[0.85rem] text-muted">{hint}</p>}
+      {hint && <p className="mt-2 font-sans text-[0.85rem] text-muted">{hint}</p>}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Section } from "@/components/Section";
 import { Reveal } from "@/components/Reveal";
 import { Magnetic } from "@/components/Magnetic";
+import { BagelMark } from "@/components/BagelMark";
 import { getLiveMenu, formatPrice, type Menu, SquareNotConfiguredError } from "@/lib/square";
 import { getMenu, priceFromPence } from "@/lib/content";
 
@@ -91,55 +92,60 @@ async function loadMenu(): Promise<DisplayMenu> {
   };
 }
 
+function slug(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 export default async function MenuPage() {
   const menu = await loadMenu();
 
   return (
     <main>
-      <Section size="tall">
-        <div className="grid gap-10 md:grid-cols-12">
+      {/* HEAD ---------------------------------------------------------------- */}
+      <Section size="tall" panel="cream" className="relative overflow-hidden">
+        <span aria-hidden className="absolute -top-16 -right-16 opacity-25 pointer-events-none">
+          <BagelMark className="h-80 w-80" spin />
+        </span>
+        <div className="relative grid gap-10 md:grid-cols-12 items-end">
           <div className="md:col-span-7">
-            <p className="label">Menu</p>
-            <h1 className="mt-5 font-display text-display-lg leading-[0.96] text-ink">
+            <span className="label">Menu</span>
+            <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
               Today, on the counter.
             </h1>
-            <p className="editorial mt-8 max-w-prose">
+            <p className="editorial mt-6 max-w-prose text-[1.15rem]">
               Drawn from the till. What&rsquo;s on this page is what we&rsquo;ve
-              got, at the prices we&rsquo;re charging today. When the rack runs
-              out, the item disappears.
+              got, at the prices we&rsquo;re charging right now. When the rack
+              runs out, the item disappears.
             </p>
-            <p className="mt-6">
-              <span className="label">Source</span>{" "}
-              <span className="font-editorial italic text-muted ml-2">
-                {menu.source === "square"
-                  ? "Live from Square · refreshed every minute"
-                  : "Manual menu · edit at /admin/menu"}
-              </span>
+            <p className="mt-6 inline-flex items-center gap-3 rounded-pill bg-coffee text-saffron px-4 py-2 font-display font-600 text-sm">
+              <span className="h-2 w-2 rounded-pill bg-saffron animate-pulse" />
+              {menu.source === "square" ? "Live from Square — refreshed every minute" : "Manual menu"}
             </p>
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-3">
               <Magnetic>
-                <Link href="/click-collect" className="btn-ink">
+                <Link href="/click-collect" className="btn-primary">
                   <span>Order ahead</span>
                 </Link>
               </Magnetic>
               <Magnetic>
-                <Link href="/visit" className="btn-ghost">
+                <Link href="/visit" className="btn-saffron">
                   Eat in
                 </Link>
               </Magnetic>
             </div>
           </div>
-          <div className="md:col-span-4 md:col-start-9 md:sticky md:top-24 md:self-start">
-            <p className="label">Categories</p>
-            <ul className="mt-4 space-y-2">
+          {/* Category jump-list --- big rounded chips */}
+          <div className="md:col-span-4 md:col-start-9">
+            <span className="label-muted">Jump to</span>
+            <ul className="mt-4 flex flex-wrap gap-2">
               {menu.categories.map((c) => (
                 <li key={c.name}>
                   <a
                     href={`#${slug(c.name)}`}
-                    className="anchor font-editorial text-[1.05rem] text-ink"
+                    className="inline-flex items-center gap-2 rounded-pill bg-ivory px-4 py-2 font-display font-600 text-coffee shadow-soft transition-colors hover:bg-saffron"
                   >
-                    {c.name}{" "}
-                    <span className="text-muted text-[0.85rem]">({c.items.length})</span>
+                    {c.name}
+                    <span className="text-brick text-sm">{c.items.length}</span>
                   </a>
                 </li>
               ))}
@@ -148,52 +154,82 @@ export default async function MenuPage() {
         </div>
       </Section>
 
+      {/* CATEGORIES ---------------------------------------------------------- */}
       {menu.categories.length === 0 ? (
-        <Section>
+        <Section panel="cream">
           <p className="editorial">
-            No items available right now. Please call the shop on{" "}
+            Nothing on the rack right now. Call us on{" "}
             <a className="anchor" href="tel:+442077948133">020 7794 8133</a>.
           </p>
         </Section>
       ) : (
-        menu.categories.map((cat) => (
-          <Section key={cat.name} size="default">
-            <article id={slug(cat.name)} className="scroll-mt-24">
-              <header className="mb-10 flex items-end justify-between gap-6 border-b border-hairline pb-4">
-                <h2 className="font-display text-display-md text-ink">{cat.name}</h2>
-                <span className="label text-muted">{cat.items.length} items</span>
-              </header>
-              <ul className="grid gap-px md:grid-cols-2">
-                {cat.items.map((item, i) => (
-                  <li key={item.id} className="border-b border-hairline">
-                    <Reveal delay={Math.min(i, 6) * 60}>
-                      <article className="flex h-full items-baseline justify-between gap-6 px-1 py-7 md:px-6">
+        menu.categories.map((cat, ci) => (
+          <Section
+            key={cat.name}
+            panel={ci % 2 === 0 ? "cream" : "ivory"}
+            id={slug(cat.name)}
+          >
+            <header className="mb-12 flex flex-wrap items-end justify-between gap-6">
+              <div>
+                <span className="label">{String(ci + 1).padStart(2, "0")}</span>
+                <h2 className="mt-3 font-display font-700 text-display-lg text-coffee">
+                  {cat.name}
+                </h2>
+              </div>
+              <span className="label-muted">{cat.items.length} items</span>
+            </header>
+            <ul className="grid gap-5 md:grid-cols-2">
+              {cat.items.map((item, i) => (
+                <li key={item.id}>
+                  <Reveal delay={Math.min(i, 6) * 50}>
+                    <article className="card p-6 h-full transition-all hover:-translate-y-1 hover:shadow-pop">
+                      <div className="flex items-start justify-between gap-5">
                         <div className="min-w-0">
-                          <h3 className="font-editorial text-[1.25rem] text-ink leading-tight">
+                          <h3 className="font-display font-700 text-xl text-coffee leading-tight">
                             {item.name}
                           </h3>
                           {item.description && (
-                            <p className="editorial mt-2 text-[1rem] text-muted">
-                              {item.description}
-                            </p>
+                            <p className="editorial mt-2 text-[1rem]">{item.description}</p>
                           )}
                         </div>
-                        <span className="price-chip whitespace-nowrap pt-1">
+                        <span className="price-chip whitespace-nowrap shrink-0">
                           {item.price || "—"}
                         </span>
-                      </article>
-                    </Reveal>
-                  </li>
-                ))}
-              </ul>
-            </article>
+                      </div>
+                    </article>
+                  </Reveal>
+                </li>
+              ))}
+            </ul>
           </Section>
         ))
       )}
+
+      {/* CTA STRIP ----------------------------------------------------------- */}
+      <Section panel="brick">
+        <div className="grid gap-8 md:grid-cols-12 items-center">
+          <div className="md:col-span-7">
+            <h2 className="font-display font-700 text-display-lg leading-[1.0]">
+              Hungry? Order ahead.
+            </h2>
+            <p className="editorial mt-4">
+              Most orders are ready twelve minutes after you tap pay.
+            </p>
+          </div>
+          <div className="md:col-span-5 flex flex-wrap gap-3 md:justify-end">
+            <Magnetic>
+              <Link href="/click-collect" className="btn-saffron">
+                Click &amp; collect
+              </Link>
+            </Magnetic>
+            <Magnetic>
+              <Link href="/catering" className="btn-ghost border-cream text-cream hover:bg-cream hover:text-coffee">
+                Catering
+              </Link>
+            </Magnetic>
+          </div>
+        </div>
+      </Section>
     </main>
   );
-}
-
-function slug(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }

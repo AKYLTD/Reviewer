@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Masthead } from "@/components/Masthead";
 import { Section } from "@/components/Section";
 import { Photo } from "@/components/Photo";
 import { OrderingPaths } from "@/components/OrderingPaths";
 import { Reveal } from "@/components/Reveal";
 import { Magnetic } from "@/components/Magnetic";
 import { MorningTicker } from "@/components/MorningTicker";
+import { Marquee } from "@/components/Marquee";
+import { BagelMark } from "@/components/BagelMark";
 import {
   KettleIllustration,
   BenchIllustration,
@@ -15,271 +16,311 @@ import { getContent } from "@/lib/content";
 
 export const revalidate = 60;
 
+const STEPS = [
+  { title: "Choose", body: "Browse the menu, by the dozen or by the half." },
+  { title: "Time it", body: "Pick a slot. Most orders are ready in twelve minutes." },
+  { title: "Walk in", body: "Your order prints in the kitchen the moment you place it." },
+];
+
 export default async function HomePage() {
   const content = await getContent();
-  const { brand, hero, openingNote, process, hours, address } = content;
+  const { brand, hero, openingNote, hours, address } = content;
 
   return (
     <main>
-      {/* MASTHEAD ----------------------------------------------------------- */}
-      <Section size="tall">
-        <Masthead
-          artwork={brand.logoSrc || undefined}
-          wordmark={brand.wordmark}
-          subtitle={brand.subtitle}
-          descriptor={brand.descriptor}
-          addressNumber={brand.addressNumber}
-          className="mx-auto max-w-[68rem]"
-        />
+      {/* HERO ---------------------------------------------------------------- */}
+      <Section size="tall" panel="cream" className="relative overflow-hidden">
+        {/* Decorative bagel marks floating in the corners */}
+        <span aria-hidden className="absolute -top-12 -left-12 opacity-30 pointer-events-none">
+          <BagelMark className="h-72 w-72" spin />
+        </span>
+        <span aria-hidden className="absolute -bottom-20 -right-16 opacity-20 pointer-events-none">
+          <BagelMark className="h-96 w-96" spin />
+        </span>
 
-        <div className="mx-auto mt-12 max-w-[28rem] text-center">
-          <p className="editorial">{hero.subhead}</p>
-        </div>
-
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <Magnetic>
-            <Link href={hero.primaryCta.href} className="btn-ink">
-              <span>{hero.primaryCta.label}</span>
-            </Link>
-          </Magnetic>
-          <Magnetic>
-            <Link href={hero.secondaryCta.href} className="btn-ghost">
-              {hero.secondaryCta.label}
-            </Link>
-          </Magnetic>
-        </div>
-
-        <div className="mt-14 flex justify-center">
-          <MorningTicker />
-        </div>
-      </Section>
-
-      {/* HERO PHOTOGRAPHY — full-bleed reveal -------------------------------- */}
-      <div className="px-page-x">
-        <Reveal as="photo" className="mx-auto max-w-[1440px]">
-          <Photo
-            alt="A morning bake of bagels, still warm"
-            aspect="21 / 9"
-            tone="ink"
-          />
-        </Reveal>
-      </div>
-
-      {/* OPENING NOTE — magazine-style, ember pull-quote underline ----------- */}
-      <Section>
-        <div className="grid gap-12 md:grid-cols-12 md:gap-16">
-          <Reveal className="md:col-span-5">
-            <p className="font-display text-display-md text-ink">
-              {openingNote.title.split(",").map((part, i, arr) => (
-                <span key={i}>
-                  {part}
-                  {i < arr.length - 1 && (
-                    <span className="text-ember">,</span>
-                  )}
-                </span>
-              ))}
+        <div className="relative grid gap-12 md:grid-cols-12 items-center">
+          <div className="md:col-span-7">
+            <span className="label">{brand.descriptor} · {brand.addressNumber}</span>
+            <h1 className="mt-5 font-display font-700 text-display-2xl text-coffee leading-[0.92]">
+              Fresh bagels,
+              <br />
+              <span className="text-brick">boiled this morning.</span>
+            </h1>
+            <p className="editorial mt-6 max-w-prose text-[1.2rem]">
+              {hero.subhead}
             </p>
-          </Reveal>
-          <div className="md:col-span-6 md:col-start-7">
-            {openingNote.body.map((para, i) => (
-              <Reveal key={i} delay={120 * (i + 1)}>
-                <p className="editorial mt-5 first:mt-0">{para}</p>
-              </Reveal>
-            ))}
-            <Reveal delay={400}>
-              <Link
-                href="/story"
-                className="anchor mt-8 inline-block font-sans text-[0.78rem] font-light uppercase tracking-widest"
-              >
-                Read the story
-              </Link>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Magnetic>
+                <Link href={hero.primaryCta.href} className="btn-primary">
+                  <span>{hero.primaryCta.label}</span>
+                </Link>
+              </Magnetic>
+              <Magnetic>
+                <Link href={hero.secondaryCta.href} className="btn-saffron">
+                  {hero.secondaryCta.label}
+                </Link>
+              </Magnetic>
+            </div>
+            <div className="mt-10">
+              <MorningTicker />
+            </div>
+          </div>
+
+          <div className="md:col-span-5 relative">
+            <Reveal as="photo">
+              <Photo
+                alt="A morning bake of bagels, still warm"
+                aspect="4 / 5"
+                tone="brick"
+                rounded="xl"
+                priority
+              />
             </Reveal>
+            {/* Floating saffron price badge */}
+            <div className="absolute -bottom-6 -left-6 flex items-center gap-3 rounded-pill bg-saffron px-5 py-3 shadow-pop animate-rise">
+              <BagelMark className="h-7 w-7" />
+              <span className="font-display font-700 text-coffee">From £2.50</span>
+            </div>
           </div>
         </div>
       </Section>
 
-      {/* PROCESS STRIP — illustrations, not photographs ---------------------- */}
-      <Section size="slim">
-        <header className="mb-10 flex items-end justify-between gap-6">
-          <p className="label">The bake</p>
-          <span className="hidden md:block label text-muted">i — iii</span>
-        </header>
-        <div className="grid gap-6 md:grid-cols-3 md:gap-12">
-          <Reveal delay={0}>
-            <ProcessCard
-              n={process[0]?.n ?? "i"}
-              label={process[0]?.label ?? "Kettled"}
-              illustration={
-                <KettleIllustration title="Kettle" className="mx-auto h-44 w-44 text-ink" />
-              }
-            />
-          </Reveal>
-          <Reveal delay={140}>
-            <ProcessCard
-              n={process[1]?.n ?? "ii"}
-              label={process[1]?.label ?? "Hand-rolled"}
-              illustration={
-                <BenchIllustration title="Bench" className="mx-auto h-44 w-44 text-ink" />
-              }
-            />
-          </Reveal>
-          <Reveal delay={280}>
-            <ProcessCard
-              n={process[2]?.n ?? "iii"}
-              label={process[2]?.label ?? "Counter"}
-              illustration={
-                <CounterIllustration title="Counter" className="mx-auto h-44 w-44 text-ink" />
-              }
-            />
-          </Reveal>
+      {/* MARQUEE BELT ------------------------------------------------------ */}
+      <section className="bg-coffee py-6 overflow-hidden">
+        <Marquee>
+          {[
+            "Bagels boiled at 5:30",
+            "★",
+            "Hand-rolled, rested cold",
+            "★",
+            "Smoked salmon · cream cheese · capers",
+            "★",
+            "Catering for 10 to 200",
+            "★",
+            "Open daily until 8pm",
+            "★",
+            "37—39 Belsize Lane",
+            "★",
+          ].map((t, i) => (
+            <span
+              key={i}
+              className="font-display text-[1.35rem] font-500 text-saffron whitespace-nowrap"
+            >
+              {t}
+            </span>
+          ))}
+        </Marquee>
+      </section>
+
+      {/* OPENING NOTE ------------------------------------------------------ */}
+      <Section panel="cream">
+        <div className="grid gap-10 md:grid-cols-12 items-center">
+          <div className="md:col-span-5">
+            <Reveal as="photo">
+              <Photo alt="Bagels on the bench, hand-rolled" aspect="4 / 5" tone="saffron" rounded="xl" />
+            </Reveal>
+          </div>
+          <div className="md:col-span-6 md:col-start-7">
+            <span className="label">Our way</span>
+            <h2 className="mt-4 font-display font-700 text-display-lg text-coffee leading-[1.0]">
+              {openingNote.title}
+            </h2>
+            <div className="mt-6 space-y-5">
+              {openingNote.body.map((p, i) => (
+                <p key={i} className="editorial">{p}</p>
+              ))}
+            </div>
+            <Magnetic>
+              <Link href="/story" className="btn-ghost mt-8">
+                Read the story
+              </Link>
+            </Magnetic>
+          </div>
         </div>
       </Section>
 
-      {/* ORDERING PATHS ----------------------------------------------------- */}
-      <Section>
-        <header className="mb-12 grid gap-6 md:grid-cols-12">
-          <h2 className="md:col-span-6 font-display text-display-md text-ink">
-            Four ways to order.
+      {/* HOW IT WORKS — three steps ---------------------------------------- */}
+      <Section panel="ivory">
+        <header className="mb-12 text-center">
+          <span className="label">How it works</span>
+          <h2 className="mt-4 font-display font-700 text-display-lg text-coffee">
+            Three steps to a warm bag.
           </h2>
-          <p className="md:col-span-5 md:col-start-8 editorial">
-            Every path lands in the same kitchen, on the same printer, with
-            the same baker. Choose by occasion.
+        </header>
+        <ol className="grid gap-6 md:grid-cols-3">
+          {STEPS.map((s, i) => (
+            <Reveal key={s.title} delay={i * 120}>
+              <li className="card p-8 h-full text-center">
+                <span className="inline-flex h-14 w-14 items-center justify-center rounded-pill bg-saffron text-coffee font-display font-700 text-xl">
+                  {i + 1}
+                </span>
+                <h3 className="mt-5 font-display font-700 text-2xl text-coffee">
+                  {s.title}
+                </h3>
+                <p className="editorial mt-3">{s.body}</p>
+              </li>
+            </Reveal>
+          ))}
+        </ol>
+        <div className="mt-12 text-center">
+          <Magnetic>
+            <Link href="/click-collect" className="btn-primary">
+              <span>Order ahead now</span>
+            </Link>
+          </Magnetic>
+        </div>
+      </Section>
+
+      {/* PROCESS — illustrations on saffron --------------------------------- */}
+      <Section panel="saffron">
+        <header className="mb-12">
+          <span className="label-muted">i — iii</span>
+          <h2 className="mt-3 font-display font-700 text-display-lg text-coffee">
+            From the kettle to the counter.
+          </h2>
+        </header>
+        <div className="grid gap-6 md:grid-cols-3">
+          {[
+            { ill: <KettleIllustration title="Kettle" className="mx-auto h-32 w-32 text-coffee" />, n: "i", t: "Kettled" },
+            { ill: <BenchIllustration title="Bench" className="mx-auto h-32 w-32 text-coffee" />, n: "ii", t: "Hand-rolled" },
+            { ill: <CounterIllustration title="Counter" className="mx-auto h-32 w-32 text-coffee" />, n: "iii", t: "Counter" },
+          ].map((s, i) => (
+            <Reveal key={s.n} delay={i * 100}>
+              <article className="rounded-xl bg-cream p-8 text-center shadow-soft">
+                {s.ill}
+                <p className="mt-4 font-sans font-600 text-brick text-sm uppercase tracking-wide">
+                  {s.n}.
+                </p>
+                <p className="mt-1 font-display font-700 text-2xl text-coffee">
+                  {s.t}
+                </p>
+              </article>
+            </Reveal>
+          ))}
+        </div>
+      </Section>
+
+      {/* FOUR ORDERING PATHS ------------------------------------------------ */}
+      <Section panel="cream">
+        <header className="mb-12 grid gap-6 md:grid-cols-12 md:items-end">
+          <div className="md:col-span-7">
+            <span className="label">Order</span>
+            <h2 className="mt-4 font-display font-700 text-display-lg text-coffee">
+              Four ways to get your bagels.
+            </h2>
+          </div>
+          <p className="md:col-span-5 editorial">
+            Every path lands on the same kitchen printer, with the same baker.
+            Choose by occasion.
           </p>
         </header>
         <OrderingPaths />
       </Section>
 
-      {/* MENU TEASER — ember-emphasised price chip --------------------------- */}
-      <section className="mt-12">
-        <div className="grid gap-0 md:grid-cols-12">
-          <Reveal as="photo" className="md:col-span-7">
-            <Photo
-              alt="Bagels on the counter, still warm"
-              aspect="5 / 4"
-              tone="warm"
-              className="h-full"
-            />
-          </Reveal>
-          <div className="flex flex-col justify-center bg-bone p-page-x py-16 md:col-span-5 md:py-24 md:pl-12 md:pr-page-x">
-            <p className="label">From the till</p>
-            <h3 className="mt-4 font-display text-display-md text-ink">
-              Today&rsquo;s menu, live from the counter.
-            </h3>
-            <p className="editorial mt-5">
-              Eat-in and takeaway, drawn directly from our till. Prices and
-              availability update with the kitchen.
-            </p>
-            <p className="mt-6">
-              <span className="price-chip">from £2.50</span>
-              <span className="ml-2 font-editorial italic text-muted">
-                a plain bagel, boiled this morning
-              </span>
+      {/* CATERING TEASER --- big brick block --------------------------------- */}
+      <section className="panel-brick">
+        <div className="mx-auto max-w-[1320px] px-page-x py-20 md:py-28 grid gap-12 md:grid-cols-12 items-center">
+          <div className="md:col-span-5">
+            <span className="label">Catering</span>
+            <h2 className="mt-4 font-display font-700 text-display-lg leading-[1.0]">
+              Trays for the office,
+              <br />
+              <span className="text-saffron">quietly handled.</span>
+            </h2>
+            <p className="editorial mt-6">
+              Tell us how many people, when, and where. We&rsquo;ll come back
+              the same morning with a quote, an allergen-marked platter list,
+              and a delivery window.
             </p>
             <Magnetic>
-              <Link
-                href="/menu"
-                className="btn-ghost mt-8 self-start"
-              >
-                See the menu
+              <Link href="/catering" className="btn-saffron mt-8">
+                Start an enquiry
               </Link>
             </Magnetic>
+          </div>
+          <div className="md:col-span-7">
+            <Reveal as="photo">
+              <Photo
+                alt="A catering platter for an office"
+                aspect="5 / 4"
+                tone="coffee"
+                rounded="xl"
+              />
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* CATERING TEASER --------------------------------------------------- */}
-      <section className="mt-px">
-        <div className="grid gap-0 md:grid-cols-12">
-          <div className="flex flex-col justify-center bg-ink text-paper p-page-x py-16 md:col-span-5 md:py-24 md:pl-page-x md:pr-12">
-            <p className="label text-paper/70">For the office, the gathering, the shiva</p>
-            <h3 className="mt-4 font-display text-display-md text-paper">
-              Catering, quietly handled.
-            </h3>
-            <p className="editorial mt-5 text-paper/85">
-              Tell us how many people, when, and where. We&rsquo;ll send back a
-              quote with a platter list, allergens marked, and a delivery
-              window. Most enquiries are answered the same morning.
+      {/* MENU TEASER --- ivory ---------------------------------------------- */}
+      <Section panel="ivory">
+        <div className="grid gap-12 md:grid-cols-12 items-center">
+          <div className="md:col-span-7">
+            <Reveal as="photo">
+              <Photo alt="Today's menu on the counter" aspect="3 / 2" tone="cream" rounded="xl" />
+            </Reveal>
+          </div>
+          <div className="md:col-span-5">
+            <span className="label">Today&rsquo;s menu</span>
+            <h2 className="mt-4 font-display font-700 text-display-lg text-coffee leading-[1.0]">
+              Live from the till.
+            </h2>
+            <p className="editorial mt-6">
+              The menu page is wired straight to our Square till. Prices and
+              availability update with the kitchen. When the rack runs out,
+              the item disappears.
             </p>
+            <div className="mt-6 flex flex-wrap gap-3 items-center">
+              <span className="price-chip">from £2.50</span>
+              <span className="font-display text-coffee/70">a plain bagel, boiled this morning</span>
+            </div>
             <Magnetic>
-              <Link
-                href="/catering"
-                className="mt-8 inline-flex items-center justify-center self-start border border-paper px-5 py-3 font-sans text-[0.72rem] font-light uppercase tracking-widest text-paper transition-colors hover:bg-paper hover:text-ink"
-              >
-                Start a catering enquiry
+              <Link href="/menu" className="btn-primary mt-8">
+                <span>See the menu</span>
               </Link>
             </Magnetic>
           </div>
-          <Reveal as="photo" className="md:col-span-7">
-            <Photo
-              alt="A catering platter for an office of forty"
-              aspect="5 / 4"
-              tone="ink"
-              className="h-full"
-            />
-          </Reveal>
         </div>
-      </section>
+      </Section>
 
       {/* VISIT --------------------------------------------------------------- */}
-      <Section>
+      <Section panel="cream">
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-5">
-            <p className="label">Visit</p>
-            <p className="mt-4 font-display text-display-md text-ink leading-tight">
+            <span className="label">Visit</span>
+            <h2 className="mt-4 font-display font-700 text-display-lg text-coffee leading-[1.0]">
               {brand.addressNumber}
               <br />
-              <span className="font-editorial italic font-semibold">Belsize Lane</span>
-            </p>
+              <span className="text-brick">Belsize Lane.</span>
+            </h2>
             <p className="editorial mt-4">{address.line2}</p>
+            <Magnetic>
+              <Link href="/visit" className="btn-ghost mt-6">
+                Find us
+              </Link>
+            </Magnetic>
           </div>
           <div className="md:col-span-3">
-            <p className="label">Hours</p>
+            <span className="label">Hours</span>
             <ul className="editorial mt-4 space-y-1">
               {hours.map((row) => (
                 <li key={row.day}>
-                  {row.day} <span className="text-muted">·</span> {row.hours}
+                  <strong className="font-600 text-coffee">{row.day}</strong>
+                  <br />
+                  {row.hours}
                 </li>
               ))}
             </ul>
           </div>
           <div className="md:col-span-4">
-            <p className="label">Nearest</p>
+            <span className="label">Nearest</span>
             <ul className="editorial mt-4 space-y-1">
-              <li>Belsize Park · Northern line, 6 min walk</li>
-              <li>Swiss Cottage · Jubilee line, 9 min walk</li>
-              <li>Bus · 46 · 268 · C11</li>
+              <li><strong className="font-600 text-coffee">Belsize Park</strong> · Northern line, 6 min walk</li>
+              <li><strong className="font-600 text-coffee">Swiss Cottage</strong> · Jubilee line, 9 min walk</li>
+              <li><strong className="font-600 text-coffee">Bus</strong> · 46 · 268 · C11</li>
             </ul>
-            <Link
-              href="/visit"
-              className="anchor mt-6 inline-block font-sans text-[0.78rem] font-light uppercase tracking-widest"
-            >
-              Find us
-            </Link>
           </div>
         </div>
       </Section>
     </main>
-  );
-}
-
-function ProcessCard({
-  n,
-  label,
-  illustration,
-}: {
-  n: string;
-  label: string;
-  illustration: React.ReactNode;
-}) {
-  return (
-    <article className="group flex flex-col items-center text-center">
-      <div className="grid h-56 w-full place-items-center border border-hairline bg-bone/60 transition-colors group-hover:bg-bone">
-        {illustration}
-      </div>
-      <p className="font-editorial italic text-muted mt-5">{n}.</p>
-      <p className="font-display text-display-sm text-ink mt-2 max-w-[20ch]">
-        {label}
-      </p>
-    </article>
   );
 }

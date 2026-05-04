@@ -9,22 +9,25 @@ interface PhotoProps {
   caption?: string;
   priority?: boolean;
   className?: string;
-  /** Visual tone for the placeholder when no src is provided. */
-  tone?: "ink" | "warm" | "ember" | "bone";
+  /** Visual register for the placeholder when no photograph is provided. */
+  tone?: "saffron" | "brick" | "coffee" | "cream";
+  rounded?: "sm" | "md" | "lg" | "xl";
 }
 
 const TONES: Record<NonNullable<PhotoProps["tone"]>, string> = {
-  ink: "from-[#1a1814] to-[#3a342b] text-bone",
-  warm: "from-[#d6c9b0] to-[#a8997d] text-ink",
-  ember: "from-[#A4422A] to-[#6e2a18] text-bone",
-  bone: "from-[#f0e9d8] to-[#d6cdb6] text-ink",
+  saffron: "from-saffron to-[#E2861E] text-coffee",
+  brick: "from-brick to-brickDark text-cream",
+  coffee: "from-coffee to-[#1F0F03] text-cream",
+  cream: "from-bone to-cream text-coffee",
 };
 
-/**
- * Photography frame. With a real `src` it renders the optimised image with a
- * film-grain overlay. Without one, it renders an intentional tonal plate —
- * cinematic gradient, the alt as small caption, no "broken image" feel.
- */
+const RADIUS: Record<NonNullable<PhotoProps["rounded"]>, string> = {
+  sm: "rounded-md",
+  md: "rounded-lg",
+  lg: "rounded-xl",
+  xl: "rounded-[2.5rem]",
+};
+
 export function Photo({
   src,
   alt,
@@ -34,12 +37,13 @@ export function Photo({
   caption,
   priority = false,
   className = "",
-  tone = "warm",
+  tone = "saffron",
+  rounded = "lg",
 }: PhotoProps) {
   return (
     <figure className={className}>
       <div
-        className="relative w-full overflow-hidden grain"
+        className={`relative w-full overflow-hidden ${RADIUS[rounded]} shadow-soft`}
         style={{ aspectRatio: aspect }}
       >
         {src ? (
@@ -56,32 +60,35 @@ export function Photo({
         )}
       </div>
       {caption && (
-        <figcaption className="label mt-3 text-muted">{caption}</figcaption>
+        <figcaption className="label-muted mt-3">{caption}</figcaption>
       )}
     </figure>
   );
 }
 
-function PlaceholderPlate({ label, tone }: { label: string; tone: NonNullable<PhotoProps["tone"]> }) {
+function PlaceholderPlate({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: NonNullable<PhotoProps["tone"]>;
+}) {
   return (
-    <div
-      className={`absolute inset-0 bg-gradient-to-br ${TONES[tone]} flex items-end p-6`}
-    >
-      {/* Soft vignette */}
+    <div className={`absolute inset-0 bg-gradient-to-br ${TONES[tone]} flex items-end p-6`}>
       <div
         aria-hidden
         className="absolute inset-0 mix-blend-multiply"
         style={{
           background:
-            "radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.18) 100%)",
+            "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18) 0%, rgba(0,0,0,0.18) 100%)",
         }}
       />
       <div className="relative flex w-full items-end justify-between gap-6">
-        <span className="font-sans text-[0.62rem] font-light uppercase tracking-widest opacity-70">
+        <span className="font-sans text-[0.7rem] font-600 uppercase tracking-wide opacity-90">
           {label}
         </span>
-        <span className="font-editorial italic text-[0.85rem] opacity-70">
-          photograph pending
+        <span className="font-display text-[0.95rem] font-500 opacity-80">
+          photo coming
         </span>
       </div>
     </div>

@@ -4,7 +4,6 @@
 
 :root {
   color-scheme: light only;
-  --paper-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.045 0'/></filter><rect width='240' height='240' filter='url(%23n)' opacity='0.7'/></svg>");
 }
 
 html,
@@ -13,57 +12,19 @@ body {
 }
 
 body {
-  background: theme("colors.paper");
-  color: theme("colors.ink");
-  font-family: var(--font-editorial), "EB Garamond", Garamond, serif;
-  font-feature-settings: "liga", "kern", "onum";
+  background: theme("colors.cream");
+  color: theme("colors.cocoa");
+  font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  position: relative;
-}
-
-/* Paper grain — site-wide, fixed-position, sits above the page background
-   but below content via z-index ordering on the body's pseudo-element.
-   Disabled when the user prefers reduced motion (the grain itself is static,
-   but it adds a subtle visual texture some users may not want). */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image: var(--paper-grain);
-  background-repeat: repeat;
-  pointer-events: none;
-  mix-blend-mode: multiply;
-  opacity: 0.6;
-  z-index: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body::before {
-    opacity: 0.3;
-  }
-}
-
-body > * {
-  position: relative;
-  z-index: 2;
 }
 
 ::selection {
-  background: theme("colors.ink");
-  color: theme("colors.paper");
+  background: theme("colors.brick");
+  color: theme("colors.cream");
 }
 
-@media (prefers-contrast: more) {
-  body {
-    background: #ffffff;
-  }
-  body::before {
-    display: none;
-  }
-}
-
-/* Honour reduced motion: kill all bespoke entrance animations. */
+/* Honour reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -74,25 +35,39 @@ body > * {
   }
 }
 
+@layer base {
+  /* All headings use the rounded display family by default. */
+  h1, h2, h3, h4 {
+    font-family: var(--font-display), "Recoleta", sans-serif;
+    color: theme("colors.coffee");
+  }
+}
+
 @layer components {
-  .rule {
-    border-top: 1px solid theme("colors.hairline");
-  }
-
+  /* WIDE-TRACKED LABEL — the small uppercase eyebrow used above sections */
   .label {
-    font-family: var(--font-sans), "Helvetica Neue", Arial, sans-serif;
-    font-weight: 300;
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.32em;
-    font-size: 0.6875rem;
-    color: theme("colors.smoke");
+    letter-spacing: 0.16em;
+    font-size: 0.7rem;
+    color: theme("colors.brick");
+  }
+  .label-muted {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.7rem;
+    color: theme("colors.muted");
   }
 
+  /* BODY COPY */
   .editorial {
-    font-family: var(--font-editorial), "EB Garamond", Garamond, serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
     font-size: 1.0625rem;
     line-height: 1.65;
-    color: theme("colors.smoke");
+    color: theme("colors.cocoa");
   }
   @media (min-width: 768px) {
     .editorial {
@@ -100,8 +75,146 @@ body > * {
     }
   }
 
-  /* Two-stage anchor: ink underline retracts right→left, ember underline
-     enters left→right. Used for body links inside editorial copy. */
+  /* SECTION RHYTHM */
+  .section {
+    padding-block: clamp(3.5rem, 8vw, 7rem);
+  }
+  .section-tall {
+    padding-block: clamp(5rem, 10vw, 9rem);
+  }
+  .section-slim {
+    padding-block: clamp(2.5rem, 5vw, 4.5rem);
+  }
+
+  /* PRIMARY ACTION — pill, brick fill, white text, soft shadow,
+     squashes briefly on press. */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: theme("colors.brick");
+    color: white;
+    border-radius: 999px;
+    padding: 0.95rem 1.75rem;
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+    box-shadow: theme("boxShadow.chip");
+    transition:
+      background 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .btn-primary:hover {
+    background: theme("colors.brickDark");
+    transform: translateY(-1px);
+    box-shadow: theme("boxShadow.pop");
+  }
+  .btn-primary:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  /* SAFFRON ACCENT BUTTON */
+  .btn-saffron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: theme("colors.saffron");
+    color: theme("colors.coffee");
+    border-radius: 999px;
+    padding: 0.95rem 1.75rem;
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    box-shadow: theme("boxShadow.chip");
+    transition:
+      transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      background 220ms;
+  }
+  .btn-saffron:hover {
+    transform: translateY(-1px);
+    box-shadow: theme("boxShadow.pop");
+    background: #FFB73D;
+  }
+
+  /* GHOST — outline */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: transparent;
+    color: theme("colors.coffee");
+    border: 1.5px solid theme("colors.coffee");
+    border-radius: 999px;
+    padding: 0.85rem 1.65rem;
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: background 220ms, color 220ms, transform 220ms;
+  }
+  .btn-ghost:hover {
+    background: theme("colors.coffee");
+    color: theme("colors.cream");
+    transform: translateY(-1px);
+  }
+
+  /* PRICE CHIP — saffron pill, used on every menu item */
+  .price-chip {
+    display: inline-flex;
+    align-items: center;
+    background: theme("colors.saffron");
+    color: theme("colors.coffee");
+    border-radius: 999px;
+    padding: 0.3rem 0.85rem;
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.005em;
+    box-shadow: theme("boxShadow.chip");
+  }
+
+  /* CARD — soft surface, rounded, ivory background */
+  .card {
+    background: theme("colors.ivory");
+    border-radius: 1.25rem;
+    box-shadow: theme("boxShadow.soft");
+  }
+
+  /* DARK COFFEE PANEL — full-bleed brown section, used for inversion */
+  .panel-coffee {
+    background: theme("colors.coffee");
+    color: theme("colors.cream");
+  }
+  .panel-coffee h1, .panel-coffee h2, .panel-coffee h3, .panel-coffee h4 {
+    color: theme("colors.cream");
+  }
+  .panel-coffee .editorial {
+    color: rgba(240, 228, 208, 0.85);
+  }
+  .panel-coffee .label {
+    color: theme("colors.saffron");
+  }
+
+  .panel-brick {
+    background: theme("colors.brick");
+    color: theme("colors.cream");
+  }
+  .panel-brick h1, .panel-brick h2, .panel-brick h3, .panel-brick h4 {
+    color: theme("colors.cream");
+  }
+  .panel-brick .editorial {
+    color: rgba(255, 244, 223, 0.92);
+  }
+  .panel-brick .label {
+    color: theme("colors.saffron");
+  }
+
+  /* ANCHOR — wavy underline that retracts on hover */
   .anchor {
     position: relative;
     display: inline-block;
@@ -109,124 +222,20 @@ body > * {
     text-decoration: none;
     padding-bottom: 0.1em;
   }
-  .anchor::before,
   .anchor::after {
     content: "";
     position: absolute;
     inset: auto 0 0 0;
-    height: 1px;
-    transform-origin: right;
-    transition: transform 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .anchor::before {
+    height: 2px;
     background: currentColor;
-    transform: scaleX(1);
-  }
-  .anchor::after {
-    background: theme("colors.ember");
-    transform: scaleX(0);
-    transform-origin: left;
-  }
-  .anchor:hover::before {
     transform-origin: right;
-    transform: scaleX(0);
+    transform: scaleX(1);
+    transition: transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    border-radius: 999px;
   }
   .anchor:hover::after {
     transform-origin: left;
-    transform: scaleX(1);
-  }
-
-  /* Film-grain overlay placed on top of photography. Pseudo-element
-     positioned absolutely; parent must be position:relative. */
-  .grain::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: var(--paper-grain);
-    background-repeat: repeat;
-    pointer-events: none;
-    mix-blend-mode: overlay;
-    opacity: 0.5;
-    animation: grain 8s steps(8) infinite;
-  }
-
-  /* Magnetic-feeling button: large hit area, subtle scale on press, ember
-     fill that wipes upward on hover. */
-  .btn-ink {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid theme("colors.ink");
-    background: theme("colors.ink");
-    color: theme("colors.paper");
-    padding: 0.875rem 1.75rem;
-    font-family: var(--font-sans), "Helvetica Neue", Arial, sans-serif;
-    font-weight: 300;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    overflow: hidden;
-    transition:
-      transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      color 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .btn-ink::before {
-    content: "";
-    position: absolute;
-    inset: 100% 0 0 0;
-    background: theme("colors.ember");
-    transition: inset 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
-    z-index: 0;
-  }
-  .btn-ink > * {
-    position: relative;
-    z-index: 1;
-  }
-  .btn-ink:hover::before {
-    inset: 0 0 0 0;
-  }
-  .btn-ink:active {
-    transform: scale(0.98);
-  }
-
-  .btn-ghost {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid theme("colors.ink");
-    background: transparent;
-    color: theme("colors.ink");
-    padding: 0.875rem 1.75rem;
-    font-family: var(--font-sans), "Helvetica Neue", Arial, sans-serif;
-    font-weight: 300;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    transition: background 320ms ease, color 320ms ease;
-  }
-  .btn-ghost:hover {
-    background: theme("colors.ink");
-    color: theme("colors.paper");
-  }
-
-  /* The signature: a price/spec chip with a single ember glyph. Used
-     sparingly — once on the homepage, once per item on the menu. */
-  .price-chip {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.25rem;
-    font-family: var(--font-editorial), serif;
-    font-style: italic;
-    color: theme("colors.ember");
-    font-size: 1.05rem;
-  }
-  .price-chip::before {
-    content: "·";
-    color: theme("colors.ember");
-    font-style: normal;
-    font-weight: 700;
-    transform: translateY(-0.15em);
+    transform: scaleX(0);
   }
 }
 
@@ -236,9 +245,9 @@ body > * {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(14, 14, 12, 0.18);
-  border-radius: 0;
+  background: rgba(74, 31, 8, 0.18);
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(14, 14, 12, 0.32);
+  background: rgba(74, 31, 8, 0.32);
 }

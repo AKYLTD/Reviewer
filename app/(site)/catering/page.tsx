@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Section } from "@/components/Section";
 import { Photo } from "@/components/Photo";
 import { CateringForm } from "@/components/CateringForm";
+import { Reveal } from "@/components/Reveal";
+import { BagelMark } from "@/components/BagelMark";
 
 export const metadata: Metadata = {
   title: "Catering",
@@ -39,78 +41,89 @@ const PLATTERS = [
 export default function CateringPage() {
   return (
     <main>
-      <Section size="tall">
-        <div className="grid gap-10 md:grid-cols-12">
+      <Section size="tall" panel="cream" className="relative overflow-hidden">
+        <span aria-hidden className="absolute -bottom-20 -left-12 opacity-25 pointer-events-none">
+          <BagelMark className="h-72 w-72" spin />
+        </span>
+        <div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
-            <p className="label">Catering</p>
-            <h1 className="mt-5 font-display text-display-lg leading-[0.96] text-ink">
+            <span className="label">Catering</span>
+            <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
               Trays for offices,
               <br />
-              gatherings, and shiva.
+              <span className="text-brick">gatherings &amp; shiva.</span>
             </h1>
-            <p className="editorial mt-8 max-w-prose">
-              Tell us how many people, when, and where. We&rsquo;ll send back a
-              quote with a platter list, allergens marked, and a delivery
-              window. Most enquiries are answered the same morning;
-              forty-eight hours notice is plenty for orders under fifty.
+            <p className="editorial mt-6 max-w-prose text-[1.15rem]">
+              Tell us how many people, when, and where. We&rsquo;ll come back the
+              same morning with a quote, an allergen-marked platter list, and a
+              delivery window.
             </p>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <span className="price-chip">From 48 hr notice</span>
+              <span className="font-display text-coffee/70">
+                Same-morning replies, no chasing
+              </span>
+            </div>
           </div>
           <div className="md:col-span-5">
-            <Photo
-              alt="An office catering platter"
-              aspect="4 / 5"
-            />
+            <Photo alt="An office catering platter" aspect="4 / 5" tone="brick" rounded="xl" />
           </div>
         </div>
       </Section>
 
-      {/* PLATTER LIST ------------------------------------------------------- */}
-      <Section>
-        <header className="mb-12 grid gap-6 md:grid-cols-12">
-          <h2 className="md:col-span-6 font-display text-display-md text-ink">
-            Sample platters.
-          </h2>
-          <p className="md:col-span-5 md:col-start-8 editorial">
-            Starting points, not a fixed menu. Every catering order is built
-            from your headcount, allergens, and service window.
+      <Section panel="ivory">
+        <header className="mb-12 grid gap-6 md:grid-cols-12 items-end">
+          <div className="md:col-span-7">
+            <span className="label">Sample platters</span>
+            <h2 className="mt-3 font-display font-700 text-display-lg text-coffee">
+              Starting points, not a menu.
+            </h2>
+          </div>
+          <p className="md:col-span-5 editorial">
+            Every catering order is built from your headcount, allergens, and
+            service window.
           </p>
         </header>
-
-        <ul className="grid gap-px border-t border-hairline md:grid-cols-2">
-          {PLATTERS.map((p) => (
-            <li key={p.name} className="border-b border-hairline px-1 py-10 md:px-6 md:py-12">
-              <div className="flex items-baseline justify-between gap-6">
-                <h3 className="font-display text-display-sm text-ink">{p.name}</h3>
-                <span className="font-editorial italic text-[1rem] text-muted whitespace-nowrap">
-                  {p.from}
-                </span>
-              </div>
-              <p className="editorial mt-4">{p.detail}</p>
-              <p className="label mt-6">Serves {p.serves}</p>
+        <ul className="grid gap-5 md:grid-cols-2">
+          {PLATTERS.map((p, i) => (
+            <li key={p.name}>
+              <Reveal delay={i * 80}>
+                <article className="card h-full p-7 transition-all hover:-translate-y-1 hover:shadow-pop">
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="font-display font-700 text-2xl text-coffee leading-tight">
+                      {p.name}
+                    </h3>
+                    <span className="price-chip whitespace-nowrap">{p.from}</span>
+                  </div>
+                  <p className="editorial mt-4">{p.detail}</p>
+                  <p className="label mt-6">Serves {p.serves}</p>
+                </article>
+              </Reveal>
             </li>
           ))}
         </ul>
       </Section>
 
-      {/* ENQUIRY FORM ------------------------------------------------------- */}
-      <Section>
+      <Section panel="cream">
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-5">
-            <p className="label">Start an enquiry</p>
-            <h2 className="mt-4 font-display text-display-md text-ink">
-              We&rsquo;ll come back to you the same morning.
+            <span className="label">Start an enquiry</span>
+            <h2 className="mt-3 font-display font-700 text-display-md text-coffee leading-[1.0]">
+              We&rsquo;ll come back the same morning.
             </h2>
             <p className="editorial mt-6">
-              Replies arrive from <span className="font-editorial italic">hello@ronisbelsize.com</span>.
-              For urgent same-day catering, call the shop directly on{" "}
-              <a className="anchor" href="tel:+442077948133">
+              Replies arrive from <span className="font-600">hello@ronisbelsize.com</span>.
+              For urgent same-day catering, call the shop on{" "}
+              <a className="anchor text-brick font-600" href="tel:+442077948133">
                 020 7794 8133
               </a>
               .
             </p>
           </div>
           <div className="md:col-span-7">
-            <CateringForm />
+            <div className="card p-8 md:p-10">
+              <CateringForm />
+            </div>
           </div>
         </div>
       </Section>

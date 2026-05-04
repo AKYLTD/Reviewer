@@ -2,103 +2,119 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/Section";
 import { Photo } from "@/components/Photo";
+import { Magnetic } from "@/components/Magnetic";
+import { Reveal } from "@/components/Reveal";
+import { BagelMark } from "@/components/BagelMark";
 
 export const metadata: Metadata = {
   title: "Cakes & occasions",
   description:
-    "Custom cakes, Shabbat challahs, and celebration trays from Roni's Belsize Village. Seventy-two hours notice, allergen-aware.",
+    "Custom cakes, Shabbat challahs, and celebration trays from Roni's Belsize Village.",
 };
 
 const OCCASIONS = [
-  { title: "Birthdays", body: "Layered sponges, naked or iced, with custom inscriptions piped in dark or pale chocolate." },
-  { title: "Shabbat", body: "Plaited challahs reserved by Friday lunch. Plain, sweet, raisin, or sesame-topped." },
+  { title: "Birthdays", body: "Layered sponges, naked or iced, with custom inscriptions." },
+  { title: "Shabbat", body: "Plaited challahs reserved by Friday lunch. Plain, sweet, raisin, sesame-topped." },
   { title: "Holidays", body: "Honey cakes for Rosh Hashanah, hamantaschen for Purim, sufganiyot for Hanukkah." },
-  { title: "Weddings & engagements", body: "Tiered cakes with sugarwork and edible-flower finishes. Tasting by appointment." },
+  { title: "Weddings", body: "Tiered cakes with sugarwork and edible-flower finishes." },
 ];
 
 export default function CakesPage() {
   return (
     <main>
-      <Section size="tall">
-        <div className="grid gap-10 md:grid-cols-12">
+      <Section size="tall" panel="cream" className="relative overflow-hidden">
+        <span aria-hidden className="absolute -top-12 right-0 opacity-25 pointer-events-none">
+          <BagelMark className="h-72 w-72" spin />
+        </span>
+        <div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
-            <p className="label">Cakes &amp; occasions</p>
-            <h1 className="mt-5 font-display text-display-lg leading-[0.96] text-ink">
+            <span className="label">Cakes &amp; occasions</span>
+            <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
               For the day
               <br />
-              that needs marking.
+              <span className="text-brick">that needs marking.</span>
             </h1>
-            <p className="editorial mt-8 max-w-prose">
+            <p className="editorial mt-6 max-w-prose text-[1.15rem]">
               Birthday cakes, Shabbat challahs, holiday trays, and the
-              kettle-boiled celebration boxes that started it all. Seventy-two
-              hours is comfortable; we&rsquo;ll always try shorter if the
-              kitchen has room.
+              kettle-boiled celebration boxes that started it all.
+              Seventy-two hours is comfortable.
             </p>
-            <div className="mt-10 flex flex-wrap gap-3">
-              <a
-                href="mailto:cakes@ronisbelsize.com"
-                className="inline-flex items-center justify-center border border-ink bg-ink px-6 py-3 font-sans text-[0.78rem] font-light uppercase tracking-widest text-paper transition-colors hover:bg-paper hover:text-ink"
-              >
-                Order a cake
-              </a>
-              <Link
-                href="/catering"
-                className="anchor inline-flex items-center font-sans text-[0.78rem] font-light uppercase tracking-widest"
-              >
-                Catering instead?
-              </Link>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Magnetic>
+                <a href="mailto:cakes@ronisbelsize.com" className="btn-primary">
+                  <span>Order a cake</span>
+                </a>
+              </Magnetic>
+              <Magnetic>
+                <Link href="/catering" className="btn-saffron">Catering instead?</Link>
+              </Magnetic>
             </div>
           </div>
           <div className="md:col-span-5">
-            <Photo
-              alt="A celebration cake at the pass"
-              aspect="4 / 5"
-            />
+            <Photo alt="A celebration cake at the pass" aspect="4 / 5" tone="brick" rounded="xl" />
           </div>
         </div>
       </Section>
 
-      {/* OCCASIONS GRID ----------------------------------------------------- */}
-      <Section>
-        <header className="mb-10 grid gap-6 md:grid-cols-12">
-          <h2 className="md:col-span-6 font-display text-display-md text-ink">
-            What we make.
-          </h2>
-          <p className="md:col-span-5 md:col-start-8 editorial">
-            A short list, made well, rather than a long one made anywhere. If
-            you don&rsquo;t see it here, ask &mdash; we&rsquo;ve probably made
-            it before.
+      <Section panel="ivory">
+        <header className="mb-10 grid gap-6 md:grid-cols-12 items-end">
+          <div className="md:col-span-7">
+            <span className="label">What we make</span>
+            <h2 className="mt-3 font-display font-700 text-display-lg text-coffee">
+              A short list, made well.
+            </h2>
+          </div>
+          <p className="md:col-span-5 editorial">
+            If you don&rsquo;t see it here, ask &mdash; we&rsquo;ve probably
+            made it before.
           </p>
         </header>
-        <ul className="grid gap-px border-t border-hairline md:grid-cols-2">
-          {OCCASIONS.map((occasion) => (
-            <li key={occasion.title} className="border-b border-hairline px-1 py-10 md:px-6 md:py-12">
-              <h3 className="font-display text-display-sm text-ink">{occasion.title}</h3>
-              <p className="editorial mt-4">{occasion.body}</p>
+        <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {OCCASIONS.map((o, i) => (
+            <li key={o.title}>
+              <Reveal delay={i * 80}>
+                <article className="card h-full p-7 transition-all hover:-translate-y-1 hover:shadow-pop">
+                  <h3 className="font-display font-700 text-2xl text-coffee">{o.title}</h3>
+                  <p className="editorial mt-3 text-[0.98rem]">{o.body}</p>
+                </article>
+              </Reveal>
             </li>
           ))}
         </ul>
       </Section>
 
-      {/* GALLERY ------------------------------------------------------------ */}
-      <Section>
-        <p className="label">Recent makes</p>
-        <div className="mt-8 grid gap-3 md:grid-cols-3 md:gap-6">
-          <Photo alt="A buttercream layer cake" aspect="4 / 5" />
-          <Photo alt="Plaited challah, sesame-topped" aspect="4 / 5" />
-          <Photo alt="A tray of rugelach" aspect="4 / 5" />
+      <Section panel="cream">
+        <span className="label">Recent makes</span>
+        <h2 className="mt-3 font-display font-700 text-display-md text-coffee">
+          From the kitchen, lately.
+        </h2>
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <Photo alt="A buttercream layer cake" aspect="4 / 5" tone="saffron" rounded="xl" />
+          <Photo alt="Plaited challah, sesame-topped" aspect="4 / 5" tone="cream" rounded="xl" />
+          <Photo alt="A tray of rugelach" aspect="4 / 5" tone="brick" rounded="xl" />
         </div>
       </Section>
 
-      {/* TRUST PROMISE ------------------------------------------------------ */}
-      <Section>
-        <div className="border border-hairline bg-bone p-page-x py-12 md:p-16">
-          <p className="label">Allergens &amp; dietary</p>
-          <p className="editorial mt-6 max-w-prose">
-            Nut-free production line. Eggless, dairy-free, and gluten-friendly
-            options for most occasion cakes &mdash; ask when you order. Every
-            cake is labelled with allergen information at the till.
-          </p>
+      <Section panel="saffron">
+        <div className="grid gap-8 md:grid-cols-12 items-center">
+          <div className="md:col-span-7">
+            <span className="label-muted">Allergens &amp; dietary</span>
+            <h2 className="mt-3 font-display font-700 text-display-md text-coffee leading-[1.0]">
+              Nut-free production line.
+            </h2>
+            <p className="editorial mt-4 max-w-prose">
+              Eggless, dairy-free, and gluten-friendly options for most
+              occasion cakes &mdash; ask when you order. Every cake is
+              labelled with allergen information at the till.
+            </p>
+          </div>
+          <div className="md:col-span-5 flex md:justify-end">
+            <Magnetic>
+              <a href="mailto:cakes@ronisbelsize.com" className="btn-primary">
+                <span>Email the kitchen</span>
+              </a>
+            </Magnetic>
+          </div>
         </div>
       </Section>
     </main>

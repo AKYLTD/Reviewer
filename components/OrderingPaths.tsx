@@ -3,69 +3,69 @@ import Link from "next/link";
 const PATHS = [
   {
     href: "/click-collect",
-    label: "Click & collect",
-    description:
-      "Order ahead, walk in, walk out. Bagels boxed in twelve minutes; sandwiches when you arrive.",
+    label: "Order ahead",
+    description: "Walk in, walk out. Boxed in twelve minutes.",
     lead: "12 min",
-    leadLabel: "Lead time",
+    accent: "saffron",
   },
   {
     href: "/order-at-table",
-    label: "Order at table",
-    description:
-      "Sitting in? Scan the marker on your table to order another flat white or a babka without flagging anyone down.",
+    label: "Eat in",
+    description: "Sitting down? Scan the QR on your table.",
     lead: "Daily",
-    leadLabel: "Dine-in",
+    accent: "cream",
   },
   {
     href: "/catering",
     label: "Catering",
-    description:
-      "Trays for offices, gatherings, and shiva. Quoted from your guest count; routed to the kitchen the moment you confirm.",
-    lead: "48 hr",
-    leadLabel: "From",
+    description: "Office trays, gatherings, shiva. Same-morning quotes.",
+    lead: "From 48 hr",
+    accent: "brick",
   },
   {
     href: "/cakes",
-    label: "Cakes & occasions",
-    description:
-      "Birthday cakes, Shabbat challahs, and the kettle-boiled celebration trays. Custom inscriptions welcome.",
-    lead: "72 hr",
-    leadLabel: "From",
+    label: "Cakes",
+    description: "Birthdays, Shabbat, holidays.",
+    lead: "From 72 hr",
+    accent: "coffee",
   },
 ];
 
+const ACCENTS: Record<string, { card: string; pill: string; arrow: string }> = {
+  saffron: { card: "bg-saffron text-coffee", pill: "bg-coffee text-saffron", arrow: "text-coffee" },
+  cream:   { card: "bg-ivory text-coffee",   pill: "bg-saffron text-coffee", arrow: "text-brick" },
+  brick:   { card: "bg-brick text-cream",    pill: "bg-saffron text-coffee", arrow: "text-cream" },
+  coffee:  { card: "bg-coffee text-cream",   pill: "bg-saffron text-coffee", arrow: "text-cream" },
+};
+
 export function OrderingPaths() {
   return (
-    <ul className="grid gap-px border-t border-hairline md:grid-cols-2">
-      {PATHS.map((path) => (
-        <li key={path.href} className="border-b border-hairline">
-          <Link
-            href={path.href}
-            className="group relative block h-full px-1 py-10 transition-colors hover:bg-bone md:px-6 md:py-14"
-          >
-            <div className="flex items-baseline justify-between gap-6">
-              <span className="font-display text-display-sm leading-none text-ink">
-                {path.label}
-              </span>
-              <span className="hidden text-right md:block">
-                <span className="block label">{path.leadLabel}</span>
-                <span className="font-editorial italic text-[1.1rem] text-ink">
-                  {path.lead}
-                </span>
-              </span>
-            </div>
-            <p className="editorial mt-5 max-w-[34rem]">{path.description}</p>
-            <span
-              aria-hidden
-              className="mt-8 inline-flex items-center gap-2 font-sans text-[0.72rem] font-light uppercase tracking-widest text-ink"
+    <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      {PATHS.map((p) => {
+        const a = ACCENTS[p.accent];
+        return (
+          <li key={p.href}>
+            <Link
+              href={p.href}
+              className={`group relative block h-full ${a.card} rounded-xl p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-pop`}
             >
-              <span className="anchor">Begin</span>
-              <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
-            </span>
-          </Link>
-        </li>
-      ))}
+              <span className={`inline-flex items-center rounded-pill ${a.pill} px-3 py-1 font-display text-[0.78rem] font-600`}>
+                {p.lead}
+              </span>
+              <h3 className="mt-7 font-display text-[1.65rem] font-700 leading-tight">
+                {p.label}
+              </h3>
+              <p className="mt-3 text-[0.98rem] leading-relaxed opacity-90">
+                {p.description}
+              </p>
+              <span className={`mt-8 inline-flex items-center gap-2 font-display font-600 ${a.arrow}`}>
+                Begin
+                <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+              </span>
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }

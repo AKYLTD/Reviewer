@@ -1,13 +1,12 @@
 import Image from "next/image";
+import { BagelMark } from "./BagelMark";
 
 interface MastheadProps {
-  /** Optional path to the actual shopfront artwork (e.g. /logos/sign-final.png). */
   artwork?: string;
   artworkWidth?: number;
   artworkHeight?: number;
-  variant?: "hero" | "compact";
+  variant?: "hero" | "compact" | "stacked";
   className?: string;
-  /** Editable from /admin → brand. */
   wordmark?: string;
   subtitle?: string;
   descriptor?: string;
@@ -15,16 +14,9 @@ interface MastheadProps {
 }
 
 /**
- * The shopfront sign. Two render paths:
- *
- *   1. If `artwork` is supplied, use it. The brief is right that the real
- *      sign should win once the file is in place.
- *   2. Otherwise, render a sign-shaped reconstruction from three typographic
- *      registers, choreographed in three distinct motions on first paint —
- *      the descriptor row parts outward, RONI'S settles down from above with
- *      letter-spacing tightening, and "Belsize Village" trails in italic.
- *
- * The compact variant is for the navigation lockup.
+ * v3 — warm, rounded, food-magazine masthead. Mark + wordmark composition
+ * inspired by the Fresh Catering reference shared by the user. The mark is
+ * the bagel ring; the wordmark uses the rounded display sans.
  */
 export function Masthead({
   artwork,
@@ -32,17 +24,16 @@ export function Masthead({
   artworkHeight = 900,
   variant = "hero",
   className = "",
-  wordmark = "RONI’S",
+  wordmark = "Roni's",
   subtitle = "Belsize Village",
   descriptor = "BAGEL BAKERY & CAFÉ",
-  addressNumber = "37–39",
 }: MastheadProps) {
   if (artwork) {
     return (
       <div className={className}>
         <Image
           src={artwork}
-          alt={`${wordmark} ${subtitle} ${descriptor} ${addressNumber}`}
+          alt={`${wordmark} ${subtitle} ${descriptor}`}
           width={artworkWidth}
           height={artworkHeight}
           priority={variant === "hero"}
@@ -55,72 +46,55 @@ export function Masthead({
   if (variant === "compact") {
     return (
       <span
-        className={`inline-flex items-baseline gap-[0.18em] font-display leading-none text-ink ${className}`}
+        className={`inline-flex items-center gap-2 leading-none text-coffee ${className}`}
         aria-label={`${wordmark} ${subtitle}`}
       >
-        <span className="text-[1.2rem] tracking-[0.02em]">{wordmark}</span>
-        <span className="font-editorial italic text-[0.95rem] font-semibold">
+        <BagelMark className="h-7 w-7" />
+        <span className="font-display text-[1.35rem] font-700 leading-none">
+          {wordmark}
+          <span className="text-brick">.</span>
+        </span>
+      </span>
+    );
+  }
+
+  if (variant === "stacked") {
+    // Used inside dark coffee panels — uses cream ink.
+    return (
+      <span className={`inline-flex flex-col items-center gap-3 ${className}`}>
+        <BagelMark className="h-16 w-16" />
+        <span className="font-display text-display-md text-cream font-700 leading-none">
+          {wordmark}
+          <span className="text-saffron">.</span>
+        </span>
+        <span className="font-sans text-[0.72rem] tracking-wide uppercase font-500 text-saffron">
           {subtitle}
         </span>
       </span>
     );
   }
 
-  // Split addressNumber so we can render flanking address numerals (37 — 39).
-  const [addrLeft, addrRight] = addressNumber.includes("–")
-    ? addressNumber.split("–")
-    : addressNumber.includes("-")
-      ? addressNumber.split("-")
-      : [addressNumber, addressNumber];
-
+  // HERO ----------------------------------------------------------------
   return (
-    <div
-      className={`relative w-full ${className}`}
-      aria-label={`${wordmark} · ${subtitle} · ${descriptor} · ${addressNumber}`}
-    >
-      {/* DESCRIPTOR ROW ----------------------------------------------------- */}
-      <div className="flex items-center justify-center gap-[clamp(0.75rem,2.5vw,2rem)]">
-        <span
-          className="font-sans font-extralight tracking-signage text-[clamp(0.625rem,1.05vw,0.8rem)] text-ink animate-descriptor-part"
-          style={{ animationDelay: "0ms" }}
-        >
-          {addrLeft.trim()}
+    <div className={`relative w-full text-center ${className}`}>
+      <div className="inline-flex flex-col items-center gap-4">
+        <span className="animate-mark-bounce">
+          <BagelMark className="h-24 w-24 md:h-28 md:w-28" />
         </span>
-        <span
-          aria-hidden
-          className="h-px w-[clamp(1rem,3vw,3rem)] bg-ink/60 origin-left animate-descriptor-part"
-          style={{ animationDelay: "60ms" }}
-        />
-        <span
-          className="font-sans font-extralight tracking-signage text-[clamp(0.625rem,1.05vw,0.8rem)] text-ink whitespace-nowrap animate-descriptor-part"
-          style={{ animationDelay: "120ms" }}
-        >
+
+        <span className="label-muted animate-rise" style={{ animationDelay: "200ms" }}>
           {descriptor}
         </span>
-        <span
-          aria-hidden
-          className="h-px w-[clamp(1rem,3vw,3rem)] bg-ink/60 origin-right animate-descriptor-part"
-          style={{ animationDelay: "60ms" }}
-        />
-        <span
-          className="font-sans font-extralight tracking-signage text-[clamp(0.625rem,1.05vw,0.8rem)] text-ink animate-descriptor-part"
-          style={{ animationDelay: "0ms" }}
-        >
-          {addrRight.trim()}
-        </span>
+
+        <h1 className="font-display font-700 text-display-2xl text-coffee leading-[0.92] animate-wordmark-pop">
+          {wordmark}
+          <span className="text-brick">.</span>
+        </h1>
+
+        <p className="font-display text-display-md font-500 text-brick animate-rise" style={{ animationDelay: "600ms" }}>
+          {subtitle}
+        </p>
       </div>
-
-      {/* WORDMARK — RONI'S, drops & tightens ------------------------------- */}
-      <h1 className="mt-[clamp(0.5rem,1.5vw,1.25rem)] text-center font-display text-display-2xl text-ink overflow-hidden">
-        <span className="inline-block animate-wordmark-settle">{wordmark}</span>
-      </h1>
-
-      {/* ITALIC SUBTITLE — trails into place -------------------------------- */}
-      <p
-        className="-mt-[clamp(0.5rem,1.25vw,1.25rem)] text-center font-editorial italic font-semibold text-[clamp(1.5rem,4vw,3rem)] leading-none text-ink animate-italic-trail"
-      >
-        {subtitle}
-      </p>
     </div>
   );
 }

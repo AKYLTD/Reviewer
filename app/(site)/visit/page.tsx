@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/Section";
 import { Photo } from "@/components/Photo";
+import { BagelMark } from "@/components/BagelMark";
 import { getContent } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -21,66 +22,71 @@ const TRANSPORT = [
 export default async function VisitPage() {
   const { brand, address, hours: HOURS } = await getContent();
   const mapQuery = encodeURIComponent(`${address.line1}, ${address.line2}`);
+
   return (
     <main>
-      <Section size="tall">
-        <div className="grid gap-10 md:grid-cols-12">
+      <Section size="tall" panel="cream" className="relative overflow-hidden">
+        <span aria-hidden className="absolute -top-12 -right-16 opacity-25 pointer-events-none">
+          <BagelMark className="h-80 w-80" spin />
+        </span>
+        <div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
-            <p className="label">Visit</p>
-            <h1 className="mt-6 font-display text-display-lg leading-[0.96] text-ink">
+            <span className="label">Visit</span>
+            <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
               {brand.addressNumber}
               <br />
-              Belsize Lane.
+              <span className="text-brick">Belsize Lane.</span>
             </h1>
-            <p className="editorial mt-8 max-w-prose">
+            <p className="editorial mt-6 max-w-prose text-[1.15rem]">
               Tucked into Belsize Village between Haverstock Hill and the
               cinema. Counter, dining room, and pavement seats when the weather
               behaves.
             </p>
-            <p className="editorial mt-4">
-              {address.line2} &middot;{" "}
-              <a className="anchor" href={`tel:${address.phone.replace(/\s+/g, "")}`}>
+            <p className="mt-6 inline-flex items-center gap-3 rounded-pill bg-coffee text-saffron px-4 py-2 font-display font-600 text-sm">
+              {address.line2}
+              <span className="text-cream/60">·</span>
+              <a className="text-saffron hover:underline" href={`tel:${address.phone.replace(/\s+/g, "")}`}>
                 {address.phone}
               </a>
             </p>
           </div>
           <div className="md:col-span-5">
-            <Photo
-              alt="The shopfront at 37–39 Belsize Lane"
-              aspect="4 / 5"
-            />
+            <Photo alt="The shopfront at 37–39 Belsize Lane" aspect="4 / 5" tone="brick" rounded="xl" />
           </div>
         </div>
       </Section>
 
-      {/* HOURS -------------------------------------------------------------- */}
-      <Section>
+      <Section panel="ivory">
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-5">
-            <p className="label">Hours</p>
-            <ul className="mt-6 divide-y divide-hairline border-y border-hairline">
+            <span className="label">Hours</span>
+            <h2 className="mt-3 font-display font-700 text-display-md text-coffee">
+              When we&rsquo;re open.
+            </h2>
+            <ul className="mt-8 divide-y divide-hairline rounded-xl bg-cream shadow-soft overflow-hidden">
               {HOURS.map((row) => (
-                <li key={row.day} className="flex items-baseline justify-between gap-6 py-5">
-                  <span className="font-editorial text-[1.1rem] text-ink">{row.day}</span>
-                  <span className="font-sans text-[0.85rem] font-light tracking-wide text-ink">
-                    {row.hours}
-                  </span>
+                <li key={row.day} className="flex items-center justify-between gap-6 py-5 px-6">
+                  <span className="font-display font-600 text-lg text-coffee">{row.day}</span>
+                  <span className="price-chip whitespace-nowrap">{row.hours}</span>
                 </li>
               ))}
             </ul>
             <p className="editorial mt-6 text-muted text-[0.95rem]">
-              Bank holidays vary &mdash; check the till on Google or call
-              ahead. Last orders thirty minutes before close.
+              Bank holidays vary &mdash; check Google or call ahead. Last
+              orders thirty minutes before close.
             </p>
           </div>
 
           <div className="md:col-span-6 md:col-start-7">
-            <p className="label">Getting there</p>
-            <ul className="mt-6 divide-y divide-hairline border-y border-hairline">
+            <span className="label">Getting there</span>
+            <h2 className="mt-3 font-display font-700 text-display-md text-coffee">
+              How to reach us.
+            </h2>
+            <ul className="mt-8 grid gap-4">
               {TRANSPORT.map((row) => (
-                <li key={row.label} className="grid grid-cols-[8rem_1fr] items-baseline gap-6 py-5">
-                  <span className="font-editorial italic text-[1rem] text-ink">{row.label}</span>
-                  <span className="editorial text-[1rem]">{row.detail}</span>
+                <li key={row.label} className="rounded-xl bg-cream p-5 shadow-soft">
+                  <span className="font-display font-700 text-lg text-coffee">{row.label}</span>
+                  <p className="editorial mt-1 text-[1rem]">{row.detail}</p>
                 </li>
               ))}
             </ul>
@@ -93,10 +99,12 @@ export default async function VisitPage() {
         </div>
       </Section>
 
-      {/* MAP --------------------------------------------------------------- */}
-      <Section>
-        <p className="label mb-6">On the map</p>
-        <div className="border border-hairline">
+      <Section panel="cream">
+        <span className="label">On the map</span>
+        <h2 className="mt-3 font-display font-700 text-display-md text-coffee">
+          Find us.
+        </h2>
+        <div className="mt-8 rounded-xl overflow-hidden shadow-soft">
           <div className="aspect-[16/9] w-full bg-bone">
             <iframe
               title="Roni's Belsize Village on the map"

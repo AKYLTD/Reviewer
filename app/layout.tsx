@@ -1,30 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Marcellus, EB_Garamond, Public_Sans } from "next/font/google";
+import { Fredoka, DM_Sans } from "next/font/google";
 import "./globals.css";
 
-// "RONI'S" — tall, high-contrast modern serif (Didone family).
-// Marcellus is the closest free Didone-flavoured serif; it ships only one
-// weight, which is exactly what the masthead needs.
-const display = Marcellus({
+// Display — rounded friendly sans, closest free analogue to the "Fresh
+// Catering" wordmark from the user's brand reference.
+const display = Fredoka({
   subsets: ["latin"],
-  weight: "400",
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-display",
   display: "swap",
 });
 
-// "Belsize Village" — bold old-style serif, italic on the sign.
-const editorial = EB_Garamond({
+// Body — DM Sans is warmer than Inter and pairs cleanly with Fredoka.
+const sans = DM_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
-  variable: "--font-editorial",
-  display: "swap",
-});
-
-// "BAGEL BAKERY & CAFÉ" / "37-39" — light geometric sans, wide tracking.
-const sans = Public_Sans({
-  subsets: ["latin"],
-  weight: ["200", "300", "400", "500"],
   variable: "--font-sans",
   display: "swap",
 });
@@ -39,8 +30,7 @@ export const metadata: Metadata = {
     "Bagel bakery and café at 37–39 Belsize Lane, London NW3. Click & collect, dine-in ordering, catering and cakes.",
   openGraph: {
     title: "Roni's · Belsize Village",
-    description:
-      "Bagel bakery and café at 37–39 Belsize Lane, London NW3.",
+    description: "Bagel bakery and café at 37–39 Belsize Lane, London NW3.",
     type: "website",
     locale: "en_GB",
   },
@@ -49,15 +39,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#FAF7F0",
+  themeColor: "#F0E4D0",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${display.variable} ${editorial.variable} ${sans.variable}`}
-    >
+    <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );
