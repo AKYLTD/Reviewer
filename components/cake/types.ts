@@ -68,7 +68,8 @@ export interface CakeConfig {
   shape: CakeShape;
   cover: CakeCover;
   base: CakeBase;
-  filling: CakeFilling;
+  /** Multi-select — customers often want layers of more than one filling. */
+  fillings: CakeFilling[];
   message: string;
 }
 
@@ -77,7 +78,7 @@ export const DEFAULT_CAKE: CakeConfig = {
   shape: "round",
   cover: "buttercream",
   base: "chocolate",
-  filling: "vanilla",
+  fillings: ["vanilla"],
   message: "Happy Birthday Roni",
 };
 
@@ -122,6 +123,8 @@ export function defaultFields(defaultLocationId: string): OrderFields {
 /**
  * Compute the running total in pence based on the current config.
  * Returns null if the cake is "P.O.A." (price on application — special 3D).
+ * Filling surcharges stack — every selected filling that carries a charge
+ * (fruits +£5, jam +£3) is added to the total.
  */
 export function computeTotal(config: CakeConfig): number | null {
   const size = SIZE_OPTIONS.find((s) => s.id === config.size);
@@ -133,8 +136,10 @@ export function computeTotal(config: CakeConfig): number | null {
   let total = size.price;
   if (shape?.surcharge) total += shape.surcharge;
 
-  const filling = FILLING_OPTIONS.find((f) => f.id === config.filling);
-  if (filling?.surcharge) total += filling.surcharge;
+  for (const fid of config.fillings) {
+    const fill = FILLING_OPTIONS.find((f) => f.id === fid);
+    if (fill?.surcharge) total += fill.surcharge;
+  }
 
   return total;
 }

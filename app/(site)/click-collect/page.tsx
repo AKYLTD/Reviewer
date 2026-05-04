@@ -62,6 +62,7 @@ export default function ClickCollectPage() {
           </div>
           <div className="md:col-span-5">
             <Photo
+              mock="bagel-counter"
               alt="Bagels boxed for collection"
               aspect="4 / 5"
               tone="brick"

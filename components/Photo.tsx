@@ -1,7 +1,11 @@
 import Image from "next/image";
+import { mockupUrl, type Mockup } from "@/lib/mockups";
 
 interface PhotoProps {
+  /** Real photo path (e.g. /uploads/foo.jpg). Wins over `mock`. */
   src?: string;
+  /** Mockup key — used when src is not provided. */
+  mock?: Mockup;
   alt: string;
   width?: number;
   height?: number;
@@ -9,7 +13,7 @@ interface PhotoProps {
   caption?: string;
   priority?: boolean;
   className?: string;
-  /** Visual register for the placeholder when no photograph is provided. */
+  /** Tonal placeholder fallback when neither src nor mock resolves. */
   tone?: "saffron" | "brick" | "coffee" | "cream";
   rounded?: "sm" | "md" | "lg" | "xl";
 }
@@ -30,6 +34,7 @@ const RADIUS: Record<NonNullable<PhotoProps["rounded"]>, string> = {
 
 export function Photo({
   src,
+  mock,
   alt,
   width = 1600,
   height = 1067,
@@ -40,19 +45,22 @@ export function Photo({
   tone = "saffron",
   rounded = "lg",
 }: PhotoProps) {
+  const resolved = src ?? (mock ? mockupUrl(mock) : undefined);
+
   return (
     <figure className={className}>
       <div
-        className={`relative w-full overflow-hidden ${RADIUS[rounded]} shadow-soft`}
+        className={`relative w-full overflow-hidden ${RADIUS[rounded]} shadow-soft bg-bone`}
         style={{ aspectRatio: aspect }}
       >
-        {src ? (
+        {resolved ? (
           <Image
-            src={src}
+            src={resolved}
             alt={alt}
             width={width}
             height={height}
             priority={priority}
+            unoptimized={resolved.startsWith("https://")}
             className="h-full w-full object-cover"
           />
         ) : (
@@ -86,9 +94,6 @@ function PlaceholderPlate({
       <div className="relative flex w-full items-end justify-between gap-6">
         <span className="font-sans text-[0.7rem] font-600 uppercase tracking-wide opacity-90">
           {label}
-        </span>
-        <span className="font-display text-[0.95rem] font-500 opacity-80">
-          photo coming
         </span>
       </div>
     </div>

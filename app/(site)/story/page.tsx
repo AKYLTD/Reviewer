@@ -67,9 +67,9 @@ export default async function StoryPage() {
 
       <Section panel="cream">
         <div className="grid gap-5 md:grid-cols-3">
-          <Photo alt="The original West Hampstead shop, late 80s" aspect="4 / 5" tone="coffee" rounded="xl" />
-          <Photo alt="Belsize Lane in the morning" aspect="4 / 5" tone="saffron" rounded="xl" />
-          <Photo alt="The kitchen counter on a Saturday" aspect="4 / 5" tone="brick" rounded="xl" />
+          <Photo mock="shopfront" alt="The original West Hampstead shop, late 80s" aspect="4 / 5" tone="coffee" rounded="xl" />
+          <Photo mock="bakery-interior" alt="Belsize Lane in the morning" aspect="4 / 5" tone="saffron" rounded="xl" />
+          <Photo mock="bagel-counter" alt="The kitchen counter on a Saturday" aspect="4 / 5" tone="brick" rounded="xl" />
         </div>
       </Section>
     </main>

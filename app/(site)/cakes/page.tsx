@@ -51,7 +51,7 @@ export default function CakesPage() {
             </div>
           </div>
           <div className="md:col-span-5">
-            <Photo alt="A celebration cake at the pass" aspect="4 / 5" tone="brick" rounded="xl" />
+            <Photo mock="cake" alt="A celebration cake at the pass" aspect="4 / 5" tone="brick" rounded="xl" />
           </div>
         </div>
       </Section>
@@ -89,9 +89,9 @@ export default function CakesPage() {
           From the kitchen, lately.
         </h2>
         <div className="mt-10 grid gap-5 md:grid-cols-3">
-          <Photo alt="A buttercream layer cake" aspect="4 / 5" tone="saffron" rounded="xl" />
-          <Photo alt="Plaited challah, sesame-topped" aspect="4 / 5" tone="cream" rounded="xl" />
-          <Photo alt="A tray of rugelach" aspect="4 / 5" tone="brick" rounded="xl" />
+          <Photo mock="cake-stack" alt="A buttercream layer cake" aspect="4 / 5" tone="saffron" rounded="xl" />
+          <Photo mock="cake-decorating" alt="Plaited challah, sesame-topped" aspect="4 / 5" tone="cream" rounded="xl" />
+          <Photo mock="cake" alt="A tray of rugelach" aspect="4 / 5" tone="brick" rounded="xl" />
         </div>
       </Section>
 

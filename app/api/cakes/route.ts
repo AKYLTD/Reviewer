@@ -175,14 +175,19 @@ function describeCake(c: CakeConfig, o: OrderFields, imagePath: string | null): 
   const size = SIZE_OPTIONS.find((s) => s.id === c.size);
   const shape = SHAPE_OPTIONS.find((s) => s.id === c.shape);
   const base = BASE_OPTIONS.find((b) => b.id === c.base);
-  const filling = FILLING_OPTIONS.find((f) => f.id === c.filling);
+  const fillings = FILLING_OPTIONS.filter((f) => c.fillings.includes(f.id));
   const cover = COVER_OPTIONS.find((cv) => cv.id === c.cover);
 
   if (size) lines.push(`Size: ${size.label} · ${size.serves}`);
   if (shape) lines.push(`Shape: ${shape.label}${shape.poa ? " (P.O.A.)" : ""}`);
   if (c.shape === "special-3d" && o.shapeOther) lines.push(`3D detail: ${o.shapeOther}`);
   if (base) lines.push(`Base: ${base.label}${c.base === "other" && o.baseOther ? ` — ${o.baseOther}` : ""}`);
-  if (filling) lines.push(`Filling: ${filling.label}${c.filling === "other" && o.fillingOther ? ` — ${o.fillingOther}` : ""}`);
+  if (fillings.length) {
+    const fillingLabel = fillings.map((f) => f.label).join(" + ");
+    lines.push(
+      `Fillings: ${fillingLabel}${c.fillings.includes("other") && o.fillingOther ? ` — ${o.fillingOther}` : ""}`,
+    );
+  }
   if (cover) lines.push(`Cover: ${cover.label}`);
   if (o.coverOther) lines.push(`Cover (other): ${o.coverOther}`);
   if (c.message) lines.push(`Message: "${c.message}"`);

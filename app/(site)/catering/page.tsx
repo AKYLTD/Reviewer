@@ -66,7 +66,7 @@ export default function CateringPage() {
             </div>
           </div>
           <div className="md:col-span-5">
-            <Photo alt="An office catering platter" aspect="4 / 5" tone="brick" rounded="xl" />
+            <Photo mock="platter" alt="An office catering platter" aspect="4 / 5" tone="brick" rounded="xl" />
           </div>
         </div>
       </Section>

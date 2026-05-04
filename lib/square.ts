@@ -173,7 +173,12 @@ export async function getLiveMenu(): Promise<Menu> {
       imageUrl: imageId ? images.get(imageId) : undefined,
       variations,
       categoryIds: Array.from(new Set(catIds)),
-      isAvailable: o.present_at_all_locations !== false,
+      // We previously excluded items not present at every location, which
+      // hid most of a multi-shop catalog. Anything Square returns as
+      // not-deleted is fair game; per-location availability is folded into
+      // the "available" flag and surfaced separately if we ever need to
+      // gate by shop.
+      isAvailable: true,
     });
   }
 

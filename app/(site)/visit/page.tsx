@@ -48,7 +48,7 @@ export default async function VisitPage() {
             </div>
           </div>
           <div className="md:col-span-5">
-            <Photo alt={`Shopfront at ${primary.name}`} aspect="4 / 5" tone="brick" rounded="xl" />
+            <Photo mock="shopfront" alt={`Shopfront at ${primary.name}`} aspect="4 / 5" tone="brick" rounded="xl" />
           </div>
         </div>
       </Section>

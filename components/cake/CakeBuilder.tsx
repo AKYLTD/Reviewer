@@ -53,7 +53,16 @@ export function CakeBuilder({ locations, defaultLocationId }: CakeBuilderProps) 
 
   const total = computeTotal(config);
   const selectedShape = SHAPE_OPTIONS.find((s) => s.id === config.shape);
-  const selectedFilling = FILLING_OPTIONS.find((f) => f.id === config.filling);
+  const selectedFillings = FILLING_OPTIONS.filter((f) => config.fillings.includes(f.id));
+
+  const toggleFilling = (id: CakeFilling) => {
+    setConfig((c) => {
+      const has = c.fillings.includes(id);
+      const next = has ? c.fillings.filter((x) => x !== id) : [...c.fillings, id];
+      // Always keep at least one filling chosen.
+      return { ...c, fillings: next.length > 0 ? next : c.fillings };
+    });
+  };
 
   const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -116,7 +125,7 @@ export function CakeBuilder({ locations, defaultLocationId }: CakeBuilderProps) 
             </p>
             <p className="font-sans text-muted text-sm">
               {BASE_OPTIONS.find((b) => b.id === config.base)?.label.toLowerCase()} with{" "}
-              {selectedFilling?.label.toLowerCase()}
+              {selectedFillings.map((f) => f.label.toLowerCase()).join(" + ") || "no filling"}
             </p>
             {fields.imageFileName && config.shape === "image" && (
               <p className="font-sans text-coffee text-xs mt-2 truncate">
@@ -269,13 +278,16 @@ export function CakeBuilder({ locations, defaultLocationId }: CakeBuilderProps) 
             )}
           </Field>
 
-          <Field label="Cake filling">
+          <Field
+            label="Cake filling"
+            hint="Pick one or more — fillings stack and the surcharges add up."
+          >
             <div className="flex flex-wrap gap-2">
               {FILLING_OPTIONS.map((f) => (
                 <ChipButton
                   key={f.id}
-                  active={config.filling === f.id}
-                  onClick={() => setC("filling", f.id as CakeFilling)}
+                  active={config.fillings.includes(f.id)}
+                  onClick={() => toggleFilling(f.id as CakeFilling)}
                 >
                   {f.label}
                   {f.surcharge && (
@@ -284,10 +296,16 @@ export function CakeBuilder({ locations, defaultLocationId }: CakeBuilderProps) 
                 </ChipButton>
               ))}
             </div>
-            {selectedFilling?.hint && (
-              <p className="mt-2 font-sans text-[0.85rem] text-muted">{selectedFilling.hint}</p>
+            {selectedFillings.some((f) => f.hint) && (
+              <ul className="mt-2 space-y-1 font-sans text-[0.85rem] text-muted">
+                {selectedFillings
+                  .filter((f) => f.hint)
+                  .map((f) => (
+                    <li key={f.id}>• {f.hint}</li>
+                  ))}
+              </ul>
             )}
-            {config.filling === "other" && (
+            {config.fillings.includes("other") && (
               <div className="mt-3">
                 <Input
                   value={fields.fillingOther}

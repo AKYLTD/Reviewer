@@ -81,6 +81,7 @@ export default async function HomePage() {
           <div className="md:col-span-5 relative">
             <Reveal as="photo">
               <Photo
+                mock="bagel-hero"
                 alt="A morning bake of bagels, still warm"
                 aspect="4 / 5"
                 tone="brick"
@@ -165,7 +166,7 @@ export default async function HomePage() {
         <div className="grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-5">
             <Reveal as="photo">
-              <Photo alt="Bagels on the bench, hand-rolled" aspect="4 / 5" tone="saffron" rounded="xl" />
+              <Photo mock="bagel-bench" alt="Bagels on the bench, hand-rolled" aspect="4 / 5" tone="saffron" rounded="xl" />
             </Reveal>
           </div>
           <div className="md:col-span-6 md:col-start-7">
@@ -289,6 +290,7 @@ export default async function HomePage() {
           <div className="md:col-span-7">
             <Reveal as="photo">
               <Photo
+                mock="platter"
                 alt="A catering platter for an office"
                 aspect="5 / 4"
                 tone="coffee"
@@ -304,7 +306,7 @@ export default async function HomePage() {
         <div className="grid gap-12 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
             <Reveal as="photo">
-              <Photo alt="Today's menu on the counter" aspect="3 / 2" tone="cream" rounded="xl" />
+              <Photo mock="bakery-interior" alt="Today's menu on the counter" aspect="3 / 2" tone="cream" rounded="xl" />
             </Reveal>
           </div>
           <div className="md:col-span-5">
