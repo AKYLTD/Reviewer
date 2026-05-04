@@ -41,9 +41,9 @@ export default function CakesPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Magnetic>
-                <a href="mailto:cakes@ronisbelsize.com" className="btn-primary">
-                  <span>Order a cake</span>
-                </a>
+                <Link href="/cakes/order" className="btn-primary">
+                  <span>Build your cake</span>
+                </Link>
               </Magnetic>
               <Magnetic>
                 <Link href="/catering" className="btn-saffron">Catering instead?</Link>
@@ -110,9 +110,9 @@ export default function CakesPage() {
           </div>
           <div className="md:col-span-5 flex md:justify-end">
             <Magnetic>
-              <a href="mailto:cakes@ronisbelsize.com" className="btn-primary">
-                <span>Email the kitchen</span>
-              </a>
+              <Link href="/cakes/order" className="btn-primary">
+                <span>Build your cake</span>
+              </Link>
             </Magnetic>
           </div>
         </div>

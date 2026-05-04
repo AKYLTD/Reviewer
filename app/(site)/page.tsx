@@ -7,11 +7,20 @@ import { Magnetic } from "@/components/Magnetic";
 import { MorningTicker } from "@/components/MorningTicker";
 import { Marquee } from "@/components/Marquee";
 import { BagelMark } from "@/components/BagelMark";
+import { QuickActions } from "@/components/QuickActions";
 import {
   KettleIllustration,
   BenchIllustration,
   CounterIllustration,
 } from "@/components/Illustrations";
+import {
+  SandwichIllustration,
+  CroissantIllustration,
+  CoffeeIllustration,
+  PlatterIllustration,
+  SaladIllustration,
+  CakeIllustration,
+} from "@/components/FoodIllustrations";
 import { getContent } from "@/lib/content";
 
 export const revalidate = 60;
@@ -76,10 +85,10 @@ export default async function HomePage() {
                 priority
               />
             </Reveal>
-            {/* Floating saffron price badge */}
-            <div className="absolute -bottom-6 -left-6 flex items-center gap-3 rounded-pill bg-saffron px-5 py-3 shadow-pop animate-rise">
-              <BagelMark className="h-7 w-7" />
-              <span className="font-display font-700 text-coffee">From £2.50</span>
+            {/* Floating saffron price badge — kept inside on mobile */}
+            <div className="absolute -bottom-4 left-4 md:-bottom-6 md:-left-6 flex items-center gap-2 md:gap-3 rounded-pill bg-saffron px-4 md:px-5 py-2.5 md:py-3 shadow-pop animate-rise">
+              <BagelMark className="h-6 w-6 md:h-7 md:w-7" />
+              <span className="font-display font-700 text-coffee text-sm md:text-base">From £2.50</span>
             </div>
           </div>
         </div>
@@ -111,6 +120,42 @@ export default async function HomePage() {
           ))}
         </Marquee>
       </section>
+
+      {/* QUICK ACTIONS — primary task strip ---------------------------------- */}
+      <Section panel="cream" size="slim">
+        <QuickActions />
+      </Section>
+
+      {/* WHAT WE MAKE — sketch grid ------------------------------------------ */}
+      <Section panel="ivory">
+        <header className="mb-10 grid gap-6 md:grid-cols-12 items-end">
+          <div className="md:col-span-7">
+            <span className="label">What we make</span>
+            <h2 className="mt-3 font-display font-700 text-display-lg text-coffee">
+              Bagels, brunch, brews &amp; cakes.
+            </h2>
+          </div>
+          <p className="md:col-span-5 editorial">
+            Boiled bagels are the backbone. Around them, a counter that turns
+            into breakfast, into lunch, into a cake on a saffron stand.
+          </p>
+        </header>
+        <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+          {[
+            { ill: <SandwichIllustration title="Bagel sandwich" className="h-20 w-20 text-coffee mx-auto" />, t: "Bagels" },
+            { ill: <CoffeeIllustration title="Coffee" className="h-20 w-20 text-coffee mx-auto" />, t: "Coffee" },
+            { ill: <CroissantIllustration title="Croissant" className="h-20 w-20 text-coffee mx-auto" />, t: "Pastries" },
+            { ill: <SaladIllustration title="Salad bowl" className="h-20 w-20 text-coffee mx-auto" />, t: "Salads" },
+            { ill: <PlatterIllustration title="Platter" className="h-20 w-20 text-coffee mx-auto" />, t: "Catering" },
+            { ill: <CakeIllustration title="Cake" className="h-20 w-20 text-coffee mx-auto" />, t: "Cakes" },
+          ].map((c) => (
+            <li key={c.t} className="rounded-xl bg-cream p-6 text-center shadow-soft transition-all hover:-translate-y-1 hover:shadow-pop">
+              {c.ill}
+              <p className="mt-3 font-display font-700 text-coffee">{c.t}</p>
+            </li>
+          ))}
+        </ul>
+      </Section>
 
       {/* OPENING NOTE ------------------------------------------------------ */}
       <Section panel="cream">
