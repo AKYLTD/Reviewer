@@ -24,9 +24,17 @@ export default function CakeOrderPage() {
             <span className="text-brick">Watch it appear.</span>
           </h1>
           <p className="editorial mt-6 text-[1.15rem]">
-            Pick the tiers, the frosting, the topper, the inscription. The
-            sketch on the side updates as you go &mdash; what you see is what
-            the kitchen will bake. Most orders need 72&nbsp;hours.
+            Pick the size, the shape, what&rsquo;s inside, what goes on top.
+            The sketch on the side updates as you go &mdash; what you see is
+            what the kitchen will bake. We come back the same morning to
+            confirm; payment when you collect.
+          </p>
+          <p className="editorial mt-4 text-[0.95rem] text-muted">
+            Need help, or after a special-shape quote? Email{" "}
+            <a className="anchor font-600" href="mailto:info@ronisonline.com">
+              info@ronisonline.com
+            </a>
+            .
           </p>
         </div>
       </Section>
@@ -40,15 +48,15 @@ export default function CakeOrderPage() {
           {[
             {
               t: "Same-morning quote",
-              b: "We come back to your enquiry the same morning with a price and a confirmation of the design.",
+              b: "We come back the same morning with a price and a confirmation of the design.",
             },
             {
               t: "Pay when you collect",
               b: "No payment until the cake leaves the kitchen. If something needs adjusting, we adjust.",
             },
             {
-              t: "Allergen-aware",
-              b: "Nut-free production line. Eggless, dairy-free, gluten-friendly, vegan options on most cakes.",
+              t: "Pick up from any shop",
+              b: "Belsize, Swain's Lane, West Hampstead or Muswell Hill — choose what's nearest. Delivery available for an extra charge.",
             },
           ].map((c) => (
             <article key={c.t} className="card p-7 h-full">

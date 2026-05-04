@@ -1,94 +1,119 @@
-import { COLOR_PALETTE, type CakeConfig } from "./types";
+import { COVER_PALETTE, SIZE_OPTIONS, type CakeConfig } from "./types";
 
 interface CakeSketchProps {
   config: CakeConfig;
   className?: string;
 }
 
+const STROKE_INK = "#2A1810";
+const STROKE = 1.6;
+
 /**
- * Hand-drawn-feel SVG cake that re-renders from the form config in real
- * time. The viewBox is fixed at 400×440; tiers are sized down from the
- * bottom (largest) to the top (smallest). Colours come from COLOR_PALETTE
- * so the form's colour swatches match exactly.
- *
- * Stroke-only outline keeps the sketch register consistent with the other
- * line illustrations (Kettle / Bench / Counter) — but each tier is filled
- * with the chosen frosting palette so the cake reads as the cake the
- * customer is ordering, not just an outline.
+ * Single-tier cake sketch that re-renders from CakeConfig in real time.
+ * Drives:
+ *   - Bottom-tier width from chosen size (8" → 18")
+ *   - Profile from chosen shape (round / square / image / special-3D)
+ *   - Surface treatment from chosen cover (icing / buttercream / ganache)
+ *   - Add-on indicators: image-print rectangle on top, fruit pile, jam drip
+ *   - Inscribed message rendered on the cake's face
  */
 export function CakeSketch({ config, className = "" }: CakeSketchProps) {
-  const palette = COLOR_PALETTE[config.color];
-  const STROKE = 1.6;
-  const stroke = "#2A1810";
+  const palette = COVER_PALETTE[config.cover];
+  const size = SIZE_OPTIONS.find((s) => s.id === config.size) ?? SIZE_OPTIONS[1];
 
-  // Tier geometry — bottom (1), middle (2), top (3). Heights and widths
-  // shrink upward so a 3-tier cake has a believable wedding-cake silhouette.
-  const TIERS: Array<{ w: number; h: number; cy: number }> = [
-    { w: 280, h: 70, cy: 360 }, // bottom
-    { w: 220, h: 60, cy: 290 }, // middle
-    { w: 160, h: 50, cy: 230 }, // top
-  ];
+  // Map inches (8 — 18) to a tier width in the 400px viewBox.
+  const widthRange = { min: 200, max: 340 };
+  const inchRange = { min: 8, max: 18 };
+  const tierWidth =
+    widthRange.min +
+    ((size.inches - inchRange.min) / (inchRange.max - inchRange.min)) *
+      (widthRange.max - widthRange.min);
 
-  const visibleTiers = TIERS.slice(0, config.tiers);
-  const topTier = visibleTiers[visibleTiers.length - 1];
+  const tierHeight = 100;
+  const centreX = 200;
+  const baseY = 360;
+  const topY = baseY - tierHeight;
+  const left = centreX - tierWidth / 2;
+  const right = centreX + tierWidth / 2;
 
   return (
     <svg
       viewBox="0 0 400 440"
       role="img"
-      aria-label={`A ${config.tiers}-tier ${config.shape} ${palette.label.toLowerCase()} cake`}
+      aria-label={`${size.label} ${config.shape} cake with ${config.cover} cover`}
       className={className}
     >
       {/* Plate ----------------------------------------------------------- */}
-      <ellipse cx="200" cy="408" rx="170" ry="14" fill="#E9DBC1" stroke={stroke} strokeWidth={STROKE} />
-      <ellipse cx="200" cy="404" rx="160" ry="10" fill="#FBF4E5" stroke={stroke} strokeWidth={STROKE * 0.7} opacity="0.7" />
+      <ellipse cx={centreX} cy={baseY + 26} rx={tierWidth / 2 + 30} ry="14" fill="#E9DBC1" stroke={STROKE_INK} strokeWidth={STROKE} />
+      <ellipse cx={centreX} cy={baseY + 22} rx={tierWidth / 2 + 22} ry="10" fill="#FBF4E5" stroke={STROKE_INK} strokeWidth={STROKE * 0.7} opacity="0.7" />
 
-      {/* Tiers (bottom to top) ------------------------------------------- */}
-      {visibleTiers.map((t, i) => (
-        <Tier
-          key={i}
-          centreX={200}
-          centreY={t.cy}
-          width={t.w}
-          height={t.h}
-          shape={config.shape}
-          style={config.style}
-          palette={palette}
-          stroke={stroke}
-          strokeWidth={STROKE}
-        />
-      ))}
+      {/* Cake body — varies by shape ------------------------------------ */}
+      {config.shape === "round" && (
+        <RoundCake left={left} right={right} top={topY} bottom={baseY} centreX={centreX} palette={palette} />
+      )}
+      {config.shape === "square" && (
+        <SquareCake left={left} right={right} top={topY} bottom={baseY} palette={palette} />
+      )}
+      {config.shape === "image" && (
+        <ImagePrintCake left={left} right={right} top={topY} bottom={baseY} centreX={centreX} palette={palette} />
+      )}
+      {config.shape === "special-3d" && (
+        <Sculpted3DCake left={left} right={right} top={topY} bottom={baseY} centreX={centreX} palette={palette} />
+      )}
 
-      {/* Inscription on the front of the top tier ------------------------ */}
-      {config.inscription && config.inscription.trim() !== "" && topTier && (
+      {/* Surface treatment — depends on cover --------------------------- */}
+      <SurfaceTreatment
+        left={left}
+        right={right}
+        top={topY}
+        bottom={baseY}
+        centreX={centreX}
+        cover={config.cover}
+        shape={config.shape}
+      />
+
+      {/* Filling indicators — fruits and jam show as a peeking layer ----- */}
+      {config.filling === "fruits" && (
+        <FruitPile centreX={centreX} top={topY} />
+      )}
+      {config.filling === "jam" && (
+        <JamDrip left={left} right={right} top={topY} centreX={centreX} />
+      )}
+
+      {/* Inscription text — rendered on the cake's face ----------------- */}
+      {config.message && config.message.trim() !== "" && config.shape !== "image" && (
         <text
-          x="200"
-          y={topTier.cy + 4}
+          x={centreX}
+          y={topY + tierHeight / 2 + 6}
           textAnchor="middle"
           fontFamily="var(--font-display), Fredoka, sans-serif"
           fontWeight="700"
-          fontSize={topTier.w > 200 ? "16" : "14"}
-          fill={palette.deep}
+          fontSize={tierWidth > 280 ? "18" : tierWidth > 220 ? "16" : "14"}
+          fill={config.cover === "ganache" ? "#FBF4E5" : "#2A1810"}
           style={{ paintOrder: "stroke" }}
-          stroke="#FBF4E5"
+          stroke={config.cover === "ganache" ? "#3D1B0A" : "#FBF4E5"}
           strokeWidth={3}
         >
-          {truncate(config.inscription, topTier.w > 200 ? 24 : 16)}
+          {truncate(config.message, tierWidth > 280 ? 28 : 20)}
         </text>
       )}
 
-      {/* Topper above the top tier --------------------------------------- */}
-      {topTier && (
-        <Topper
-          centreX={200}
-          baseY={topTier.cy - topTier.h / 2}
-          width={topTier.w}
-          topper={config.topper}
-          candles={config.candles}
-          stroke={stroke}
-          strokeWidth={STROKE}
-          paletteDeep={palette.deep}
-        />
+      {/* Image-print indicator — message renders inside the photo frame */}
+      {config.message && config.message.trim() !== "" && config.shape === "image" && (
+        <text
+          x={centreX}
+          y={topY + tierHeight / 2 + 6}
+          textAnchor="middle"
+          fontFamily="var(--font-display), Fredoka, sans-serif"
+          fontWeight="700"
+          fontSize="14"
+          fill="#FBF4E5"
+          style={{ paintOrder: "stroke" }}
+          stroke="#2A1810"
+          strokeWidth={3}
+        >
+          {truncate(config.message, 22)}
+        </text>
       )}
     </svg>
   );
@@ -98,231 +123,208 @@ function truncate(s: string, n: number) {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
 
-interface TierProps {
+interface BodyProps {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
   centreX: number;
-  centreY: number;
-  width: number;
-  height: number;
-  shape: CakeConfig["shape"];
-  style: CakeConfig["style"];
   palette: { light: string; body: string; deep: string };
-  stroke: string;
-  strokeWidth: number;
 }
 
-function Tier({ centreX, centreY, width, height, shape, style, palette, stroke, strokeWidth }: TierProps) {
-  const left = centreX - width / 2;
-  const right = centreX + width / 2;
-  const top = centreY - height / 2;
-  const bottom = centreY + height / 2;
-
-  // For a round tier, the top + base are ellipses; for square, sharper rect.
-  const ellipseRy = shape === "round" ? height * 0.18 : height * 0.06;
-
+function RoundCake({ left, right, top, bottom, centreX, palette }: BodyProps) {
+  const ry = 14;
   return (
     <g>
-      {/* Tier body — sides, then top --------------------------------- */}
       <path
-        d={
-          shape === "round"
-            ? `M ${left} ${top} L ${left} ${bottom} A ${width / 2} ${ellipseRy} 0 0 0 ${right} ${bottom} L ${right} ${top} Z`
-            : `M ${left} ${top} L ${left} ${bottom} L ${right} ${bottom} L ${right} ${top} Z`
-        }
+        d={`M ${left} ${top} L ${left} ${bottom} A ${(right - left) / 2} ${ry} 0 0 0 ${right} ${bottom} L ${right} ${top} Z`}
         fill={palette.body}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
+        stroke={STROKE_INK}
+        strokeWidth={STROKE}
         strokeLinejoin="round"
       />
-
-      {/* Top oval (round only — square has flat top). */}
-      {shape === "round" && (
-        <ellipse
-          cx={centreX}
-          cy={top}
-          rx={width / 2}
-          ry={ellipseRy}
-          fill={palette.light}
-          stroke={stroke}
-          strokeWidth={strokeWidth}
-        />
-      )}
-      {shape === "square" && (
-        <rect
-          x={left}
-          y={top - 4}
-          width={width}
-          height={8}
-          fill={palette.light}
-          stroke={stroke}
-          strokeWidth={strokeWidth}
-        />
-      )}
-
-      {/* Style-specific surface treatment ------------------------------- */}
-      {style === "naked" && (
-        <>
-          {/* Visible sponge layers: 3 horizontal lines crossing the tier
-              face, filling area between with a creamier tone. */}
-          <line x1={left} y1={top + height / 3} x2={right} y2={top + height / 3} stroke={stroke} strokeWidth={strokeWidth * 0.7} opacity="0.75" />
-          <line x1={left} y1={top + (2 * height) / 3} x2={right} y2={top + (2 * height) / 3} stroke={stroke} strokeWidth={strokeWidth * 0.7} opacity="0.75" />
-        </>
-      )}
-      {style === "swirl" && (
-        // Repeating arcs across the face for a piped-swirl frosting feel.
-        Array.from({ length: Math.floor(width / 24) }).map((_, i) => {
-          const cx = left + 12 + i * 24;
-          return (
-            <path
-              key={i}
-              d={`M ${cx - 8} ${top + height / 2} q 8 -8 16 0`}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={strokeWidth * 0.8}
-              opacity="0.5"
-            />
-          );
-        })
-      )}
-
-      {/* Drip accent — small saffron drips when colour is brick/saffron */}
-      {(palette.body === "#C9483A" || palette.body === "#F5A623") && (
-        <g opacity="0.85">
-          <path
-            d={`M ${left + 30} ${top + 4} q 0 12 6 14 q 6 -2 6 -14 Z`}
-            fill={palette.deep}
-            stroke={stroke}
-            strokeWidth={strokeWidth * 0.6}
-          />
-          <path
-            d={`M ${right - 36} ${top + 4} q 0 8 6 10 q 6 -2 6 -10 Z`}
-            fill={palette.deep}
-            stroke={stroke}
-            strokeWidth={strokeWidth * 0.6}
-          />
-        </g>
-      )}
+      <ellipse cx={centreX} cy={top} rx={(right - left) / 2} ry={ry} fill={palette.light} stroke={STROKE_INK} strokeWidth={STROKE} />
     </g>
   );
 }
 
-interface TopperProps {
-  centreX: number;
-  baseY: number;
-  width: number;
-  topper: CakeConfig["topper"];
-  candles: number;
-  stroke: string;
-  strokeWidth: number;
-  paletteDeep: string;
+function SquareCake({ left, right, top, bottom, palette }: Omit<BodyProps, "centreX">) {
+  return (
+    <g>
+      <rect x={left} y={top} width={right - left} height={bottom - top} fill={palette.body} stroke={STROKE_INK} strokeWidth={STROKE} strokeLinejoin="round" rx={4} />
+      <rect x={left} y={top - 5} width={right - left} height={10} fill={palette.light} stroke={STROKE_INK} strokeWidth={STROKE} rx={2} />
+    </g>
+  );
 }
 
-function Topper({ centreX, baseY, width, topper, candles, stroke, strokeWidth, paletteDeep }: TopperProps) {
-  if (topper === "none") return null;
+function ImagePrintCake({ left, right, top, bottom, centreX, palette }: BodyProps) {
+  const ry = 14;
+  return (
+    <g>
+      <path
+        d={`M ${left} ${top} L ${left} ${bottom} A ${(right - left) / 2} ${ry} 0 0 0 ${right} ${bottom} L ${right} ${top} Z`}
+        fill={palette.body}
+        stroke={STROKE_INK}
+        strokeWidth={STROKE}
+        strokeLinejoin="round"
+      />
+      <ellipse cx={centreX} cy={top} rx={(right - left) / 2} ry={ry} fill={palette.light} stroke={STROKE_INK} strokeWidth={STROKE} />
+      {/* Edible-image rectangle on top */}
+      <rect
+        x={centreX - (right - left) * 0.32}
+        y={top - 4}
+        width={(right - left) * 0.64}
+        height={tierFaceHeight() * 0.5}
+        rx={4}
+        fill="#C9483A"
+        stroke={STROKE_INK}
+        strokeWidth={STROKE}
+        opacity="0.95"
+      />
+      {/* Subtle photo gleam */}
+      <rect
+        x={centreX - (right - left) * 0.3}
+        y={top - 2}
+        width={(right - left) * 0.6}
+        height={6}
+        rx={3}
+        fill="#FBF4E5"
+        opacity="0.35"
+      />
+    </g>
+  );
+}
 
-  if (topper === "candles") {
-    const n = Math.min(Math.max(1, candles), 12);
-    const spread = Math.min(width - 40, 24 * n);
-    const start = centreX - spread / 2;
-    const step = n > 1 ? spread / (n - 1) : 0;
+function Sculpted3DCake({ left, right, top, bottom, centreX, palette }: BodyProps) {
+  // A sculpted shape — soft top dome + flared bottom, like a cake bust.
+  return (
+    <g>
+      <path
+        d={`M ${left + 12} ${top + 16} Q ${centreX} ${top - 32} ${right - 12} ${top + 16} L ${right} ${bottom} L ${left} ${bottom} Z`}
+        fill={palette.body}
+        stroke={STROKE_INK}
+        strokeWidth={STROKE}
+        strokeLinejoin="round"
+      />
+      {/* sculpted highlight */}
+      <path
+        d={`M ${centreX - 30} ${top - 8} Q ${centreX} ${top - 24} ${centreX + 30} ${top - 8}`}
+        fill="none"
+        stroke={palette.light}
+        strokeWidth={STROKE * 2}
+        strokeLinecap="round"
+        opacity="0.65"
+      />
+      {/* Soft contour lines for shape interest */}
+      <path d={`M ${left + 24} ${top + 24} Q ${centreX} ${top - 8} ${right - 24} ${top + 24}`} fill="none" stroke={STROKE_INK} strokeWidth={STROKE * 0.7} opacity="0.45" />
+    </g>
+  );
+}
+
+interface SurfaceProps {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  centreX: number;
+  cover: CakeConfig["cover"];
+  shape: CakeConfig["shape"];
+}
+
+function SurfaceTreatment({ left, right, top, bottom, centreX, cover, shape }: SurfaceProps) {
+  if (shape === "image") return null;
+
+  if (cover === "buttercream") {
+    // Piped swirl rosettes around the top edge
+    const count = Math.floor((right - left) / 28);
     return (
       <g>
-        {Array.from({ length: n }).map((_, i) => {
-          const x = start + i * step;
+        {Array.from({ length: count }).map((_, i) => {
+          const cx = left + 14 + i * 28;
           return (
-            <g key={i}>
-              {/* Wax stick */}
-              <rect
-                x={x - 2}
-                y={baseY - 28}
-                width={4}
-                height={26}
-                fill="#FBF4E5"
-                stroke={stroke}
-                strokeWidth={strokeWidth}
-                rx={1.5}
-              />
-              {/* Flame */}
-              <path
-                d={`M ${x} ${baseY - 36} q -3 4 0 6 q 3 -2 0 -6 Z`}
-                fill="#F5A623"
-                stroke="#C9483A"
-                strokeWidth={strokeWidth * 0.6}
-              />
-              <circle cx={x} cy={baseY - 33} r="0.8" fill="#C9483A" />
-            </g>
+            <path
+              key={i}
+              d={`M ${cx - 9} ${top + 4} q 0 -8 9 -8 q 9 0 9 8 q 0 8 -9 8 q -9 0 -9 -8 Z`}
+              fill="none"
+              stroke={STROKE_INK}
+              strokeWidth={STROKE * 0.7}
+              opacity="0.55"
+            />
           );
         })}
       </g>
     );
   }
 
-  if (topper === "fruit") {
+  if (cover === "ganache") {
+    // Ganache drips on the front
+    const drips = [-0.3, -0.1, 0.1, 0.3];
     return (
       <g>
-        {/* A trio of berries clustered on top */}
-        <circle cx={centreX - 18} cy={baseY - 10} r="9" fill="#C9483A" stroke={stroke} strokeWidth={strokeWidth} />
-        <circle cx={centreX} cy={baseY - 14} r="11" fill="#A8392E" stroke={stroke} strokeWidth={strokeWidth} />
-        <circle cx={centreX + 18} cy={baseY - 10} r="9" fill="#C9483A" stroke={stroke} strokeWidth={strokeWidth} />
-        {/* leaves */}
-        <path d={`M ${centreX - 4} ${baseY - 22} q 4 -6 12 -4 q -2 8 -10 6 Z`} fill="#9DBA68" stroke={stroke} strokeWidth={strokeWidth * 0.7} />
-        <circle cx={centreX} cy={baseY - 16} r="1" fill="#FBF4E5" />
+        {drips.map((p, i) => {
+          const x = centreX + (right - left) * p;
+          const h = 16 + (i % 2) * 8;
+          return (
+            <path
+              key={i}
+              d={`M ${x - 5} ${top + 4} q 0 ${h} 5 ${h + 2} q 5 -2 5 -${h + 2} Z`}
+              fill="#3D1B0A"
+              stroke={STROKE_INK}
+              strokeWidth={STROKE * 0.7}
+              opacity="0.95"
+            />
+          );
+        })}
       </g>
     );
   }
 
-  if (topper === "flowers") {
-    // A small posy of saffron + brick flowers
-    const FLOWERS: [number, number, string][] = [
-      [centreX - 16, baseY - 8, "#F5A623"],
-      [centreX, baseY - 14, "#C9483A"],
-      [centreX + 16, baseY - 8, "#F5A623"],
-    ];
-    return (
-      <g>
-        {FLOWERS.map(([x, y, color], i) => (
-          <g key={i}>
-            {[0, 72, 144, 216, 288].map((a) => {
-              const rad = (a * Math.PI) / 180;
-              const px = x + Math.cos(rad) * 6;
-              const py = y + Math.sin(rad) * 6;
-              return (
-                <ellipse
-                  key={a}
-                  cx={px}
-                  cy={py}
-                  rx="5"
-                  ry="3.5"
-                  fill={color}
-                  stroke={stroke}
-                  strokeWidth={strokeWidth * 0.7}
-                  transform={`rotate(${a} ${px} ${py})`}
-                />
-              );
-            })}
-            <circle cx={x} cy={y} r="2.5" fill="#FBF4E5" stroke={stroke} strokeWidth={strokeWidth * 0.7} />
-          </g>
-        ))}
-        {/* stem */}
-        <path d={`M ${centreX} ${baseY - 4} q -4 -2 -8 4`} fill="none" stroke="#9DBA68" strokeWidth={strokeWidth * 1.2} />
-      </g>
-    );
-  }
+  // icing — a single pale highlight curve on the body
+  return (
+    <path
+      d={`M ${left + 18} ${top + 30} Q ${centreX} ${top + 14} ${right - 18} ${top + 30}`}
+      fill="none"
+      stroke="#FFFFFF"
+      strokeWidth={STROKE * 1.5}
+      strokeLinecap="round"
+      opacity="0.5"
+    />
+  );
+}
 
-  if (topper === "figurine") {
-    // Abstract figurine — a little person silhouette
-    return (
-      <g>
-        <circle cx={centreX} cy={baseY - 24} r="6" fill={paletteDeep} stroke={stroke} strokeWidth={strokeWidth} />
+function FruitPile({ centreX, top }: { centreX: number; top: number }) {
+  const cy = top - 10;
+  return (
+    <g>
+      <circle cx={centreX - 14} cy={cy + 2} r="7" fill="#C9483A" stroke={STROKE_INK} strokeWidth={STROKE} />
+      <circle cx={centreX} cy={cy - 3} r="9" fill="#A8392E" stroke={STROKE_INK} strokeWidth={STROKE} />
+      <circle cx={centreX + 14} cy={cy + 2} r="7" fill="#C9483A" stroke={STROKE_INK} strokeWidth={STROKE} />
+      <circle cx={centreX - 5} cy={cy + 5} r="5" fill="#7B1F1F" stroke={STROKE_INK} strokeWidth={STROKE * 0.8} />
+      <circle cx={centreX + 6} cy={cy + 5} r="5" fill="#7B1F1F" stroke={STROKE_INK} strokeWidth={STROKE * 0.8} />
+      <path d={`M ${centreX - 4} ${cy - 14} q 4 -6 12 -4 q -2 8 -10 6 Z`} fill="#9DBA68" stroke={STROKE_INK} strokeWidth={STROKE * 0.7} />
+    </g>
+  );
+}
+
+function JamDrip({ left, right, top, centreX }: { left: number; right: number; top: number; centreX: number }) {
+  // A tiny visible jam line peeking from the side cuts
+  const positions = [left + 24, centreX - 30, centreX + 30, right - 24];
+  return (
+    <g>
+      {positions.map((x, i) => (
         <path
-          d={`M ${centreX} ${baseY - 18} L ${centreX} ${baseY - 4} M ${centreX - 6} ${baseY - 14} L ${centreX + 6} ${baseY - 14} M ${centreX} ${baseY - 4} L ${centreX - 4} ${baseY + 4} M ${centreX} ${baseY - 4} L ${centreX + 4} ${baseY + 4}`}
-          fill="none"
-          stroke={paletteDeep}
-          strokeWidth={strokeWidth * 1.5}
-          strokeLinecap="round"
+          key={i}
+          d={`M ${x - 5} ${top + 28} q 5 -3 10 0 q -2 6 -10 4 Z`}
+          fill="#C9483A"
+          stroke={STROKE_INK}
+          strokeWidth={STROKE * 0.6}
+          opacity="0.95"
         />
-      </g>
-    );
-  }
+      ))}
+    </g>
+  );
+}
 
-  return null;
+function tierFaceHeight() {
+  return 100;
 }

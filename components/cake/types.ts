@@ -1,89 +1,147 @@
-/** Shape of the cake-builder configuration. Single source of truth: the
- *  CakeSketch SVG and the order form both consume this. */
+/**
+ * Cake order types and option lists, matched to Roni's actual cake order
+ * form. Single-tier cakes only; pickup from one of four shops; shape
+ * includes "image print" and "special 3D" options with add-on cost.
+ */
 
-export type CakeShape = "round" | "square";
-export type CakeStyle = "smooth" | "naked" | "swirl";
-export type CakeColor = "vanilla" | "chocolate" | "strawberry" | "saffron" | "brick" | "pistachio" | "lavender";
-export type CakeTopper = "none" | "candles" | "fruit" | "flowers" | "figurine";
+export type CakeShape = "round" | "square" | "image" | "special-3d";
+export type CakeCover = "icing" | "buttercream" | "ganache";
+export type CakeBase = "chocolate" | "vanilla" | "mousse" | "other";
+export type CakeFilling = "chocolate" | "vanilla" | "fruits" | "jam" | "other";
+
+export interface CakeSize {
+  id: string;
+  inches: number;
+  price: number;        // pence; null when "P.O.A."
+  serves: string;       // human-readable serving range
+  label: string;        // headline label, e.g. "10 inch"
+}
+
+export const SIZE_OPTIONS: CakeSize[] = [
+  { id: "8",  inches: 8,  price: 3200, serves: "up to 8 people",  label: "8 inch" },
+  { id: "10", inches: 10, price: 4400, serves: "8 — 12 people",   label: "10 inch" },
+  { id: "12", inches: 12, price: 6500, serves: "15 — 20 people",  label: "12 inch" },
+  { id: "14", inches: 14, price: 8500, serves: "22 — 26 people",  label: "14 inch" },
+  { id: "18", inches: 18, price: 12500, serves: "35 — 40 people", label: "18 inch" },
+];
+
+export const PICKUP_LOCATIONS = [
+  { id: "belsize",         label: "Roni's Belsize" },
+  { id: "swains-lane",     label: "Roni's Swain's Lane" },
+  { id: "west-hampstead",  label: "Roni's West Hampstead" },
+  { id: "muswell-hill",    label: "Roni's Muswell Hill" },
+] as const;
+
+export type PickupLocationId = (typeof PICKUP_LOCATIONS)[number]["id"];
+
+export const SHAPE_OPTIONS: { id: CakeShape; label: string; surcharge?: number; poa?: boolean; hint?: string }[] = [
+  { id: "round",       label: "Round" },
+  { id: "square",      label: "Square" },
+  { id: "image",       label: "Image print",   surcharge: 1200, hint: "Edible-image print on top · +£12" },
+  { id: "special-3d",  label: "Special 3D",    poa: true,        hint: "Sculpted to your design · price on application" },
+];
+
+export const COVER_OPTIONS: { id: CakeCover; label: string }[] = [
+  { id: "icing",       label: "Icing" },
+  { id: "buttercream", label: "Butter cream" },
+  { id: "ganache",     label: "Chocolate ganache" },
+];
+
+export const BASE_OPTIONS: { id: CakeBase; label: string }[] = [
+  { id: "chocolate", label: "Chocolate sponge" },
+  { id: "vanilla",   label: "Vanilla sponge" },
+  { id: "mousse",    label: "Mousse" },
+  { id: "other",     label: "Other (tell us below)" },
+];
+
+export const FILLING_OPTIONS: { id: CakeFilling; label: string; surcharge?: number; hint?: string }[] = [
+  { id: "chocolate", label: "Chocolate filling" },
+  { id: "vanilla",   label: "Vanilla filling" },
+  { id: "fruits",    label: "Fruits layer", surcharge: 500, hint: "Fresh berries between the layers · +£5" },
+  { id: "jam",       label: "Jam layer",    surcharge: 300, hint: "Raspberry or apricot · +£3" },
+  { id: "other",     label: "Other (tell us below)" },
+];
 
 export interface CakeConfig {
-  tiers: 1 | 2 | 3;
+  size: string;        // CakeSize.id
   shape: CakeShape;
-  style: CakeStyle;
-  color: CakeColor;
-  topper: CakeTopper;
-  candles: number;
-  inscription: string;
-  // Editorial choice — drives flavour but not the sketch.
-  sponge: string;
+  cover: CakeCover;
+  base: CakeBase;
+  filling: CakeFilling;
+  message: string;
 }
 
 export const DEFAULT_CAKE: CakeConfig = {
-  tiers: 1,
+  size: "10",
   shape: "round",
-  style: "smooth",
-  color: "vanilla",
-  topper: "candles",
-  candles: 6,
-  inscription: "Happy Birthday",
-  sponge: "vanilla",
+  cover: "buttercream",
+  base: "chocolate",
+  filling: "vanilla",
+  message: "Happy Birthday Roni",
 };
 
-/** Fill colour for each frosting choice. Two-tone (light/dark) so the
- *  CakeSketch can render highlight + body without re-mixing. */
-export const COLOR_PALETTE: Record<CakeColor, { light: string; body: string; deep: string; label: string }> = {
-  vanilla:    { light: "#FFF6E0", body: "#F5E6BE", deep: "#D9BD7C", label: "Vanilla cream" },
-  chocolate:  { light: "#7B4827", body: "#5C2F18", deep: "#3D1B0A", label: "Chocolate ganache" },
-  strawberry: { light: "#FFCFC4", body: "#E8857A", deep: "#B05546", label: "Strawberry" },
-  saffron:    { light: "#FFE0A1", body: "#F5A623", deep: "#B97712", label: "Saffron honey" },
-  brick:      { light: "#E89283", body: "#C9483A", deep: "#8C2A1E", label: "Roni's brick" },
-  pistachio:  { light: "#D7E5B4", body: "#9DBA68", deep: "#6E8848", label: "Pistachio" },
-  lavender:   { light: "#E1D2EE", body: "#B795D2", deep: "#8265A0", label: "Lavender" },
+export interface OrderFields {
+  name: string;
+  phone: string;
+  email: string;
+  date: string;
+  time: string;
+  location: PickupLocationId | "other";
+  locationOther: string;
+  baseOther: string;
+  fillingOther: string;
+  shapeOther: string;
+  coverOther: string;
+  specialRequests: string;
+}
+
+export const DEFAULT_FIELDS: OrderFields = {
+  name: "",
+  phone: "",
+  email: "",
+  date: "",
+  time: "12:00",
+  location: "belsize",
+  locationOther: "",
+  baseOther: "",
+  fillingOther: "",
+  shapeOther: "",
+  coverOther: "",
+  specialRequests: "",
 };
 
-export const STYLE_LABELS: Record<CakeStyle, string> = {
-  smooth: "Smooth iced",
-  naked: "Semi-naked",
-  swirl: "Swirled",
+/**
+ * Compute the running total in pence based on the current config.
+ * Returns null if the cake is "P.O.A." (price on application — special 3D).
+ */
+export function computeTotal(config: CakeConfig): number | null {
+  const size = SIZE_OPTIONS.find((s) => s.id === config.size);
+  if (!size) return 0;
+
+  const shape = SHAPE_OPTIONS.find((s) => s.id === config.shape);
+  if (shape?.poa) return null;
+
+  let total = size.price;
+  if (shape?.surcharge) total += shape.surcharge;
+
+  const filling = FILLING_OPTIONS.find((f) => f.id === config.filling);
+  if (filling?.surcharge) total += filling.surcharge;
+
+  return total;
+}
+
+export function formatGBP(pence: number): string {
+  const amount = pence / 100;
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
+  }).format(amount);
+}
+
+/** Visual palette for each cover so the SVG can render the right surface. */
+export const COVER_PALETTE: Record<CakeCover, { light: string; body: string; deep: string }> = {
+  icing:       { light: "#FFFFFF", body: "#F8F1E1", deep: "#D9C9A6" },
+  buttercream: { light: "#FFF6E0", body: "#F5E6BE", deep: "#D9BD7C" },
+  ganache:     { light: "#7B4827", body: "#5C2F18", deep: "#3D1B0A" },
 };
-
-export const SHAPE_LABELS: Record<CakeShape, string> = {
-  round: "Round",
-  square: "Square",
-};
-
-export const TOPPER_LABELS: Record<CakeTopper, string> = {
-  none: "Plain",
-  candles: "Candles",
-  fruit: "Fresh fruit",
-  flowers: "Edible flowers",
-  figurine: "Custom figurine",
-};
-
-export const SPONGE_OPTIONS = [
-  "Vanilla",
-  "Chocolate",
-  "Lemon drizzle",
-  "Marble",
-  "Carrot",
-  "Red velvet",
-  "Coffee & walnut",
-];
-
-export const ALLERGEN_OPTIONS = [
-  "Nut-free",
-  "Gluten-friendly",
-  "Dairy-free",
-  "Eggless",
-  "Vegan",
-];
-
-export const OCCASION_OPTIONS = [
-  "Birthday",
-  "Wedding / engagement",
-  "Anniversary",
-  "Bar / Bat Mitzvah",
-  "Shabbat",
-  "Holiday",
-  "Just because",
-];
