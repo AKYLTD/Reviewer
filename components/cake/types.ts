@@ -25,14 +25,15 @@ export const SIZE_OPTIONS: CakeSize[] = [
   { id: "18", inches: 18, price: 12500, serves: "35 — 40 people", label: "18 inch" },
 ];
 
-export const PICKUP_LOCATIONS = [
-  { id: "belsize",         label: "Roni's Belsize" },
-  { id: "swains-lane",     label: "Roni's Swain's Lane" },
-  { id: "west-hampstead",  label: "Roni's West Hampstead" },
-  { id: "muswell-hill",    label: "Roni's Muswell Hill" },
-] as const;
-
-export type PickupLocationId = (typeof PICKUP_LOCATIONS)[number]["id"];
+/**
+ * Pickup locations are sourced from data/content.json `locations` and
+ * passed into the builder as a prop. The id is the location.id from that
+ * record; the form falls back to "other" with a free-text field.
+ */
+export interface PickupLocation {
+  id: string;
+  label: string;
+}
 
 export const SHAPE_OPTIONS: { id: CakeShape; label: string; surcharge?: number; poa?: boolean; hint?: string }[] = [
   { id: "round",       label: "Round" },
@@ -86,29 +87,37 @@ export interface OrderFields {
   email: string;
   date: string;
   time: string;
-  location: PickupLocationId | "other";
+  /** Either a PickupLocation.id or "other". */
+  location: string;
   locationOther: string;
   baseOther: string;
   fillingOther: string;
   shapeOther: string;
   coverOther: string;
   specialRequests: string;
+  /** Filename of the uploaded edible-image print, set by the form when a
+   *  file is attached. The actual file goes via FormData; this is the
+   *  display name used in the live preview. */
+  imageFileName: string;
 }
 
-export const DEFAULT_FIELDS: OrderFields = {
-  name: "",
-  phone: "",
-  email: "",
-  date: "",
-  time: "12:00",
-  location: "belsize",
-  locationOther: "",
-  baseOther: "",
-  fillingOther: "",
-  shapeOther: "",
-  coverOther: "",
-  specialRequests: "",
-};
+export function defaultFields(defaultLocationId: string): OrderFields {
+  return {
+    name: "",
+    phone: "",
+    email: "",
+    date: "",
+    time: "12:00",
+    location: defaultLocationId,
+    locationOther: "",
+    baseOther: "",
+    fillingOther: "",
+    shapeOther: "",
+    coverOther: "",
+    specialRequests: "",
+    imageFileName: "",
+  };
+}
 
 /**
  * Compute the running total in pence based on the current config.

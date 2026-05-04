@@ -21,7 +21,7 @@ import {
   SaladIllustration,
   CakeIllustration,
 } from "@/components/FoodIllustrations";
-import { getContent } from "@/lib/content";
+import { getContent, primaryLocation } from "@/lib/content";
 
 export const revalidate = 60;
 
@@ -33,7 +33,10 @@ const STEPS = [
 
 export default async function HomePage() {
   const content = await getContent();
-  const { brand, hero, openingNote, hours, address } = content;
+  const { brand, hero, openingNote } = content;
+  const primary = primaryLocation(content);
+  const { hours } = primary;
+  const address = { line1: primary.addressLine1, line2: primary.addressLine2 };
 
   return (
     <main>

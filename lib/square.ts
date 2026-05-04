@@ -199,3 +199,100 @@ export function formatPrice(money?: MoneyAmount): string {
     return `£${amount.toFixed(2)}`;
   }
 }
+
+/* ===================================================================== */
+/*  ORDERS — used to push cake orders to the till so the kitchen          */
+/*  receipt printer fires when the order is created.                      */
+/* ===================================================================== */
+
+export interface OrderLineItem {
+  name: string;
+  quantity: number;
+  /** Unit price in pence. Pass null for variable / quote-only items. */
+  price?: number;
+  /** Per-item kitchen note (printed on the chit). */
+  note?: string;
+}
+
+export interface CreateOrderInput {
+  /** Which shop to route to. Required for kitchen-printer routing. */
+  squareLocationId: string;
+  /** Free-text reference printed at the top of the chit. */
+  ticketName: string;
+  /** Required by Square — same key for retries returns the same order. */
+  idempotencyKey: string;
+  /** Pickup details for the fulfilment record. */
+  pickup: {
+    displayName: string;
+    email?: string;
+    phone?: string;
+    /** ISO 8601, e.g. "2026-05-10T14:00:00+01:00". */
+    pickupAt: string;
+    /** Free-text printed alongside the order. */
+    note?: string;
+  };
+  lineItems: OrderLineItem[];
+}
+
+export interface CreateOrderResult {
+  orderId: string;
+  state: string;
+}
+
+/**
+ * Create a Square Order in OPEN state at the chosen location. Square's
+ * default routing surfaces it on the location's till and (when configured)
+ * fires the kitchen receipt printer immediately.
+ */
+export async function createOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
+  const body = {
+    idempotency_key: input.idempotencyKey,
+    order: {
+      location_id: input.squareLocationId,
+      ticket_name: input.ticketName,
+      reference_id: `cake-${Date.now()}`,
+      state: "OPEN",
+      line_items: input.lineItems.map((li) => ({
+        name: li.name,
+        quantity: String(li.quantity),
+        ...(li.note ? { note: li.note } : {}),
+        ...(typeof li.price === "number"
+          ? {
+              base_price_money: { amount: li.price, currency: "GBP" },
+            }
+          : {}),
+      })),
+      fulfillments: [
+        {
+          type: "PICKUP",
+          state: "PROPOSED",
+          pickup_details: {
+            recipient: {
+              display_name: input.pickup.displayName,
+              ...(input.pickup.email ? { email_address: input.pickup.email } : {}),
+              ...(input.pickup.phone ? { phone_number: input.pickup.phone } : {}),
+            },
+            pickup_at: input.pickup.pickupAt,
+            ...(input.pickup.note ? { note: input.pickup.note } : {}),
+          },
+        },
+      ],
+    },
+  };
+
+  const res = await squareFetch<{
+    order?: { id: string; state: string };
+    errors?: { code: string; detail?: string }[];
+  }>("/v2/orders", {
+    method: "POST",
+    body: JSON.stringify(body),
+    next: { revalidate: 0 },
+  });
+
+  if (res.errors?.length) {
+    throw new Error(`Square order errors: ${res.errors.map((e) => e.code).join(", ")}`);
+  }
+  if (!res.order) throw new Error("Square returned no order");
+  return { orderId: res.order.id, state: res.order.state };
+}
+

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { BagelMark } from "./BagelMark";
-import { getContent } from "@/lib/content";
+import { getContent, primaryLocation } from "@/lib/content";
 
 export async function SiteFooter() {
   const year = new Date().getFullYear();
-  const { brand, address, hours } = await getContent();
+  const content = await getContent();
+  const { brand } = content;
+  const primary = primaryLocation(content);
 
   return (
     <footer className="panel-coffee mt-24">
@@ -28,12 +30,12 @@ export async function SiteFooter() {
         <div className="md:col-span-3">
           <p className="label">Visit</p>
           <address className="not-italic editorial mt-4">
-            {address.line1}
+            {primary.addressLine1}
             <br />
-            {address.line2}
+            {primary.addressLine2}
           </address>
           <Link href="/visit" className="anchor mt-4 inline-block font-display font-500">
-            Hours &amp; transport
+            All locations &amp; hours
           </Link>
         </div>
 
@@ -43,28 +45,36 @@ export async function SiteFooter() {
             <li><Link href="/menu" className="anchor">Menu</Link></li>
             <li><Link href="/click-collect" className="anchor">Click &amp; collect</Link></li>
             <li><Link href="/catering" className="anchor">Catering</Link></li>
-            <li><Link href="/cakes" className="anchor">Cakes</Link></li>
+            <li><Link href="/cakes/order" className="anchor">Cakes</Link></li>
           </ul>
         </div>
 
         <div className="md:col-span-2">
           <p className="label">Contact</p>
           <ul className="space-y-2 editorial mt-4">
-            <li>
-              <a href={`tel:${address.phone.replace(/\s+/g, "")}`} className="anchor">
-                {address.phone}
-              </a>
-            </li>
-            <li>
-              <a href={`mailto:${address.email}`} className="anchor">
-                {address.email}
-              </a>
-            </li>
+            {primary.phone && (
+              <li>
+                <a href={`tel:${primary.phone.replace(/\s+/g, "")}`} className="anchor">
+                  {primary.phone}
+                </a>
+              </li>
+            )}
+            {primary.email && (
+              <li>
+                <a href={`mailto:${primary.email}`} className="anchor">
+                  {primary.email}
+                </a>
+              </li>
+            )}
           </ul>
-          <p className="label mt-6">Today</p>
-          <p className="editorial mt-2 text-[0.95rem]">
-            {hours[0]?.day} · {hours[0]?.hours}
-          </p>
+          {primary.hours[0] && (
+            <>
+              <p className="label mt-6">Today</p>
+              <p className="editorial mt-2 text-[0.95rem]">
+                {primary.hours[0].day} · {primary.hours[0].hours}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -73,7 +83,7 @@ export async function SiteFooter() {
           <p className="label-muted text-cream/60">
             &copy; {year} {brand.wordmark} {brand.subtitle}
           </p>
-          <p className="label-muted text-cream/60">Belsize Park · London NW3</p>
+          <p className="label-muted text-cream/60">{content.locations.length} shops · London</p>
         </div>
       </div>
     </footer>

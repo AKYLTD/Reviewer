@@ -9,11 +9,6 @@ async function save(formData: FormData) {
   "use server";
   const current = await getContent();
 
-  const hours = (current.hours.length ? current.hours : [{ day: "", hours: "" }]).map((_, i) => ({
-    day: String(formData.get(`hours_${i}_day`) ?? ""),
-    hours: String(formData.get(`hours_${i}_hours`) ?? ""),
-  }));
-
   const milestones = current.story.milestones.map((_, i) => ({
     year: String(formData.get(`m_${i}_year`) ?? ""),
     place: String(formData.get(`m_${i}_place`) ?? ""),
@@ -42,13 +37,6 @@ async function save(formData: FormData) {
         .map((s) => s.trim())
         .filter(Boolean),
     },
-    address: {
-      line1: String(formData.get("address_line1") ?? current.address.line1),
-      line2: String(formData.get("address_line2") ?? current.address.line2),
-      phone: String(formData.get("address_phone") ?? current.address.phone),
-      email: String(formData.get("address_email") ?? current.address.email),
-    },
-    hours,
     story: {
       intro: String(formData.get("story_intro") ?? current.story.intro),
       milestones,
@@ -69,14 +57,20 @@ export default async function ContentPage({
   return (
     <div>
       <p className="label">Content</p>
-      <h1 className="mt-3 font-display text-display-md text-ink">
+      <h1 className="mt-3 font-display text-display-md text-coffee">
         Words across the site.
       </h1>
+      <p className="editorial mt-3 max-w-prose">
+        Hours, addresses and contact details for each shop are managed
+        separately on the{" "}
+        <a className="anchor font-600" href="/admin/locations">Locations</a>{" "}
+        page.
+      </p>
 
       <form action={save} className="mt-10 space-y-14 md:max-w-3xl">
         {/* HERO */}
         <section>
-          <h2 className="font-display text-display-sm text-ink">Hero</h2>
+          <h2 className="font-display text-display-sm text-coffee">Hero</h2>
           <div className="mt-6 grid gap-6">
             <Field label="Headline">
               <Input name="hero_headline" defaultValue={content.hero.headline} />
@@ -103,7 +97,7 @@ export default async function ContentPage({
 
         {/* OPENING NOTE */}
         <section>
-          <h2 className="font-display text-display-sm text-ink">Opening note</h2>
+          <h2 className="font-display text-display-sm text-coffee">Opening note</h2>
           <div className="mt-6 grid gap-6">
             <Field label="Title">
               <Input name="opening_title" defaultValue={content.openingNote.title} />
@@ -118,41 +112,9 @@ export default async function ContentPage({
           </div>
         </section>
 
-        {/* HOURS */}
-        <section>
-          <h2 className="font-display text-display-sm text-ink">Opening hours</h2>
-          <div className="mt-6 grid gap-3">
-            {content.hours.map((row, i) => (
-              <div key={i} className="grid gap-3 md:grid-cols-[1fr_1fr]">
-                <Input name={`hours_${i}_day`} defaultValue={row.day} placeholder="Mon — Fri" />
-                <Input name={`hours_${i}_hours`} defaultValue={row.hours} placeholder="7:00 — 20:00" />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ADDRESS */}
-        <section>
-          <h2 className="font-display text-display-sm text-ink">Address &amp; contact</h2>
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            <Field label="Address line 1">
-              <Input name="address_line1" defaultValue={content.address.line1} />
-            </Field>
-            <Field label="Address line 2">
-              <Input name="address_line2" defaultValue={content.address.line2} />
-            </Field>
-            <Field label="Phone">
-              <Input name="address_phone" defaultValue={content.address.phone} />
-            </Field>
-            <Field label="Email">
-              <Input name="address_email" defaultValue={content.address.email} type="email" />
-            </Field>
-          </div>
-        </section>
-
         {/* STORY */}
         <section>
-          <h2 className="font-display text-display-sm text-ink">Story</h2>
+          <h2 className="font-display text-display-sm text-coffee">Story</h2>
           <div className="mt-6 grid gap-6">
             <Field label="Intro">
               <Textarea name="story_intro" defaultValue={content.story.intro} rows={3} />
@@ -168,11 +130,11 @@ export default async function ContentPage({
         </section>
 
         <div className="flex items-center gap-4 pt-4">
-          <button type="submit" className="btn-ink">
+          <button type="submit" className="btn-primary">
             <span>Save changes</span>
           </button>
           {searchParams.saved && (
-            <span className="font-editorial italic text-[0.95rem] text-ember animate-rise">
+            <span className="font-display italic text-ember animate-rise">
               Saved.
             </span>
           )}

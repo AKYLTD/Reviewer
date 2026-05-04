@@ -1,6 +1,6 @@
 {
   "brand": {
-    "wordmark": "RONI'S",
+    "wordmark": "Roni's",
     "subtitle": "Belsize Village",
     "descriptor": "BAGEL BAKERY & CAFÉ",
     "addressNumber": "37—39",
@@ -25,17 +25,6 @@
     { "n": "ii", "label": "Hand-rolled, rested cold" },
     { "n": "iii", "label": "Across the counter" }
   ],
-  "hours": [
-    { "day": "Monday — Friday", "hours": "7:00 — 20:00" },
-    { "day": "Saturday", "hours": "8:00 — 20:00" },
-    { "day": "Sunday", "hours": "8:00 — 18:00" }
-  ],
-  "address": {
-    "line1": "37–39 Belsize Lane",
-    "line2": "London NW3 5AS",
-    "phone": "020 7794 8133",
-    "email": "hello@ronisbelsize.com"
-  },
   "story": {
     "intro": "From West Hampstead in 1989 to Belsize Village in 2011 — the long version.",
     "milestones": [
@@ -55,5 +44,82 @@
         "body": "We took the building back to its bones, kept the bake exactly as it was, and re-cut the shopfront sign."
       }
     ]
-  }
+  },
+  "primaryLocationId": "belsize",
+  "locations": [
+    {
+      "id": "belsize",
+      "name": "Roni's Belsize",
+      "shortName": "Belsize Village",
+      "addressLine1": "37–39 Belsize Lane",
+      "addressLine2": "London NW3 5AS",
+      "phone": "020 7794 8133",
+      "email": "hello@ronisbelsize.com",
+      "hours": [
+        { "day": "Monday — Friday", "hours": "7:00 — 20:00" },
+        { "day": "Saturday", "hours": "8:00 — 20:00" },
+        { "day": "Sunday", "hours": "8:00 — 18:00" }
+      ],
+      "transport": [
+        { "label": "Belsize Park", "detail": "Northern line · 6 min walk" },
+        { "label": "Swiss Cottage", "detail": "Jubilee line · 9 min walk" },
+        { "label": "Bus", "detail": "46 · 268 · C11" }
+      ],
+      "squareLocationId": ""
+    },
+    {
+      "id": "swains-lane",
+      "name": "Roni's Swain's Lane",
+      "shortName": "Swain's Lane",
+      "addressLine1": "20 Swain's Lane",
+      "addressLine2": "London N6 6QX",
+      "phone": "",
+      "email": "hello@ronisbelsize.com",
+      "hours": [
+        { "day": "Monday — Friday", "hours": "7:00 — 19:00" },
+        { "day": "Saturday — Sunday", "hours": "8:00 — 18:00" }
+      ],
+      "transport": [
+        { "label": "Highgate", "detail": "Northern line · 9 min walk" },
+        { "label": "Bus", "detail": "C11 · 214 · 271" }
+      ],
+      "squareLocationId": ""
+    },
+    {
+      "id": "west-hampstead",
+      "name": "Roni's West Hampstead",
+      "shortName": "West Hampstead",
+      "addressLine1": "298 West End Lane",
+      "addressLine2": "London NW6 1LJ",
+      "phone": "",
+      "email": "hello@ronisbelsize.com",
+      "hours": [
+        { "day": "Monday — Friday", "hours": "7:00 — 19:00" },
+        { "day": "Saturday — Sunday", "hours": "8:00 — 18:00" }
+      ],
+      "transport": [
+        { "label": "West Hampstead", "detail": "Jubilee, Overground, Thameslink" },
+        { "label": "Bus", "detail": "139 · 328 · C11" }
+      ],
+      "squareLocationId": ""
+    },
+    {
+      "id": "muswell-hill",
+      "name": "Roni's Muswell Hill",
+      "shortName": "Muswell Hill",
+      "addressLine1": "112 Muswell Hill Broadway",
+      "addressLine2": "London N10 3RU",
+      "phone": "",
+      "email": "hello@ronisbelsize.com",
+      "hours": [
+        { "day": "Monday — Friday", "hours": "7:30 — 19:00" },
+        { "day": "Saturday — Sunday", "hours": "8:00 — 18:00" }
+      ],
+      "transport": [
+        { "label": "Highgate", "detail": "Northern line · 24 min walk / short bus" },
+        { "label": "Bus", "detail": "43 · 134 · 234 · W7" }
+      ],
+      "squareLocationId": ""
+    }
+  ]
 }

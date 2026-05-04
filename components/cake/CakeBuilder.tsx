@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import { CakeSketch } from "./CakeSketch";
 import {
   BASE_OPTIONS,
   COVER_OPTIONS,
   DEFAULT_CAKE,
-  DEFAULT_FIELDS,
+  defaultFields,
   FILLING_OPTIONS,
-  PICKUP_LOCATIONS,
   SHAPE_OPTIONS,
   SIZE_OPTIONS,
   computeTotal,
@@ -19,25 +18,33 @@ import {
   type CakeFilling,
   type CakeShape,
   type OrderFields,
-  type PickupLocationId,
+  type PickupLocation,
 } from "./types";
 
 type Status = "idle" | "submitting" | "sent" | "error";
 
+interface CakeBuilderProps {
+  locations: PickupLocation[];
+  defaultLocationId: string;
+}
+
 /**
- * Live cake order builder — sketch left, form right (sticky on desktop,
- * top-of-stack on mobile). Every form change re-renders the SVG preview
- * and the running price total. Submits to POST /api/cakes.
+ * Live cake order builder. Sketch on the left, form on the right.
  *
- * Field order intentionally follows Roni's real cake-order form, with
- * the allergen notice placed prominently above. "Other" inputs unfold
- * inline when the matching radio is selected.
+ * Submission path:
+ *   1. If an edible-image file is attached, build FormData and POST to
+ *      /api/cakes (multipart). Otherwise post as JSON.
+ *   2. The endpoint validates, attempts to create a Square Order at the
+ *      chosen pickup location (so the till prints it in the kitchen), and
+ *      always captures the order server-side as a backstop.
  */
-export function CakeBuilder() {
+export function CakeBuilder({ locations, defaultLocationId }: CakeBuilderProps) {
   const [config, setConfig] = useState<CakeConfig>(DEFAULT_CAKE);
-  const [fields, setFields] = useState<OrderFields>(DEFAULT_FIELDS);
+  const [fields, setFields] = useState<OrderFields>(() => defaultFields(defaultLocationId));
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const setC = <K extends keyof CakeConfig>(key: K, value: CakeConfig[K]) =>
     setConfig((c) => ({ ...c, [key]: value }));
@@ -48,21 +55,40 @@ export function CakeBuilder() {
   const selectedShape = SHAPE_OPTIONS.find((s) => s.id === config.shape);
   const selectedFilling = FILLING_OPTIONS.find((f) => f.id === config.filling);
 
+  const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    setF("imageFileName", file?.name ?? "");
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setF("imageFileName", "");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("submitting");
     setError(null);
     try {
-      const res = await fetch("/api/cakes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cake: config,
-          order: fields,
-          quotedTotal: total,
-        }),
-      });
-      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      let res: Response;
+      if (config.shape === "image" && imageFile) {
+        const fd = new FormData();
+        fd.append("payload", JSON.stringify({ cake: config, order: fields, quotedTotal: total }));
+        fd.append("image", imageFile);
+        res = await fetch("/api/cakes", { method: "POST", body: fd });
+      } else {
+        res = await fetch("/api/cakes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cake: config, order: fields, quotedTotal: total }),
+        });
+      }
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(body || `Server returned ${res.status}`);
+      }
       setStatus("sent");
     } catch (err) {
       setStatus("error");
@@ -92,9 +118,13 @@ export function CakeBuilder() {
               {BASE_OPTIONS.find((b) => b.id === config.base)?.label.toLowerCase()} with{" "}
               {selectedFilling?.label.toLowerCase()}
             </p>
+            {fields.imageFileName && config.shape === "image" && (
+              <p className="font-sans text-coffee text-xs mt-2 truncate">
+                Image: {fields.imageFileName}
+              </p>
+            )}
           </div>
 
-          {/* Running price */}
           <div className="mt-6 rounded-md bg-saffron px-5 py-4 text-center shadow-chip">
             <p className="font-sans font-600 text-xs uppercase tracking-wide text-coffee/80">
               Estimated total
@@ -112,8 +142,8 @@ export function CakeBuilder() {
       </aside>
 
       {/* ----------------------------------------------------- FORM */}
-      <form onSubmit={submit} className="md:col-span-7 space-y-12">
-        {/* ALLERGEN NOTICE — prominent, friendlier wording ----------- */}
+      <form onSubmit={submit} className="md:col-span-7 space-y-12" encType="multipart/form-data">
+        {/* ALLERGEN NOTICE */}
         <div className="rounded-md border-2 border-brick bg-cream/60 p-5">
           <p className="font-display font-700 text-coffee text-base md:text-lg">
             A note on allergens
@@ -126,7 +156,7 @@ export function CakeBuilder() {
           </p>
         </div>
 
-        {/* SECTION 01 — size & shape (drives sketch + price) */}
+        {/* SECTION 01 */}
         <SectionBlock label="01" title="Size &amp; shape">
           <Field label="Size">
             <SizeChips value={config.size} onChange={(v) => setC("size", v)} />
@@ -158,6 +188,57 @@ export function CakeBuilder() {
                   onChange={(v) => setF("shapeOther", v)}
                   placeholder="Describe the 3D shape you'd like (we'll quote from your design)"
                 />
+              </div>
+            )}
+
+            {/* IMAGE PRINT — file input ----------------------------------- */}
+            {config.shape === "image" && (
+              <div className="mt-4 rounded-md border-2 border-dashed border-brick/40 bg-cream/50 p-5">
+                <p className="font-display font-700 text-coffee">Upload your image</p>
+                <p className="font-sans text-sm text-muted mt-1">
+                  JPEG or PNG, up to 8&nbsp;MB. We&rsquo;ll print it on edible
+                  rice paper. Avoid copyrighted material.
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <label className="btn-saffron cursor-pointer">
+                    <span>{imageFile ? "Choose another" : "Choose image"}</span>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      name="image"
+                      accept="image/jpeg,image/png"
+                      className="hidden"
+                      onChange={onImageChange}
+                    />
+                  </label>
+                  {imageFile && (
+                    <>
+                      <span className="font-sans text-sm text-coffee max-w-[18rem] truncate">
+                        {imageFile.name}{" "}
+                        <span className="text-muted">
+                          ({Math.round(imageFile.size / 1024)} KB)
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={clearImage}
+                        className="font-sans text-[0.75rem] font-600 uppercase tracking-widest text-brick hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
+                </div>
+                {imageFile && (
+                  <div className="mt-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={URL.createObjectURL(imageFile)}
+                      alt="Your upload preview"
+                      className="max-h-48 rounded-md border border-hairline"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </Field>
@@ -230,10 +311,7 @@ export function CakeBuilder() {
               ))}
               <ChipButton
                 active={false}
-                onClick={() => {
-                  // soft-toggle "other" via the textarea below
-                  setF("coverOther", fields.coverOther || "Other");
-                }}
+                onClick={() => setF("coverOther", fields.coverOther || "Other")}
               >
                 Other
               </ChipButton>
@@ -288,11 +366,11 @@ export function CakeBuilder() {
 
           <Field label="Pick up from">
             <div className="flex flex-wrap gap-2">
-              {PICKUP_LOCATIONS.map((loc) => (
+              {locations.map((loc) => (
                 <ChipButton
                   key={loc.id}
                   active={fields.location === loc.id}
-                  onClick={() => setF("location", loc.id as PickupLocationId)}
+                  onClick={() => setF("location", loc.id)}
                 >
                   {loc.label}
                 </ChipButton>
@@ -565,7 +643,7 @@ function ThankYou({
           Thank you, {fields.name || "friend"}.
         </h2>
         <p className="editorial mt-6 max-w-prose">
-          Your cake is with the kitchen. We&rsquo;ll come back the same
+          Your cake is in our system. The kitchen will come back the same
           morning to confirm the design and the timing for{" "}
           <strong className="font-600">{fields.date || "your chosen date"}</strong>
           .

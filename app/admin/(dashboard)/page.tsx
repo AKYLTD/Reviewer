@@ -9,7 +9,12 @@ const TILES = [
   {
     href: "/admin/content",
     title: "Content",
-    body: "Hero copy, opening note, hours, story milestones, footer.",
+    body: "Hero copy, opening note, story milestones, footer.",
+  },
+  {
+    href: "/admin/locations",
+    title: "Locations",
+    body: "Add, edit, remove shops. Each carries its own hours, address, transport and Square ID for till routing.",
   },
   {
     href: "/admin/menu",
