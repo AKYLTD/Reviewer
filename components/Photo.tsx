@@ -16,6 +16,12 @@ interface PhotoProps {
   /** Tonal placeholder fallback when neither src nor mock resolves. */
   tone?: "saffron" | "brick" | "coffee" | "cream";
   rounded?: "sm" | "md" | "lg" | "xl";
+  /** Brand wash — 'warm' = subtle saffron/brick gradient over the image
+   *  to tie all photography into Roni's palette. 'none' disables it for
+   *  rare cases (e.g. real branded photography that should not be tinted).
+   *  Defaults to 'warm' for stock; once a real /uploads photo is set we
+   *  recommend turning it off. */
+  brandWash?: "warm" | "none";
 }
 
 const TONES: Record<NonNullable<PhotoProps["tone"]>, string> = {
@@ -44,8 +50,10 @@ export function Photo({
   className = "",
   tone = "saffron",
   rounded = "lg",
+  brandWash = "warm",
 }: PhotoProps) {
   const resolved = src ?? (mock ? mockupUrl(mock) : undefined);
+  const showWash = brandWash === "warm" && Boolean(resolved);
 
   return (
     <figure className={className}>
@@ -65,6 +73,30 @@ export function Photo({
           />
         ) : (
           <PlaceholderPlate label={alt} tone={tone} />
+        )}
+
+        {/* Brand wash — tints every photograph with a warm saffron-to-brick
+            gradient so the site reads as one art-directed set rather than
+            assorted stock. A subtle multiply blend keeps detail intact. */}
+        {showWash && (
+          <>
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 mix-blend-multiply"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(245, 166, 35, 0.18) 0%, rgba(201, 72, 58, 0.18) 100%)",
+              }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 mix-blend-overlay"
+              style={{
+                background:
+                  "radial-gradient(ellipse at 50% 35%, rgba(255, 246, 224, 0.18) 0%, rgba(74, 31, 8, 0.22) 100%)",
+              }}
+            />
+          </>
         )}
       </div>
       {caption && (
