@@ -6,21 +6,7 @@ import { Reveal } from "@/components/Reveal";
 import { Magnetic } from "@/components/Magnetic";
 import { MorningTicker } from "@/components/MorningTicker";
 import { Marquee } from "@/components/Marquee";
-import { BagelMark } from "@/components/BagelMark";
 import { QuickActions } from "@/components/QuickActions";
-import {
-  KettleIllustration,
-  BenchIllustration,
-  CounterIllustration,
-} from "@/components/Illustrations";
-import {
-  SandwichIllustration,
-  CroissantIllustration,
-  CoffeeIllustration,
-  PlatterIllustration,
-  SaladIllustration,
-  CakeIllustration,
-} from "@/components/FoodIllustrations";
 import { getContent, primaryLocation } from "@/lib/content";
 
 export const revalidate = 60;
@@ -42,14 +28,6 @@ export default async function HomePage() {
     <main>
       {/* HERO ---------------------------------------------------------------- */}
       <Section size="tall" panel="cream" className="relative overflow-hidden">
-        {/* Decorative bagel marks floating in the corners */}
-        <span aria-hidden className="absolute -top-12 -left-12 opacity-30 pointer-events-none">
-          <BagelMark className="h-72 w-72" spin />
-        </span>
-        <span aria-hidden className="absolute -bottom-20 -right-16 opacity-20 pointer-events-none">
-          <BagelMark className="h-96 w-96" spin />
-        </span>
-
         <div className="relative grid gap-12 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
             <span className="label">{brand.descriptor} · {brand.addressNumber}</span>
@@ -90,9 +68,10 @@ export default async function HomePage() {
               />
             </Reveal>
             {/* Floating saffron price badge — kept inside on mobile */}
-            <div className="absolute -bottom-4 left-4 md:-bottom-6 md:-left-6 flex items-center gap-2 md:gap-3 rounded-pill bg-saffron px-4 md:px-5 py-2.5 md:py-3 shadow-pop animate-rise">
-              <BagelMark className="h-6 w-6 md:h-7 md:w-7" />
-              <span className="font-display font-700 text-coffee text-sm md:text-base">From £2.50</span>
+            <div className="absolute -bottom-4 left-4 md:-bottom-6 md:-left-6 inline-flex items-center gap-2 md:gap-3 rounded-pill bg-saffron px-5 md:px-6 py-2.5 md:py-3 shadow-pop animate-rise">
+              <span className="font-display font-700 text-coffee text-sm md:text-base uppercase tracking-wide">
+                Bagels from £2.50
+              </span>
             </div>
           </div>
         </div>
@@ -146,16 +125,27 @@ export default async function HomePage() {
         </header>
         <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
           {[
-            { ill: <SandwichIllustration title="Bagel sandwich" className="h-20 w-20 text-coffee mx-auto" />, t: "Bagels" },
-            { ill: <CoffeeIllustration title="Coffee" className="h-20 w-20 text-coffee mx-auto" />, t: "Coffee" },
-            { ill: <CroissantIllustration title="Croissant" className="h-20 w-20 text-coffee mx-auto" />, t: "Pastries" },
-            { ill: <SaladIllustration title="Salad bowl" className="h-20 w-20 text-coffee mx-auto" />, t: "Salads" },
-            { ill: <PlatterIllustration title="Platter" className="h-20 w-20 text-coffee mx-auto" />, t: "Catering" },
-            { ill: <CakeIllustration title="Cake" className="h-20 w-20 text-coffee mx-auto" />, t: "Cakes" },
+            { mock: "icon-bagels"   as const, t: "Bagels" },
+            { mock: "icon-coffee"   as const, t: "Coffee" },
+            { mock: "icon-pastries" as const, t: "Pastries" },
+            { mock: "icon-salads"   as const, t: "Salads" },
+            { mock: "icon-catering" as const, t: "Catering" },
+            { mock: "icon-cakes"    as const, t: "Cakes" },
           ].map((c) => (
-            <li key={c.t} className="rounded-xl bg-cream p-6 text-center shadow-soft transition-all hover:-translate-y-1 hover:shadow-pop">
-              {c.ill}
-              <p className="mt-3 font-display font-700 text-coffee">{c.t}</p>
+            <li
+              key={c.t}
+              className="group rounded-xl bg-cream overflow-hidden shadow-soft transition-all hover:-translate-y-1 hover:shadow-pop"
+            >
+              <Photo
+                mock={c.mock}
+                alt={c.t}
+                aspect="1 / 1"
+                rounded="sm"
+                className="!shadow-none [&>div]:rounded-none"
+              />
+              <p className="font-display font-700 text-coffee text-center py-4">
+                {c.t}
+              </p>
             </li>
           ))}
         </ul>
@@ -220,7 +210,7 @@ export default async function HomePage() {
         </div>
       </Section>
 
-      {/* PROCESS — illustrations on saffron --------------------------------- */}
+      {/* PROCESS — photos on saffron --------------------------------------- */}
       <Section panel="saffron">
         <header className="mb-12">
           <span className="label-muted">i — iii</span>
@@ -230,19 +220,30 @@ export default async function HomePage() {
         </header>
         <div className="grid gap-6 md:grid-cols-3">
           {[
-            { ill: <KettleIllustration title="Kettle" className="mx-auto h-32 w-32 text-coffee" />, n: "i", t: "Kettled" },
-            { ill: <BenchIllustration title="Bench" className="mx-auto h-32 w-32 text-coffee" />, n: "ii", t: "Hand-rolled" },
-            { ill: <CounterIllustration title="Counter" className="mx-auto h-32 w-32 text-coffee" />, n: "iii", t: "Counter" },
+            { mock: "process-kettle"  as const, n: "i",   t: "Kettled",      b: "Boiled in barley-malt water before they ever hit the oven." },
+            { mock: "process-bench"   as const, n: "ii",  t: "Hand-rolled",  b: "Each ring shaped at the bench, rested cold overnight." },
+            { mock: "process-counter" as const, n: "iii", t: "On the counter", b: "Across the counter while the crust is still warm." },
           ].map((s, i) => (
             <Reveal key={s.n} delay={i * 100}>
-              <article className="rounded-xl bg-cream p-8 text-center shadow-soft">
-                {s.ill}
-                <p className="mt-4 font-sans font-600 text-brick text-sm uppercase tracking-wide">
-                  {s.n}.
-                </p>
-                <p className="mt-1 font-display font-700 text-2xl text-coffee">
-                  {s.t}
-                </p>
+              <article className="rounded-xl bg-cream overflow-hidden shadow-soft">
+                <Photo
+                  mock={s.mock}
+                  alt={s.t}
+                  aspect="4 / 3"
+                  rounded="sm"
+                  className="!shadow-none [&>div]:rounded-none"
+                />
+                <div className="p-6 text-center">
+                  <p className="font-sans font-600 text-brick text-sm uppercase tracking-wide">
+                    {s.n}.
+                  </p>
+                  <p className="mt-1 font-display font-700 text-2xl text-coffee">
+                    {s.t}
+                  </p>
+                  <p className="mt-2 font-sans text-sm text-coffee/75">
+                    {s.b}
+                  </p>
+                </div>
               </article>
             </Reveal>
           ))}

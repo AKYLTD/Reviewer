@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/Section";
 import { Magnetic } from "@/components/Magnetic";
-import { BagelMark } from "@/components/BagelMark";
 
 export const metadata: Metadata = {
   title: "Order at table",
@@ -14,10 +13,7 @@ export default function OrderAtTablePage() {
   return (
     <main>
       <Section size="tall" panel="cream" className="relative overflow-hidden">
-        <span aria-hidden className="absolute -top-10 -right-10 opacity-25 pointer-events-none">
-          <BagelMark className="h-72 w-72" spin />
-        </span>
-        <div className="relative max-w-2xl">
+<div className="relative max-w-2xl">
           <span className="label">Order at table</span>
           <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
             The QR on your table

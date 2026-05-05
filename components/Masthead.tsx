@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { BagelMark } from "./BagelMark";
 
 interface MastheadProps {
   artwork?: string;
@@ -14,9 +13,9 @@ interface MastheadProps {
 }
 
 /**
- * v3 — warm, rounded, food-magazine masthead. Mark + wordmark composition
- * inspired by the Fresh Catering reference shared by the user. The mark is
- * the bagel ring; the wordmark uses the rounded display sans.
+ * Typographic masthead — wordmark + subtitle + descriptor only. The bagel
+ * mark sketch was removed in favour of a pure type composition; the brick
+ * full-stop after the wordmark is the brand's signature accent.
  */
 export function Masthead({
   artwork,
@@ -46,23 +45,23 @@ export function Masthead({
   if (variant === "compact") {
     return (
       <span
-        className={`inline-flex items-center gap-2 leading-none text-coffee ${className}`}
+        className={`inline-flex items-baseline gap-2 leading-none text-coffee ${className}`}
         aria-label={`${wordmark} ${subtitle}`}
       >
-        <BagelMark className="h-7 w-7" />
-        <span className="font-display text-[1.35rem] font-700 leading-none">
+        <span className="font-display text-[1.5rem] font-700 leading-none">
           {wordmark}
           <span className="text-brick">.</span>
+        </span>
+        <span className="font-display italic text-[1rem] font-500 text-coffee/75 hidden sm:inline">
+          {subtitle}
         </span>
       </span>
     );
   }
 
   if (variant === "stacked") {
-    // Used inside dark coffee panels — uses cream ink.
     return (
-      <span className={`inline-flex flex-col items-center gap-3 ${className}`}>
-        <BagelMark className="h-16 w-16" />
+      <span className={`inline-flex flex-col items-center gap-2 ${className}`}>
         <span className="font-display text-display-md text-cream font-700 leading-none">
           {wordmark}
           <span className="text-saffron">.</span>
@@ -74,15 +73,11 @@ export function Masthead({
     );
   }
 
-  // HERO ----------------------------------------------------------------
+  // HERO --------------------------------------------------------------
   return (
     <div className={`relative w-full text-center ${className}`}>
       <div className="inline-flex flex-col items-center gap-4">
-        <span className="animate-mark-bounce">
-          <BagelMark className="h-24 w-24 md:h-28 md:w-28" />
-        </span>
-
-        <span className="label-muted animate-rise" style={{ animationDelay: "200ms" }}>
+        <span className="label-muted animate-rise" style={{ animationDelay: "0ms" }}>
           {descriptor}
         </span>
 
@@ -91,7 +86,10 @@ export function Masthead({
           <span className="text-brick">.</span>
         </h1>
 
-        <p className="font-display text-display-md font-500 text-brick animate-rise" style={{ animationDelay: "600ms" }}>
+        <p
+          className="font-display text-display-md font-500 text-brick animate-rise"
+          style={{ animationDelay: "400ms" }}
+        >
           {subtitle}
         </p>
       </div>

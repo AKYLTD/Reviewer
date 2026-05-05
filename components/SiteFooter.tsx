@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BagelMark } from "./BagelMark";
 import { getContent, primaryLocation } from "@/lib/content";
 
 export async function SiteFooter() {
@@ -12,18 +11,13 @@ export async function SiteFooter() {
     <footer className="panel-coffee mt-24">
       <div className="mx-auto max-w-[1320px] px-page-x py-20 grid gap-12 md:grid-cols-12">
         <div className="md:col-span-5">
-          <div className="flex items-center gap-4">
-            <BagelMark className="h-14 w-14" />
-            <span>
-              <p className="font-display text-display-md font-700 leading-none">
-                {brand.wordmark}
-                <span className="text-saffron">.</span>
-              </p>
-              <p className="font-display text-saffron text-lg font-500 mt-1">
-                {brand.subtitle}
-              </p>
-            </span>
-          </div>
+          <p className="font-display text-display-md font-700 leading-none">
+            {brand.wordmark}
+            <span className="text-saffron">.</span>
+          </p>
+          <p className="font-display text-saffron text-lg font-500 mt-1">
+            {brand.subtitle}
+          </p>
           <p className="editorial mt-6 max-w-prose">{brand.tagline}</p>
         </div>
 

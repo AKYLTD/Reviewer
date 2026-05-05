@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/Section";
 import { Photo } from "@/components/Photo";
-import { BagelMark } from "@/components/BagelMark";
 import { getContent, primaryLocation, type Location } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -19,10 +18,7 @@ export default async function VisitPage() {
   return (
     <main>
       <Section size="tall" panel="cream" className="relative overflow-hidden">
-        <span aria-hidden className="absolute -top-12 -right-16 opacity-25 pointer-events-none">
-          <BagelMark className="h-80 w-80" spin />
-        </span>
-        <div className="relative grid gap-10 md:grid-cols-12 items-center">
+<div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
             <span className="label">Visit</span>
             <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">

@@ -3,7 +3,6 @@ import { Section } from "@/components/Section";
 import { Photo } from "@/components/Photo";
 import { CateringForm } from "@/components/CateringForm";
 import { Reveal } from "@/components/Reveal";
-import { BagelMark } from "@/components/BagelMark";
 
 export const metadata: Metadata = {
   title: "Catering",
@@ -42,10 +41,7 @@ export default function CateringPage() {
   return (
     <main>
       <Section size="tall" panel="cream" className="relative overflow-hidden">
-        <span aria-hidden className="absolute -bottom-20 -left-12 opacity-25 pointer-events-none">
-          <BagelMark className="h-72 w-72" spin />
-        </span>
-        <div className="relative grid gap-10 md:grid-cols-12 items-center">
+<div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
             <span className="label">Catering</span>
             <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">

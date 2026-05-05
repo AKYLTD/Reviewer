@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, type ReactNode } from "react";
-import { CakeSketch } from "./CakeSketch";
+import { CakePhoto } from "./CakePhoto";
 import {
   BASE_OPTIONS,
   COVER_OPTIONS,
@@ -109,32 +109,18 @@ export function CakeBuilder({ locations, defaultLocationId }: CakeBuilderProps) 
 
   return (
     <div className="grid gap-10 md:grid-cols-12 md:gap-14">
-      {/* ----------------------------------------------------- LIVE PREVIEW */}
+      {/* ----------------------------------------------------- PREVIEW */}
       <aside className="md:col-span-5 md:sticky md:top-24 self-start">
-        <div className="rounded-xl bg-ivory p-6 md:p-8 shadow-soft">
-          <CakeSketch config={config} className="mx-auto w-full max-w-[400px]" />
+        <div className="rounded-xl bg-ivory p-5 md:p-6 shadow-soft">
+          <CakePhoto config={config} />
 
-          <div className="mt-6 text-center">
-            <p className="font-display font-700 text-2xl text-coffee">
-              Your cake
+          {fields.imageFileName && config.shape === "image" && (
+            <p className="mt-4 font-sans text-coffee text-xs truncate">
+              Image attached: {fields.imageFileName}
             </p>
-            <p className="font-sans text-muted mt-1 text-sm">
-              {SIZE_OPTIONS.find((s) => s.id === config.size)?.label} ·{" "}
-              {selectedShape?.label.toLowerCase()} ·{" "}
-              {COVER_OPTIONS.find((c) => c.id === config.cover)?.label.toLowerCase()}
-            </p>
-            <p className="font-sans text-muted text-sm">
-              {BASE_OPTIONS.find((b) => b.id === config.base)?.label.toLowerCase()} with{" "}
-              {selectedFillings.map((f) => f.label.toLowerCase()).join(" + ") || "no filling"}
-            </p>
-            {fields.imageFileName && config.shape === "image" && (
-              <p className="font-sans text-coffee text-xs mt-2 truncate">
-                Image: {fields.imageFileName}
-              </p>
-            )}
-          </div>
+          )}
 
-          <div className="mt-6 rounded-md bg-saffron px-5 py-4 text-center shadow-chip">
+          <div className="mt-5 rounded-md bg-saffron px-5 py-4 text-center shadow-chip">
             <p className="font-sans font-600 text-xs uppercase tracking-wide text-coffee/80">
               Estimated total
             </p>
@@ -147,6 +133,9 @@ export function CakeBuilder({ locations, defaultLocationId }: CakeBuilderProps) 
               </p>
             )}
           </div>
+          <p className="mt-3 font-sans text-[0.78rem] text-muted text-center">
+            Photographs are reference shots. Your cake is decorated to your spec.
+          </p>
         </div>
       </aside>
 
@@ -643,9 +632,9 @@ function ThankYou({
   return (
     <div className="grid gap-10 md:grid-cols-12 items-center">
       <aside className="md:col-span-5">
-        <div className="rounded-xl bg-ivory p-8 shadow-soft">
-          <CakeSketch config={config} className="mx-auto w-full max-w-[360px]" />
-          <div className="mt-6 rounded-md bg-saffron px-5 py-4 text-center shadow-chip">
+        <div className="rounded-xl bg-ivory p-6 shadow-soft">
+          <CakePhoto config={config} />
+          <div className="mt-5 rounded-md bg-saffron px-5 py-4 text-center shadow-chip">
             <p className="font-sans font-600 text-xs uppercase tracking-wide text-coffee/80">
               Estimated total
             </p>

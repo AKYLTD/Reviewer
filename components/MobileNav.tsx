@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BagelMark } from "./BagelMark";
 
 const NAV = [
   { href: "/menu", label: "Menu" },
@@ -81,7 +80,6 @@ export function MobileNav() {
         >
           <div className="flex items-center justify-between p-5 border-b border-hairline">
             <span className="inline-flex items-center gap-2">
-              <BagelMark className="h-7 w-7" />
               <span className="font-display text-[1.2rem] font-700 text-coffee">
                 Roni&rsquo;s
                 <span className="text-brick">.</span>

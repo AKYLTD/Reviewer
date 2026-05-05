@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Section } from "@/components/Section";
 import { Reveal } from "@/components/Reveal";
 import { Magnetic } from "@/components/Magnetic";
-import { BagelMark } from "@/components/BagelMark";
 import {
   getLiveMenu,
   formatPrice,
@@ -188,10 +187,7 @@ export default async function MenuPage({
     <main>
       {/* HEAD ----------------------------------------------------------- */}
       <Section size="tall" panel="cream" className="relative overflow-hidden">
-        <span aria-hidden className="absolute -top-16 -right-16 opacity-25 pointer-events-none">
-          <BagelMark className="h-80 w-80" spin />
-        </span>
-        <div className="relative grid gap-10 md:grid-cols-12 items-end">
+<div className="relative grid gap-10 md:grid-cols-12 items-end">
           <div className="md:col-span-7">
             <span className="label">Menu</span>
             <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">

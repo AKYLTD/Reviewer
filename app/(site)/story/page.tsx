@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Section } from "@/components/Section";
 import { Photo } from "@/components/Photo";
 import { Reveal } from "@/components/Reveal";
-import { BagelMark } from "@/components/BagelMark";
 import { getContent } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -19,10 +18,7 @@ export default async function StoryPage() {
   return (
     <main>
       <Section size="tall" panel="cream" className="relative overflow-hidden">
-        <span aria-hidden className="absolute -bottom-20 -right-20 opacity-25 pointer-events-none">
-          <BagelMark className="h-96 w-96" spin />
-        </span>
-        <div className="relative max-w-3xl">
+<div className="relative max-w-3xl">
           <span className="label">Story</span>
           <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
             A small London bakery,

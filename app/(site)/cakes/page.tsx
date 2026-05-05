@@ -4,7 +4,6 @@ import { Section } from "@/components/Section";
 import { Photo } from "@/components/Photo";
 import { Magnetic } from "@/components/Magnetic";
 import { Reveal } from "@/components/Reveal";
-import { BagelMark } from "@/components/BagelMark";
 
 export const metadata: Metadata = {
   title: "Cakes & occasions",
@@ -23,10 +22,7 @@ export default function CakesPage() {
   return (
     <main>
       <Section size="tall" panel="cream" className="relative overflow-hidden">
-        <span aria-hidden className="absolute -top-12 right-0 opacity-25 pointer-events-none">
-          <BagelMark className="h-72 w-72" spin />
-        </span>
-        <div className="relative grid gap-10 md:grid-cols-12 items-center">
+<div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
             <span className="label">Cakes &amp; occasions</span>
             <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
@@ -51,7 +47,7 @@ export default function CakesPage() {
             </div>
           </div>
           <div className="md:col-span-5">
-            <Photo mock="cake" alt="A celebration cake at the pass" aspect="4 / 5" tone="brick" rounded="xl" />
+            <Photo mock="cake-buttercream-round" alt="A celebration cake at the pass" aspect="4 / 5" tone="brick" rounded="xl" />
           </div>
         </div>
       </Section>
@@ -91,7 +87,7 @@ export default function CakesPage() {
         <div className="mt-10 grid gap-5 md:grid-cols-3">
           <Photo mock="cake-stack" alt="A buttercream layer cake" aspect="4 / 5" tone="saffron" rounded="xl" />
           <Photo mock="cake-decorating" alt="Plaited challah, sesame-topped" aspect="4 / 5" tone="cream" rounded="xl" />
-          <Photo mock="cake" alt="A tray of rugelach" aspect="4 / 5" tone="brick" rounded="xl" />
+          <Photo mock="cake-buttercream-round" alt="A tray of rugelach" aspect="4 / 5" tone="brick" rounded="xl" />
         </div>
       </Section>
 

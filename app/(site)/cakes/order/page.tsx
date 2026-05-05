@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/Section";
 import { CakeBuilder } from "@/components/cake/CakeBuilder";
-import { CakeSketch } from "@/components/cake/CakeSketch";
-import { BagelMark } from "@/components/BagelMark";
+import { CakePhoto } from "@/components/cake/CakePhoto";
 import { getContent, primaryLocation } from "@/lib/content";
 import type { CakeConfig } from "@/components/cake/types";
 
@@ -85,10 +84,7 @@ export default async function CakeOrderPage() {
     <main>
       {/* HEAD ----------------------------------------------------------- */}
       <Section size="tall" panel="cream" className="relative overflow-hidden">
-        <span aria-hidden className="absolute -top-12 -left-16 opacity-20 pointer-events-none">
-          <BagelMark className="h-72 w-72" spin />
-        </span>
-        <div className="relative grid gap-10 md:grid-cols-12 items-center">
+<div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
             <span className="label">Cake order</span>
             <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
@@ -145,7 +141,7 @@ export default async function CakeOrderPage() {
               key={p.name}
               className="rounded-xl bg-cream p-6 text-center shadow-soft transition-all hover:-translate-y-1 hover:shadow-pop"
             >
-              <CakeSketch config={p.config} className="mx-auto h-40 w-40" />
+              <CakePhoto config={p.config} compact className="mx-auto w-40" />
               <p className="mt-4 font-display font-700 text-coffee text-lg">{p.name}</p>
               <p className="mt-1 font-sans text-xs text-coffee/70">{p.sub}</p>
             </li>

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BagelMark } from "@/components/BagelMark";
 
 const NAV = [
   { href: "/admin", label: "Overview" },
@@ -16,7 +15,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-40 border-b border-hairline bg-cream/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1320px] items-center justify-between gap-6 px-page-x py-3">
           <Link href="/admin" className="inline-flex items-center gap-2">
-            <BagelMark className="h-7 w-7" />
             <span className="font-display text-[1.2rem] font-700 text-coffee">
               Roni&rsquo;s
               <span className="text-brick">.</span>
