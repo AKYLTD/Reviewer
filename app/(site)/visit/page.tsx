@@ -36,7 +36,7 @@ export default async function VisitPage() {
                 <a
                   key={loc.id}
                   href={`#${loc.id}`}
-                  className="inline-flex items-center rounded-pill bg-ivory px-4 py-2 font-display font-600 text-coffee shadow-soft hover:bg-saffron transition-colors text-sm"
+                  className="inline-flex items-center justify-center min-h-11 rounded-pill bg-ivory px-4 py-2 font-display font-600 text-coffee shadow-soft hover:bg-saffron transition-colors text-sm"
                 >
                   {loc.shortName}
                 </a>
@@ -79,7 +79,7 @@ function LocationBlock({ loc, panel }: { loc: Location; panel: "ivory" | "cream"
             {loc.phone && (
               <a
                 href={`tel:${loc.phone.replace(/\s+/g, "")}`}
-                className="inline-flex items-center rounded-pill bg-coffee text-saffron px-4 py-2 font-display font-600 text-sm hover:bg-bark transition-colors"
+                className="inline-flex items-center justify-center min-h-11 rounded-pill bg-coffee text-saffron px-4 py-2 font-display font-600 text-sm hover:bg-bark transition-colors"
               >
                 {loc.phone}
               </a>
@@ -88,7 +88,7 @@ function LocationBlock({ loc, panel }: { loc: Location; panel: "ivory" | "cream"
               href={`https://www.google.com/maps?q=${mapQuery}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-pill bg-saffron text-coffee px-4 py-2 font-display font-600 text-sm shadow-chip hover:shadow-pop transition-shadow"
+              className="inline-flex items-center justify-center min-h-11 rounded-pill bg-saffron text-coffee px-4 py-2 font-display font-600 text-sm shadow-chip hover:shadow-pop transition-shadow"
             >
               Open in Maps
             </a>

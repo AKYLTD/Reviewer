@@ -87,16 +87,18 @@ body {
   }
 
   /* PRIMARY ACTION — pill, brick fill, white text, soft shadow,
-     squashes briefly on press. */
+     squashes briefly on press. min-height enforces the 44pt touch
+     target (UI/UX Pro Max Priority 2). */
   .btn-primary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    min-height: 2.75rem;
     background: theme("colors.brick");
     color: white;
     border-radius: 999px;
-    padding: 0.95rem 1.75rem;
+    padding: 0.85rem 1.75rem;
     font-family: var(--font-display), sans-serif;
     font-weight: 600;
     font-size: 0.95rem;
@@ -115,6 +117,10 @@ body {
   .btn-primary:active {
     transform: translateY(0) scale(0.98);
   }
+  .btn-primary:focus-visible {
+    outline: 2px solid theme("colors.coffee");
+    outline-offset: 3px;
+  }
 
   /* SAFFRON ACCENT BUTTON */
   .btn-saffron {
@@ -122,10 +128,11 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    min-height: 2.75rem;
     background: theme("colors.saffron");
     color: theme("colors.coffee");
     border-radius: 999px;
-    padding: 0.95rem 1.75rem;
+    padding: 0.85rem 1.75rem;
     font-family: var(--font-display), sans-serif;
     font-weight: 600;
     font-size: 0.95rem;
@@ -140,6 +147,10 @@ body {
     box-shadow: theme("boxShadow.pop");
     background: #FFB73D;
   }
+  .btn-saffron:focus-visible {
+    outline: 2px solid theme("colors.coffee");
+    outline-offset: 3px;
+  }
 
   /* GHOST — outline */
   .btn-ghost {
@@ -147,11 +158,12 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    min-height: 2.75rem;
     background: transparent;
     color: theme("colors.coffee");
     border: 1.5px solid theme("colors.coffee");
     border-radius: 999px;
-    padding: 0.85rem 1.65rem;
+    padding: 0.75rem 1.65rem;
     font-family: var(--font-display), sans-serif;
     font-weight: 600;
     font-size: 0.9rem;
@@ -162,11 +174,53 @@ body {
     color: theme("colors.cream");
     transform: translateY(-1px);
   }
+  .btn-ghost:focus-visible {
+    outline: 2px solid theme("colors.brick");
+    outline-offset: 3px;
+  }
 
-  /* PRICE CHIP — saffron pill, used on every menu item */
+  /* CHIP — multi-state toggle pill used in forms, menu tabs, allergens
+     etc. Enforces 44pt minimum height (Priority 2). */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    background: theme("colors.ivory");
+    color: theme("colors.coffee");
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: background 220ms ease, color 220ms ease;
+    cursor: pointer;
+  }
+  .chip:hover { background: rgba(245, 166, 35, 0.4); }
+  .chip:focus-visible {
+    outline: 2px solid theme("colors.brick");
+    outline-offset: 2px;
+  }
+  .chip[aria-pressed="true"], .chip-active {
+    background: theme("colors.brick");
+    color: theme("colors.cream");
+    box-shadow: theme("boxShadow.chip");
+  }
+
+  /* Universal focus-visible for links + raw buttons. */
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid theme("colors.brick");
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* PRICE CHIP — saffron pill, used on every menu item.
+     tabular-nums ensures prices line up across rows (Priority 6). */
   .price-chip {
     display: inline-flex;
     align-items: center;
+    font-variant-numeric: tabular-nums;
     background: theme("colors.saffron");
     color: theme("colors.coffee");
     border-radius: 999px;

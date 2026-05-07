@@ -230,7 +230,8 @@ export default async function MenuPage({
             <Link
               href="/menu?mode=takeaway"
               scroll={false}
-              className={`inline-flex items-center gap-2 rounded-pill px-5 py-2 font-display font-700 text-sm transition ${
+              aria-current={mode === "takeaway" ? "page" : undefined}
+              className={`inline-flex items-center justify-center gap-2 min-h-11 rounded-pill px-5 py-2 font-display font-700 text-sm transition ${
                 mode === "takeaway"
                   ? "bg-brick text-cream shadow-chip"
                   : "text-coffee hover:bg-saffron/30"
@@ -244,7 +245,8 @@ export default async function MenuPage({
             <Link
               href="/menu?mode=eat-in"
               scroll={false}
-              className={`inline-flex items-center gap-2 rounded-pill px-5 py-2 font-display font-700 text-sm transition ${
+              aria-current={mode === "eat-in" ? "page" : undefined}
+              className={`inline-flex items-center justify-center gap-2 min-h-11 rounded-pill px-5 py-2 font-display font-700 text-sm transition ${
                 mode === "eat-in"
                   ? "bg-saffron text-coffee shadow-chip"
                   : "text-coffee hover:bg-saffron/30"
@@ -264,7 +266,7 @@ export default async function MenuPage({
                 <a
                   key={c.name}
                   href={`#${slug(c.name)}`}
-                  className="inline-flex items-center gap-1.5 rounded-pill bg-ivory hover:bg-saffron px-3.5 py-1.5 font-display font-600 text-xs text-coffee transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 min-h-11 rounded-pill bg-ivory hover:bg-saffron px-4 py-2 font-display font-600 text-xs text-coffee transition-colors"
                 >
                   {c.name}
                   <span className="text-coffee/50">{c.items.length}</span>
