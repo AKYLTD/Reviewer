@@ -44,34 +44,72 @@ body {
 }
 
 @layer components {
-  /* WIDE-TRACKED LABEL — the small uppercase eyebrow used above sections */
+  /* WIDE-TRACKED LABEL — small uppercase eyebrow above sections. */
   .label {
     font-family: var(--font-sans), system-ui, sans-serif;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    font-size: 0.6875rem;
     color: theme("colors.brick");
+  }
+  /* Section-rule variant adds a hairline before the label — a single
+     editorial flourish reserved for section eyebrows on full-width
+     panels. Apply via `.label.label-rule` or just `.label-rule`. */
+  .label-rule {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.6875rem;
+    color: theme("colors.brick");
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .label-rule::before {
+    content: "";
+    display: inline-block;
+    width: 1.5rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.6;
   }
   .label-muted {
     font-family: var(--font-sans), system-ui, sans-serif;
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    font-size: 0.6875rem;
     color: theme("colors.muted");
   }
 
-  /* BODY COPY */
+  /* BODY COPY — line-height 1.7 (skill rule line-height 1.5–1.75),
+     line-length implicit via max-w-prose on consumers. */
   .editorial {
     font-family: var(--font-sans), system-ui, sans-serif;
     font-size: 1.0625rem;
-    line-height: 1.65;
+    line-height: 1.7;
     color: theme("colors.cocoa");
+    max-width: 65ch;
   }
   @media (min-width: 768px) {
     .editorial {
       font-size: 1.125rem;
+    }
+  }
+  /* Lead paragraph — used right under hero headlines. */
+  .lede {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 1.125rem;
+    line-height: 1.55;
+    color: theme("colors.cocoa");
+    max-width: 38rem;
+    font-weight: 400;
+  }
+  @media (min-width: 768px) {
+    .lede {
+      font-size: 1.25rem;
     }
   }
 
@@ -232,11 +270,53 @@ body {
     box-shadow: theme("boxShadow.chip");
   }
 
-  /* CARD — soft surface, rounded, ivory background */
+  /* CARD — refined: tighter radius, e1 elevation, subtle hairline,
+     e2 lift on hover (UI/UX Pro Max P4 elevation-consistent). */
   .card {
+    position: relative;
     background: theme("colors.ivory");
+    border: 1px solid theme("colors.hairline");
     border-radius: 1.25rem;
-    box-shadow: theme("boxShadow.soft");
+    box-shadow: theme("boxShadow.e1");
+    transition:
+      box-shadow 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 280ms ease;
+  }
+  .card-interactive:hover,
+  .card-interactive:focus-within {
+    box-shadow: theme("boxShadow.e2");
+    transform: translateY(-2px);
+    border-color: rgba(42, 24, 16, 0.22);
+  }
+
+  /* SECTION HEADER pattern — eyebrow + title + sub-deck. Use on every
+     section that introduces a block. Centred and left-aligned variants
+     covered by the surrounding container's text alignment. */
+  .section-head {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: clamp(2rem, 5vw, 3rem);
+  }
+  .section-head .label {
+    margin: 0;
+  }
+  .section-head h2 {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    color: theme("colors.coffee");
+    letter-spacing: -0.012em;
+    line-height: 1.05;
+  }
+
+  /* HAIRLINE rule — slim divider used between editorial sections that
+     share the same panel colour. Keeps section ends visible without a
+     hard colour break. */
+  .rule {
+    border-top: 1px solid theme("colors.hairline");
+  }
+  .rule-strong {
+    border-top: 1px solid theme("colors.hairlineStrong");
   }
 
   /* DARK COFFEE PANEL — full-bleed brown section, used for inversion */

@@ -1,37 +1,33 @@
 import type { Config } from "tailwindcss";
 
 /**
- * v3 — Warm food-magazine system, in the lineage of the Fresh Catering
- * brand board the user shared. Brick / saffron / brown / cream. Rounded
- * friendly typography. Larger radii. Approachable, not minimal-cold.
+ * Polish pass — design tokens aligned to UI/UX Pro Max:
+ *  • 3-tier elevation scale (e1 raised / e2 floating / e3 modal)
+ *  • Animation timing in the 150–300ms band (skill rule
+ *    `duration-timing`); easing closer to Apple HIG fluid curve.
+ *  • Display ramp tightened for tighter visual hierarchy.
  */
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        // Surfaces
-        cream: "#F0E4D0", // primary background, the warmest paper
-        ivory: "#FBF4E5", // soft elevated surface
-        bone: "#E9DBC1", // section divider tint
-        // Inks
-        cocoa: "#2A1810", // body text
-        coffee: "#4A1F08", // dark sections / footer
-        bark: "#6E3214", // hover / pressed
-        // Brand
-        brick: "#C9483A", // primary action
-        brickDark: "#A8392E", // pressed / active
-        saffron: "#F5A623", // highlight / price chip
-        saffronSoft: "#FFD089", // soft highlight surface
-        // Quiet utility
+        cream: "#F0E4D0",
+        ivory: "#FBF4E5",
+        bone: "#E9DBC1",
+        cocoa: "#2A1810",
+        coffee: "#4A1F08",
+        bark: "#6E3214",
+        brick: "#C9483A",
+        brickDark: "#A8392E",
+        saffron: "#F5A623",
+        saffronSoft: "#FFD089",
         muted: "#7B6855",
         hairline: "rgba(42, 24, 16, 0.14)",
+        hairlineStrong: "rgba(42, 24, 16, 0.22)",
       },
       fontFamily: {
-        // Rounded friendly display sans — closest free analogue to the
-        // "Fresh" logo's wordmark. Bound via next/font in app/layout.tsx.
         display: ["var(--font-display)", "Recoleta", "DM Serif Display", "sans-serif"],
-        // Clean modern body sans, warmer than Inter.
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       letterSpacing: {
@@ -40,7 +36,6 @@ const config: Config = {
         signage: "0.42em",
       },
       borderRadius: {
-        // Rounded everywhere — buttons, cards, image frames, chips.
         sm: "0.5rem",
         DEFAULT: "0.75rem",
         md: "1rem",
@@ -49,11 +44,14 @@ const config: Config = {
         pill: "999px",
       },
       fontSize: {
-        "display-2xl": ["clamp(4.5rem, 13vw, 11rem)", { lineHeight: "0.92", letterSpacing: "-0.025em" }],
-        "display-xl": ["clamp(3.5rem, 9vw, 8rem)", { lineHeight: "0.95", letterSpacing: "-0.02em" }],
-        "display-lg": ["clamp(2.75rem, 7vw, 5.5rem)", { lineHeight: "1.0", letterSpacing: "-0.015em" }],
-        "display-md": ["clamp(2rem, 5vw, 3.5rem)", { lineHeight: "1.05", letterSpacing: "-0.01em" }],
-        "display-sm": ["clamp(1.5rem, 3vw, 2.25rem)", { lineHeight: "1.1" }],
+        // Tighter ramp — display-2xl pulled in from 13vw to 11vw on big
+        // screens so the hero stops crashing the page; everything else
+        // rebalanced one notch tighter for a cleaner hierarchy.
+        "display-2xl": ["clamp(3.75rem, 11vw, 9rem)", { lineHeight: "0.95", letterSpacing: "-0.03em" }],
+        "display-xl": ["clamp(3rem, 8vw, 6.5rem)", { lineHeight: "0.98", letterSpacing: "-0.025em" }],
+        "display-lg": ["clamp(2.5rem, 6vw, 4.5rem)", { lineHeight: "1.02", letterSpacing: "-0.018em" }],
+        "display-md": ["clamp(1.875rem, 4vw, 2.75rem)", { lineHeight: "1.08", letterSpacing: "-0.012em" }],
+        "display-sm": ["clamp(1.375rem, 2.5vw, 1.875rem)", { lineHeight: "1.15", letterSpacing: "-0.005em" }],
       },
       spacing: {
         "page-x": "clamp(1.25rem, 4vw, 3rem)",
@@ -62,31 +60,31 @@ const config: Config = {
         editorial: "68rem",
         prose: "38rem",
       },
+      // 3-tier elevation. e1 stays on (cards), e2 on hover, e3 for menus
+      // and modals. Old `soft`/`pop`/`chip` aliased so existing usages
+      // keep working without a churn-y find/replace.
       boxShadow: {
-        soft: "0 1px 2px rgba(74, 31, 8, 0.06), 0 8px 32px rgba(74, 31, 8, 0.06)",
-        pop: "0 4px 12px rgba(74, 31, 8, 0.10), 0 24px 48px rgba(74, 31, 8, 0.10)",
-        chip: "0 2px 4px rgba(74, 31, 8, 0.10)",
+        e1: "0 1px 2px rgba(74, 31, 8, 0.05), 0 2px 8px rgba(74, 31, 8, 0.05)",
+        e2: "0 2px 6px rgba(74, 31, 8, 0.08), 0 16px 32px rgba(74, 31, 8, 0.08)",
+        e3: "0 4px 12px rgba(74, 31, 8, 0.12), 0 28px 56px rgba(74, 31, 8, 0.10)",
+        soft: "0 1px 2px rgba(74, 31, 8, 0.05), 0 2px 8px rgba(74, 31, 8, 0.05)",
+        pop:  "0 2px 6px rgba(74, 31, 8, 0.08), 0 16px 32px rgba(74, 31, 8, 0.08)",
+        chip: "0 1px 3px rgba(74, 31, 8, 0.10)",
       },
       transitionTimingFunction: {
-        editorial: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        // Apple HIG–style fluid out (snappier than the stock cubic-bezier).
+        out: "cubic-bezier(0.16, 1, 0.3, 1)",
+        editorial: "cubic-bezier(0.16, 1, 0.3, 1)",
       },
       keyframes: {
         rise: {
-          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "0%": { opacity: "0", transform: "translateY(12px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
-        bagelSpin: {
-          "0%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(360deg)" },
-        },
         wordmarkPop: {
-          "0%": { opacity: "0", transform: "translateY(28px) scale(0.96)" },
+          // Tighter, less wobbly entrance — translate distance halved.
+          "0%": { opacity: "0", transform: "translateY(14px) scale(0.98)" },
           "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
-        },
-        markBounce: {
-          "0%": { opacity: "0", transform: "scale(0.4) rotate(-12deg)" },
-          "60%": { transform: "scale(1.08) rotate(2deg)" },
-          "100%": { opacity: "1", transform: "scale(1) rotate(0deg)" },
         },
         marquee: {
           "0%": { transform: "translateX(0)" },
@@ -94,10 +92,11 @@ const config: Config = {
         },
       },
       animation: {
-        rise: "rise 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both",
-        "bagel-spin": "bagelSpin 14s linear infinite",
-        "wordmark-pop": "wordmarkPop 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 200ms both",
-        "mark-bounce": "markBounce 900ms cubic-bezier(0.34, 1.56, 0.64, 1) both",
+        // 280ms entry, 280ms entry-with-delay variants honour the
+        // skill's duration-timing rule (150–300ms micro-interactions).
+        rise: "rise 280ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        "rise-slow": "rise 360ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        "wordmark-pop": "wordmarkPop 320ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both",
         marquee: "marquee 36s linear infinite",
       },
     },

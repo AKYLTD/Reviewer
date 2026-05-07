@@ -28,30 +28,30 @@ export default async function HomePage() {
     <main>
       {/* HERO ---------------------------------------------------------------- */}
       <Section size="tall" panel="cream" className="relative overflow-hidden">
-        <div className="relative grid gap-12 md:grid-cols-12 items-center">
+        <div className="relative grid gap-x-12 gap-y-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
-            <span className="label">{brand.descriptor} · {brand.addressNumber}</span>
-            <h1 className="mt-5 font-display font-700 text-display-2xl text-coffee leading-[0.92]">
+            <p className="label-rule">{brand.descriptor} · est. 1989</p>
+            <h1 className="mt-6 font-display font-700 text-display-xl text-coffee">
               Fresh bagels,
               <br />
               <span className="text-brick">boiled this morning.</span>
             </h1>
-            <p className="editorial mt-6 max-w-prose text-[1.2rem]">
+            <p className="lede mt-8">
               {hero.subhead}
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="mt-10 flex flex-wrap items-center gap-3">
               <Magnetic>
                 <Link href={hero.primaryCta.href} className="btn-primary">
                   <span>{hero.primaryCta.label}</span>
                 </Link>
               </Magnetic>
               <Magnetic>
-                <Link href={hero.secondaryCta.href} className="btn-saffron">
+                <Link href={hero.secondaryCta.href} className="btn-ghost">
                   {hero.secondaryCta.label}
                 </Link>
               </Magnetic>
             </div>
-            <div className="mt-10">
+            <div className="mt-10 pt-6 border-t border-hairline">
               <MorningTicker />
             </div>
           </div>
@@ -67,10 +67,13 @@ export default async function HomePage() {
                 priority
               />
             </Reveal>
-            {/* Floating saffron price badge — kept inside on mobile */}
-            <div className="absolute -bottom-4 left-4 md:-bottom-6 md:-left-6 inline-flex items-center gap-2 md:gap-3 rounded-pill bg-saffron px-5 md:px-6 py-2.5 md:py-3 shadow-pop animate-rise">
-              <span className="font-display font-700 text-coffee text-sm md:text-base uppercase tracking-wide">
-                Bagels from £2.50
+            {/* Floating saffron price badge — refined size + position */}
+            <div className="absolute -bottom-4 left-4 md:-bottom-5 md:-left-5 inline-flex items-baseline gap-2 rounded-pill bg-saffron px-5 py-2.5 shadow-e2 animate-rise">
+              <span className="font-display font-700 text-coffee text-xs uppercase tracking-[0.14em]">
+                from
+              </span>
+              <span className="font-display font-700 text-coffee text-base tabular-nums">
+                £2.50
               </span>
             </div>
           </div>
