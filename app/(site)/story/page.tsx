@@ -19,13 +19,13 @@ export default async function StoryPage() {
     <main>
       <Section size="tall" panel="cream" className="relative overflow-hidden">
 <div className="relative max-w-3xl">
-          <span className="label">Story</span>
-          <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
+          <p className="label-rule">Story</p>
+          <h1 className="mt-6 font-display font-700 text-display-xl text-coffee">
             A small London bakery,
             <br />
             <span className="text-brick">twice over.</span>
           </h1>
-          <p className="editorial mt-6 text-[1.15rem]">{story.intro}</p>
+          <p className="lede mt-8">{story.intro}</p>
         </div>
       </Section>
 

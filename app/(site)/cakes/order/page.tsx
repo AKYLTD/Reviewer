@@ -86,15 +86,15 @@ export default async function CakeOrderPage() {
       <Section size="tall" panel="cream" className="relative overflow-hidden">
 <div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
-            <span className="label">Cake order</span>
-            <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
+            <p className="label-rule">Cake order</p>
+            <h1 className="mt-6 font-display font-700 text-display-xl text-coffee">
               Build your cake.
               <br />
               <span className="text-brick">Watch it appear.</span>
             </h1>
-            <p className="editorial mt-6 text-[1.15rem] max-w-prose">
+            <p className="lede mt-8">
               Pick the size, the shape, what&rsquo;s inside, what goes on top.
-              The sketch on the side updates as you go &mdash; what you see is
+              The preview on the side updates as you go &mdash; what you see is
               what the kitchen will bake.
             </p>
           </div>

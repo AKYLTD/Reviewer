@@ -29,13 +29,13 @@ export default function ClickCollectPage() {
       <Section size="tall" panel="cream" className="relative overflow-hidden">
 <div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
-            <span className="label">Click &amp; collect</span>
-            <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
+            <p className="label-rule">Click &amp; collect</p>
+            <h1 className="mt-6 font-display font-700 text-display-xl text-coffee">
               Order ahead.
               <br />
               <span className="text-brick">Walk in, walk out.</span>
             </h1>
-            <p className="editorial mt-6 max-w-prose text-[1.15rem]">
+            <p className="lede mt-8">
               Every order placed online prints directly in the kitchen at
               37&ndash;39 Belsize Lane. Pick a slot, pay, and your bag is on the
               shelf when you arrive.

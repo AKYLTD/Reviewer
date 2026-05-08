@@ -24,13 +24,13 @@ export default function CakesPage() {
       <Section size="tall" panel="cream" className="relative overflow-hidden">
 <div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
-            <span className="label">Cakes &amp; occasions</span>
-            <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
+            <p className="label-rule">Cakes &amp; occasions</p>
+            <h1 className="mt-6 font-display font-700 text-display-xl text-coffee">
               For the day
               <br />
               <span className="text-brick">that needs marking.</span>
             </h1>
-            <p className="editorial mt-6 max-w-prose text-[1.15rem]">
+            <p className="lede mt-8">
               Birthday cakes, Shabbat challahs, holiday trays, and the
               kettle-boiled celebration boxes that started it all.
               Seventy-two hours is comfortable.

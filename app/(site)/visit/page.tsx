@@ -20,13 +20,13 @@ export default async function VisitPage() {
       <Section size="tall" panel="cream" className="relative overflow-hidden">
 <div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
-            <span className="label">Visit</span>
-            <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
+            <p className="label-rule">Visit</p>
+            <h1 className="mt-6 font-display font-700 text-display-xl text-coffee">
               Four shops,
               <br />
               <span className="text-brick">one bake.</span>
             </h1>
-            <p className="editorial mt-6 max-w-prose text-[1.15rem]">
+            <p className="lede mt-8">
               Belsize Village, Swain&rsquo;s Lane, West Hampstead and Muswell
               Hill. Same dough, same kettle, same baker. Pick the one that&rsquo;s
               easiest to reach.

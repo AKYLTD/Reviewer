@@ -43,13 +43,13 @@ export default function CateringPage() {
       <Section size="tall" panel="cream" className="relative overflow-hidden">
 <div className="relative grid gap-10 md:grid-cols-12 items-center">
           <div className="md:col-span-7">
-            <span className="label">Catering</span>
-            <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
+            <p className="label-rule">Catering</p>
+            <h1 className="mt-6 font-display font-700 text-display-xl text-coffee">
               Trays for offices,
               <br />
               <span className="text-brick">gatherings &amp; shiva.</span>
             </h1>
-            <p className="editorial mt-6 max-w-prose text-[1.15rem]">
+            <p className="lede mt-8">
               Tell us how many people, when, and where. We&rsquo;ll come back the
               same morning with a quote, an allergen-marked platter list, and a
               delivery window.

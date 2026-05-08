@@ -14,13 +14,13 @@ export default function OrderAtTablePage() {
     <main>
       <Section size="tall" panel="cream" className="relative overflow-hidden">
 <div className="relative max-w-2xl">
-          <span className="label">Order at table</span>
-          <h1 className="mt-5 font-display font-700 text-display-xl text-coffee leading-[0.95]">
+          <p className="label-rule">Order at table</p>
+          <h1 className="mt-6 font-display font-700 text-display-xl text-coffee">
             The QR on your table
             <br />
             <span className="text-brick">opens here.</span>
           </h1>
-          <p className="editorial mt-6 text-[1.15rem]">
+          <p className="lede mt-8">
             Sitting in? Each table has a small marker with a code. Scan it to
             open the dine-in menu, order another flat white or a slice of
             babka, and pay without flagging anyone down. Your order prints in
