@@ -7,6 +7,7 @@ import { Magnetic } from "@/components/Magnetic";
 import { MorningTicker } from "@/components/MorningTicker";
 import { Marquee } from "@/components/Marquee";
 import { QuickActions } from "@/components/QuickActions";
+import { WelcomeTableau } from "@/components/WelcomeTableau";
 import { getContent, primaryLocation } from "@/lib/content";
 
 export const revalidate = 60;
@@ -57,25 +58,10 @@ export default async function HomePage() {
           </div>
 
           <div className="md:col-span-5 relative">
-            <Reveal as="photo">
-              <Photo
-                mock="bagel-hero"
-                alt="A morning bake of bagels, still warm"
-                aspect="4 / 5"
-                tone="brick"
-                rounded="xl"
-                priority
-              />
-            </Reveal>
-            {/* Floating saffron price badge — refined size + position */}
-            <div className="absolute -bottom-4 left-4 md:-bottom-5 md:-left-5 inline-flex items-baseline gap-2 rounded-pill bg-saffron px-5 py-2.5 shadow-e2 animate-rise">
-              <span className="font-display font-700 text-coffee text-xs uppercase tracking-[0.14em]">
-                from
-              </span>
-              <span className="font-display font-700 text-coffee text-base tabular-nums">
-                £2.50
-              </span>
-            </div>
+            <WelcomeTableau />
+            <p className="mt-6 text-center label-muted">
+              Three signatures from the kitchen
+            </p>
           </div>
         </div>
       </Section>

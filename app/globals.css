@@ -385,3 +385,18 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(74, 31, 8, 0.32);
 }
+
+/* WelcomeTableau float — gentle bob applied to each circle, offset
+   per item via inline animation-delay so the three items move out of
+   sync. translate-only so it composes cleanly with parent 3D transforms. */
+@keyframes welcome-float {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -14px; }
+}
+.welcome-float {
+  animation: welcome-float 5.6s ease-in-out infinite;
+  will-change: translate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome-float { animation: none; }
+}

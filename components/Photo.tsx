@@ -1,10 +1,11 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import { mockupUrl, type Mockup } from "@/lib/mockups";
 
 interface PhotoProps {
-  /** Real photo path (e.g. /uploads/foo.jpg). Wins over `mock`. */
   src?: string;
-  /** Mockup key — used when src is not provided. */
   mock?: Mockup;
   alt: string;
   width?: number;
@@ -13,14 +14,8 @@ interface PhotoProps {
   caption?: string;
   priority?: boolean;
   className?: string;
-  /** Tonal placeholder fallback when neither src nor mock resolves. */
   tone?: "saffron" | "brick" | "coffee" | "cream";
   rounded?: "sm" | "md" | "lg" | "xl";
-  /** Brand wash — 'warm' = subtle saffron/brick gradient over the image
-   *  to tie all photography into Roni's palette. 'none' disables it for
-   *  rare cases (e.g. real branded photography that should not be tinted).
-   *  Defaults to 'warm' for stock; once a real /uploads photo is set we
-   *  recommend turning it off. */
   brandWash?: "warm" | "none";
 }
 
@@ -53,7 +48,9 @@ export function Photo({
   brandWash = "warm",
 }: PhotoProps) {
   const resolved = src ?? (mock ? mockupUrl(mock) : undefined);
-  const showWash = brandWash === "warm" && Boolean(resolved);
+  const [errored, setErrored] = useState(false);
+  const showImage = Boolean(resolved) && !errored;
+  const showWash = brandWash === "warm" && showImage;
 
   return (
     <figure className={className}>
@@ -61,23 +58,21 @@ export function Photo({
         className={`relative w-full overflow-hidden ${RADIUS[rounded]} shadow-soft bg-bone`}
         style={{ aspectRatio: aspect }}
       >
-        {resolved ? (
+        {showImage ? (
           <Image
-            src={resolved}
+            src={resolved!}
             alt={alt}
             width={width}
             height={height}
             priority={priority}
-            unoptimized={resolved.startsWith("https://")}
+            unoptimized={resolved!.startsWith("https://")}
+            onError={() => setErrored(true)}
             className="h-full w-full object-cover"
           />
         ) : (
           <PlaceholderPlate label={alt} tone={tone} />
         )}
 
-        {/* Brand wash — tints every photograph with a warm saffron-to-brick
-            gradient so the site reads as one art-directed set rather than
-            assorted stock. A subtle multiply blend keeps detail intact. */}
         {showWash && (
           <>
             <div
