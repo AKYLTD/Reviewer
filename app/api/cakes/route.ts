@@ -3,7 +3,8 @@ import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { getContent } from "@/lib/content";
-import { createOrder, SquareNotConfiguredError } from "@/lib/square";
+import { createOrder as createSquareOrder, SquareNotConfiguredError } from "@/lib/square";
+import { createOrder as persistOrder, newOrderId } from "@/lib/orders";
 import {
   SIZE_OPTIONS,
   SHAPE_OPTIONS,
@@ -120,7 +121,7 @@ export async function POST(req: Request) {
   if (squareLocationId && process.env.SQUARE_ACCESS_TOKEN) {
     try {
       const pickupAt = new Date(`${order.date}T${order.time}:00`).toISOString();
-      const result = await createOrder({
+      const result = await createSquareOrder({
         squareLocationId,
         ticketName: `Cake — ${order.name}`,
         idempotencyKey: randomUUID(),
@@ -155,8 +156,35 @@ export async function POST(req: Request) {
     squareError = "no-square-location-id";
   }
 
+  // Persist to the local order store so the admin back-office can
+  // surface it. This step never fails the request — if persistence
+  // breaks we still tell the customer their order succeeded (the
+  // server log + Square push are the real backstops).
+  let persistedId: string | undefined;
+  try {
+    const scheduledFor = `${order.date}T${order.time || "12:00"}:00`;
+    const persisted = await persistOrder({
+      id: newOrderId("cake"),
+      channel: "cake",
+      scheduledFor,
+      pickupLocationId: order.location,
+      customer: { name: order.name, email: order.email, phone: order.phone },
+      summary: lineItemName(cake),
+      details: { cake, order, locationLabel },
+      total,
+      squareOrderId,
+      squareError,
+      attachments: imagePath ? [imagePath] : [],
+    });
+    persistedId = persisted.id;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[cakes] failed to persist order locally:", err);
+  }
+
   return NextResponse.json({
     ok: true,
+    orderId: persistedId,
     squareOrderId,
     squareError,
     imagePath,

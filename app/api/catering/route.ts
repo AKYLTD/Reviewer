@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
+import { createOrder as persistOrder, newOrderId } from "@/lib/orders";
 
 /**
- * Catering enquiry endpoint. Currently a capture stub — in production this
- * should forward to the shop's email address (or a Square Customer Directory
- * entry plus an internal Slack/SMS notification) per square-setup-plan.md.
- *
- * No persistence yet: that decision is upstream of the current task and
- * depends on whether Alon wants enquiries inside Square's Customer Directory,
- * a separate inbox, or routed via the existing kitchen-printer pipeline.
+ * Catering enquiry endpoint. Captures the lead to the local orders store
+ * so it lands in the admin back-office, then returns ok. Production
+ * email forwarding hooks here.
  */
 export async function POST(req: Request) {
   let payload: Record<string, unknown>;
@@ -19,16 +16,53 @@ export async function POST(req: Request) {
 
   const required = ["name", "email", "date", "guests"] as const;
   for (const key of required) {
-    if (!payload[key] || typeof payload[key] !== "string" && typeof payload[key] !== "number") {
+    const v = payload[key];
+    if (v === undefined || v === null || (typeof v !== "string" && typeof v !== "number")) {
       return NextResponse.json({ ok: false, error: `Missing ${key}` }, { status: 400 });
     }
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    // Surface the lead in the dev terminal so it's visible while testing.
+  const name = String(payload.name);
+  const email = String(payload.email);
+  const phone = payload.phone ? String(payload.phone) : undefined;
+  const date = String(payload.date);
+  const time = payload.time ? String(payload.time) : "12:00";
+  const guests = String(payload.guests);
+  const company = payload.company ? String(payload.company) : "";
+  const postcode = payload.postcode ? String(payload.postcode) : "";
+  const notes = payload.notes ? String(payload.notes) : "";
+
+  const summary = `Catering enquiry — ${guests} guests${company ? ` · ${company}` : ""}`;
+
+  let persistedId: string | undefined;
+  try {
+    const persisted = await persistOrder({
+      id: newOrderId("catering"),
+      channel: "catering",
+      scheduledFor: `${date}T${time}:00`,
+      customer: { name, email, phone },
+      summary,
+      details: {
+        guests: Number(guests) || guests,
+        company,
+        postcode,
+        notes,
+        raw: payload,
+      },
+      // Catering is enquiry-first; we don't quote until the kitchen
+      // replies, so the total stays null in the record.
+      total: null,
+    });
+    persistedId = persisted.id;
+  } catch (err) {
     // eslint-disable-next-line no-console
-    console.log("[catering] enquiry:", payload);
+    console.warn("[catering] failed to persist enquiry:", err);
   }
 
-  return NextResponse.json({ ok: true });
+  if (process.env.NODE_ENV !== "production") {
+    // eslint-disable-next-line no-console
+    console.log("[catering] enquiry:", { id: persistedId, ...payload });
+  }
+
+  return NextResponse.json({ ok: true, orderId: persistedId });
 }

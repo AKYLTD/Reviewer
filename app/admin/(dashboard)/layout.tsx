@@ -2,11 +2,13 @@ import Link from "next/link";
 
 const NAV = [
   { href: "/admin", label: "Overview" },
-  { href: "/admin/brand", label: "Brand" },
-  { href: "/admin/content", label: "Content" },
-  { href: "/admin/locations", label: "Locations" },
+  { href: "/admin/orders", label: "Orders" },
   { href: "/admin/menu", label: "Menu" },
+  { href: "/admin/locations", label: "Locations" },
+  { href: "/admin/content", label: "Content" },
+  { href: "/admin/brand", label: "Brand" },
   { href: "/admin/images", label: "Images" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
