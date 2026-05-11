@@ -7,7 +7,7 @@ import { Magnetic } from "@/components/Magnetic";
 export const metadata: Metadata = {
   title: "Click & collect",
   description:
-    "Order ahead from the bagel counter at 37–39 Belsize Lane. Walk in, walk out.",
+    "Order ahead from Roni's Bagel Bakery — Belsize, Swain's Lane, West Hampstead or Muswell Hill. Walk in, walk out.",
 };
 
 const STEPS = [
@@ -36,9 +36,9 @@ export default function ClickCollectPage() {
               <span className="text-brick">Walk in, walk out.</span>
             </h1>
             <p className="lede mt-8">
-              Every order placed online prints directly in the kitchen at
-              37&ndash;39 Belsize Lane. Pick a slot, pay, and your bag is on the
-              shelf when you arrive.
+              Every order placed online prints directly in the kitchen at the
+              shop you choose. Pick a slot, pay, and your bag is on the shelf
+              when you arrive.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Magnetic>

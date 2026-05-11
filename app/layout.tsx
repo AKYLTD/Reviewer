@@ -21,16 +21,16 @@ const sans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://ronisbelsize.com"),
+  metadataBase: new URL("https://ronisonline.com"),
   title: {
-    default: "Roni's · Belsize Village",
-    template: "%s · Roni's Belsize Village",
+    default: "Roni's · Bagel Bakery",
+    template: "%s · Roni's Bagel Bakery",
   },
   description:
-    "Bagel bakery and café at 37–39 Belsize Lane, London NW3. Click & collect, dine-in ordering, catering and cakes.",
+    "Roni's Bagel Bakery — four shops across north London: Belsize, Swain's Lane, West Hampstead, Muswell Hill. Click & collect, dine-in, catering and cakes.",
   openGraph: {
-    title: "Roni's · Belsize Village",
-    description: "Bagel bakery and café at 37–39 Belsize Lane, London NW3.",
+    title: "Roni's · Bagel Bakery",
+    description: "Roni's Bagel Bakery — four shops across north London.",
     type: "website",
     locale: "en_GB",
   },

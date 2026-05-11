@@ -8,7 +8,7 @@ import { Reveal } from "@/components/Reveal";
 export const metadata: Metadata = {
   title: "Cakes & occasions",
   description:
-    "Custom cakes, Shabbat challahs, and celebration trays from Roni's Belsize Village.",
+    "Custom cakes, Shabbat challahs, and celebration trays from Roni's Bagel Bakery.",
 };
 
 const OCCASIONS = [

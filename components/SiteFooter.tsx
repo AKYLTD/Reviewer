@@ -11,11 +11,11 @@ export async function SiteFooter() {
     <footer className="panel-coffee mt-24">
       <div className="mx-auto max-w-[1320px] px-page-x py-20 grid gap-12 md:grid-cols-12">
         <div className="md:col-span-5">
-          <p className="font-display text-display-md font-700 leading-none">
+          <p className="font-display text-display-md font-700 leading-none text-cocoa">
             {brand.wordmark}
-            <span className="text-saffron">.</span>
+            <span className="text-brick">.</span>
           </p>
-          <p className="font-display text-saffron text-lg font-500 mt-1">
+          <p className="font-display text-brick text-lg font-500 mt-1">
             {brand.subtitle}
           </p>
           <p className="editorial mt-6 max-w-prose">{brand.tagline}</p>
@@ -23,11 +23,15 @@ export async function SiteFooter() {
 
         <div className="md:col-span-3">
           <p className="label">Visit</p>
-          <address className="not-italic editorial mt-4">
-            {primary.addressLine1}
-            <br />
-            {primary.addressLine2}
-          </address>
+          <ul className="editorial mt-4 space-y-2">
+            {content.locations.map((loc) => (
+              <li key={loc.id}>
+                <Link href={`/visit#${loc.id}`} className="anchor">
+                  {loc.shortName}
+                </Link>
+              </li>
+            ))}
+          </ul>
           <Link href="/visit" className="anchor mt-4 inline-block font-display font-500">
             All locations &amp; hours
           </Link>
@@ -61,23 +65,15 @@ export async function SiteFooter() {
               </li>
             )}
           </ul>
-          {primary.hours[0] && (
-            <>
-              <p className="label mt-6">Today</p>
-              <p className="editorial mt-2 text-[0.95rem]">
-                {primary.hours[0].day} · {primary.hours[0].hours}
-              </p>
-            </>
-          )}
         </div>
       </div>
 
-      <div className="border-t border-cream/10">
+      <div className="border-t border-cocoa/15">
         <div className="mx-auto max-w-[1320px] px-page-x py-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="label-muted text-cream/60">
+          <p className="label-muted">
             &copy; {year} {brand.wordmark} {brand.subtitle}
           </p>
-          <p className="label-muted text-cream/60">{content.locations.length} shops · London</p>
+          <p className="label-muted">{content.locations.length} shops · north London</p>
         </div>
       </div>
     </footer>

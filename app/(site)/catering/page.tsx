@@ -7,7 +7,7 @@ import { Reveal } from "@/components/Reveal";
 export const metadata: Metadata = {
   title: "Catering",
   description:
-    "Bagel and breakfast catering for offices, gatherings, and shiva — quoted from your guest count, prepared in our Belsize Lane kitchen.",
+    "Bagel and breakfast catering for offices, gatherings, and shiva — quoted from your guest count, prepared in our north London kitchens.",
 };
 
 const PLATTERS = [

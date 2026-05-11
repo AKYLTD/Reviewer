@@ -22,6 +22,11 @@ const config: Config = {
         brickDark: "#A8392E",
         saffron: "#F5A623",
         saffronSoft: "#FFD089",
+        // Rose pastel — the new pastel anchor that replaces the heavy
+        // dark brown on inverted panels. Light surface that pairs warmly
+        // with brick and saffron without competing.
+        rose: "#F2D5CC",
+        roseDeep: "#C9928A",
         muted: "#7B6855",
         hairline: "rgba(42, 24, 16, 0.14)",
         hairlineStrong: "rgba(42, 24, 16, 0.22)",

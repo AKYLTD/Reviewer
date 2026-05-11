@@ -120,7 +120,7 @@ export function MobileNav() {
               <span>Order ahead</span>
             </Link>
             <p className="mt-3 text-center font-sans text-sm text-muted">
-              37—39 Belsize Lane · NW3
+              Four shops across north London
             </p>
           </div>
         </aside>

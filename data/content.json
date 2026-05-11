@@ -1,15 +1,15 @@
 {
   "brand": {
     "wordmark": "Roni's",
-    "subtitle": "Belsize Village",
+    "subtitle": "Bagel Bakery",
     "descriptor": "BAGEL BAKERY & CAFÉ",
-    "addressNumber": "37—39",
+    "addressNumber": "Four shops across north London",
     "logoSrc": "",
     "tagline": "Boiled in the morning, eaten before the lunch rush."
   },
   "hero": {
-    "headline": "A bagel bakery and café on Belsize Lane.",
-    "subhead": "Boiled, baked, and handed across the counter since 2011.",
+    "headline": "A north London bagel bakery, four shops strong.",
+    "subhead": "Boiled, baked, and handed across the counter — Belsize, Swain's Lane, West Hampstead and Muswell Hill.",
     "primaryCta": { "label": "Order ahead", "href": "/click-collect" },
     "secondaryCta": { "label": "Catering enquiry", "href": "/catering" }
   },

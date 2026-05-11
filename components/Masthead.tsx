@@ -24,7 +24,7 @@ export function Masthead({
   variant = "hero",
   className = "",
   wordmark = "Roni's",
-  subtitle = "Belsize Village",
+  subtitle = "Bagel Bakery",
   descriptor = "BAGEL BAKERY & CAFÉ",
 }: MastheadProps) {
   if (artwork) {

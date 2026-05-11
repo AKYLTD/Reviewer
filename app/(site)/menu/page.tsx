@@ -14,7 +14,7 @@ import { getMenu, priceFromPence } from "@/lib/content";
 export const metadata: Metadata = {
   title: "Menu",
   description:
-    "Today's menu at Roni's Belsize Village — eat-in and takeaway, drawn live from the till.",
+    "Today's menu at Roni's Bagel Bakery — eat-in and takeaway, drawn live from the till.",
 };
 
 export const revalidate = 60;
@@ -198,8 +198,8 @@ export default async function MenuPage({
               got, at the prices we&rsquo;re charging right now. Different
               prices apply for eat-in &mdash; switch tabs below.
             </p>
-            <p className="mt-6 inline-flex items-center gap-3 rounded-pill bg-coffee text-saffron px-4 py-2 font-display font-600 text-sm">
-              <span className="h-2 w-2 rounded-pill bg-saffron animate-pulse" />
+            <p className="mt-6 inline-flex items-center gap-3 rounded-pill bg-rose text-cocoa px-4 py-2 font-display font-600 text-sm">
+              <span className="h-2 w-2 rounded-pill bg-brick animate-pulse" />
               {menu.source === "square"
                 ? "Live from Square — refreshed every minute"
                 : "Manual menu"}
@@ -307,7 +307,7 @@ export default async function MenuPage({
               className={
                 isTakeaway
                   ? "inline-flex items-center justify-center rounded-pill bg-saffron text-coffee px-6 py-3 font-display font-700 text-sm shadow-chip hover:shadow-pop transition-shadow"
-                  : "inline-flex items-center justify-center rounded-pill bg-coffee text-cream px-6 py-3 font-display font-700 text-sm shadow-chip hover:shadow-pop transition-shadow"
+                  : "inline-flex items-center justify-center rounded-pill bg-roseDeep text-cream px-6 py-3 font-display font-700 text-sm shadow-chip hover:shadow-pop transition-shadow"
               }
             >
               {isTakeaway ? "Order ahead" : "Open dine-in flow"}

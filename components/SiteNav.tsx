@@ -32,7 +32,7 @@ export function SiteNav() {
   return (
     <header className="sticky top-0 z-40 w-full bg-cream/85 backdrop-blur-md border-b border-hairline">
       <div className="mx-auto flex max-w-[1320px] items-center justify-between gap-4 px-page-x py-3">
-        <Link href="/" aria-label="Roni's Belsize Village — home" className="rounded-md">
+        <Link href="/" aria-label="Roni's Bagel Bakery — home" className="rounded-md">
           <Masthead variant="compact" />
         </Link>
 

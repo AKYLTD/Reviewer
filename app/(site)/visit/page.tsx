@@ -79,7 +79,7 @@ function LocationBlock({ loc, panel }: { loc: Location; panel: "ivory" | "cream"
             {loc.phone && (
               <a
                 href={`tel:${loc.phone.replace(/\s+/g, "")}`}
-                className="inline-flex items-center justify-center min-h-11 rounded-pill bg-coffee text-saffron px-4 py-2 font-display font-600 text-sm hover:bg-bark transition-colors"
+                className="inline-flex items-center justify-center min-h-11 rounded-pill bg-rose text-cocoa px-4 py-2 font-display font-600 text-sm hover:bg-roseDeep hover:text-cream transition-colors"
               >
                 {loc.phone}
               </a>

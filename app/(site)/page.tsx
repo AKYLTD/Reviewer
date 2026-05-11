@@ -67,7 +67,7 @@ export default async function HomePage() {
       </Section>
 
       {/* MARQUEE BELT ------------------------------------------------------ */}
-      <section className="bg-coffee py-6 overflow-hidden">
+      <section className="bg-roseDeep py-6 overflow-hidden">
         <Marquee>
           {[
             "Bagels boiled at 5:30",
@@ -80,12 +80,12 @@ export default async function HomePage() {
             "★",
             "Open daily until 8pm",
             "★",
-            "37—39 Belsize Lane",
+            "Four shops across north London",
             "★",
           ].map((t, i) => (
             <span
               key={i}
-              className="font-display text-[1.35rem] font-500 text-saffron whitespace-nowrap"
+              className="font-display text-[1.35rem] font-500 text-cream whitespace-nowrap"
             >
               {t}
             </span>
@@ -326,21 +326,24 @@ export default async function HomePage() {
       <Section panel="cream">
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-5">
-            <span className="label">Visit</span>
+            <p className="label">Visit</p>
             <h2 className="mt-4 font-display font-700 text-display-lg text-coffee leading-[1.0]">
-              {brand.addressNumber}
+              Four shops,
               <br />
-              <span className="text-brick">Belsize Lane.</span>
+              <span className="text-brick">one bake.</span>
             </h2>
-            <p className="editorial mt-4">{address.line2}</p>
+            <p className="editorial mt-4">
+              Belsize Village, Swain&rsquo;s Lane, West Hampstead and
+              Muswell Hill.
+            </p>
             <Magnetic>
               <Link href="/visit" className="btn-ghost mt-6">
-                Find us
+                Find all four
               </Link>
             </Magnetic>
           </div>
           <div className="md:col-span-3">
-            <span className="label">Hours</span>
+            <p className="label">{primary.shortName} today</p>
             <ul className="editorial mt-4 space-y-1">
               {hours.map((row) => (
                 <li key={row.day}>

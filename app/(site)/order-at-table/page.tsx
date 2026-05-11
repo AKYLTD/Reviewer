@@ -6,7 +6,7 @@ import { Magnetic } from "@/components/Magnetic";
 export const metadata: Metadata = {
   title: "Order at table",
   description:
-    "QR-driven dine-in ordering for guests at Roni's Belsize Village.",
+    "QR-driven dine-in ordering for guests at Roni's Bagel Bakery.",
 };
 
 export default function OrderAtTablePage() {
