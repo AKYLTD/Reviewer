@@ -7,7 +7,7 @@ import { Magnetic } from "@/components/Magnetic";
 import { MorningTicker } from "@/components/MorningTicker";
 import { Marquee } from "@/components/Marquee";
 import { QuickActions } from "@/components/QuickActions";
-import { WelcomeTableau } from "@/components/WelcomeTableau";
+import { SignaturePanels } from "@/components/SignaturePanels";
 import { getContent, primaryLocation } from "@/lib/content";
 
 export const revalidate = 60;
@@ -58,9 +58,9 @@ export default async function HomePage() {
           </div>
 
           <div className="md:col-span-5 relative">
-            <WelcomeTableau />
-            <p className="mt-6 text-center label-muted">
-              Three signatures from the kitchen
+            <SignaturePanels />
+            <p className="mt-10 text-center label-muted">
+              Three signatures from the kitchen — hover to explore
             </p>
           </div>
         </div>
