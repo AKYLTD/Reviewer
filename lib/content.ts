@@ -45,6 +45,9 @@ export interface Location {
   transport: LocationTransport[];
   /** Square location ID — pasted in by admin to route orders here. */
   squareLocationId: string;
+  /** Optional latitude/longitude for nearest-shop detection. Set in admin. */
+  lat?: number;
+  lng?: number;
 }
 
 export interface SiteContent {

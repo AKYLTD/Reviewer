@@ -5,11 +5,11 @@ const NAV = [
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/promotions", label: "Promos" },
   { href: "/admin/menu", label: "Menu" },
-  { href: "/admin/site-images", label: "Site images" },
+  { href: "/admin/site-images", label: "Images" },
   { href: "/admin/locations", label: "Locations" },
   { href: "/admin/content", label: "Content" },
   { href: "/admin/brand", label: "Brand" },
-  { href: "/admin/images", label: "Uploads" },
+  { href: "/admin/preview", label: "Preview" },
   { href: "/admin/settings", label: "Settings" },
 ];
 

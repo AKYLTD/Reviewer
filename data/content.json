@@ -65,7 +65,9 @@
         { "label": "Swiss Cottage", "detail": "Jubilee line · 9 min walk" },
         { "label": "Bus", "detail": "46 · 268 · C11" }
       ],
-      "squareLocationId": ""
+      "squareLocationId": "",
+      "lat": 51.5476,
+      "lng": -0.1697
     },
     {
       "id": "swains-lane",
@@ -83,7 +85,9 @@
         { "label": "Highgate", "detail": "Northern line · 9 min walk" },
         { "label": "Bus", "detail": "C11 · 214 · 271" }
       ],
-      "squareLocationId": ""
+      "squareLocationId": "",
+      "lat": 51.5621,
+      "lng": -0.1452
     },
     {
       "id": "west-hampstead",
@@ -101,7 +105,9 @@
         { "label": "West Hampstead", "detail": "Jubilee, Overground, Thameslink" },
         { "label": "Bus", "detail": "139 · 328 · C11" }
       ],
-      "squareLocationId": ""
+      "squareLocationId": "",
+      "lat": 51.5479,
+      "lng": -0.1909
     },
     {
       "id": "muswell-hill",
@@ -119,7 +125,9 @@
         { "label": "Highgate", "detail": "Northern line · 24 min walk / short bus" },
         { "label": "Bus", "detail": "43 · 134 · 234 · W7" }
       ],
-      "squareLocationId": ""
+      "squareLocationId": "",
+      "lat": 51.5904,
+      "lng": -0.1438
     }
   ]
 }

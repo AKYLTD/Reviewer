@@ -29,6 +29,7 @@ export function Shop({ menu, promotions, customer }: ShopProps) {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [catMenuOpen, setCatMenuOpen] = useState(false);
 
   // Restore cart from localStorage on first paint.
   useEffect(() => {
@@ -163,23 +164,67 @@ export function Shop({ menu, promotions, customer }: ShopProps) {
               <span>Cart · {itemCount}</span>
             </button>
           </div>
-          {/* Category chips */}
-          <div className="mt-3 flex flex-wrap gap-2">
-            <CategoryPill
-              active={activeCategory === null}
-              onClick={() => setActiveCategory(null)}
+          {/* Category dropdown — single row, no content overlap */}
+          <div className="mt-3 relative">
+            <button
+              type="button"
+              onClick={() => setCatMenuOpen((v) => !v)}
+              aria-expanded={catMenuOpen}
+              aria-haspopup="listbox"
+              className="inline-flex items-center justify-between min-h-11 rounded-pill bg-ivory text-coffee px-5 py-2 font-display font-600 text-sm shadow-soft min-w-[14rem]"
             >
-              All
-            </CategoryPill>
-            {visibleCategories.map((c) => (
-              <CategoryPill
-                key={c}
-                active={activeCategory === c}
-                onClick={() => setActiveCategory(c)}
+              <span>
+                {activeCategory ?? "All categories"}
+                <span className="ml-2 text-coffee/50">
+                  ({activeCategory ? visibleCategories.filter((c) => c === activeCategory).length : visibleCategories.length})
+                </span>
+              </span>
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                className={`ml-3 h-4 w-4 transition-transform ${catMenuOpen ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
               >
-                {c}
-              </CategoryPill>
-            ))}
+                <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {catMenuOpen && (
+              <ul
+                role="listbox"
+                className="absolute z-40 mt-2 max-h-[60vh] overflow-y-auto w-72 rounded-md bg-ivory shadow-pop border border-hairline py-2"
+              >
+                <li>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={activeCategory === null}
+                    onClick={() => { setActiveCategory(null); setCatMenuOpen(false); }}
+                    className={`block w-full text-left px-4 py-2.5 font-display font-600 text-sm ${
+                      activeCategory === null ? "bg-brick text-cream" : "text-coffee hover:bg-saffron/30"
+                    }`}
+                  >
+                    All categories
+                  </button>
+                </li>
+                {visibleCategories.map((c) => (
+                  <li key={c}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={activeCategory === c}
+                      onClick={() => { setActiveCategory(c); setCatMenuOpen(false); }}
+                      className={`block w-full text-left px-4 py-2.5 font-display font-600 text-sm ${
+                        activeCategory === c ? "bg-brick text-cream" : "text-coffee hover:bg-saffron/30"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 

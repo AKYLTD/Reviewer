@@ -8,6 +8,7 @@ import { MorningTicker } from "@/components/MorningTicker";
 import { Marquee } from "@/components/Marquee";
 import { QuickActions } from "@/components/QuickActions";
 import { SignaturePanels } from "@/components/SignaturePanels";
+import { LocationFinder } from "@/components/LocationFinder";
 import { getContent, primaryLocation } from "@/lib/content";
 
 export const revalidate = 60;
@@ -92,6 +93,21 @@ export default async function HomePage() {
           ))}
         </Marquee>
       </section>
+
+      {/* LOCATION FINDER — geolocation prompt for nearest shop --------------- */}
+      <Section panel="cream" size="slim">
+        <LocationFinder
+          locations={content.locations.map((l) => ({
+            id: l.id,
+            name: l.name,
+            shortName: l.shortName,
+            addressLine1: l.addressLine1,
+            addressLine2: l.addressLine2,
+            lat: l.lat,
+            lng: l.lng,
+          }))}
+        />
+      </Section>
 
       {/* QUICK ACTIONS — primary task strip ---------------------------------- */}
       <Section panel="cream" size="slim">

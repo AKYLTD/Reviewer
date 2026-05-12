@@ -7,6 +7,7 @@ import { getMenu } from "@/lib/content";
 import { activePromotions } from "@/lib/promotionsStore";
 import { getCurrentCustomerSession } from "@/lib/customerAuth";
 import { getCustomer } from "@/lib/customers";
+import { classify, titleCase } from "@/lib/menuClassify";
 
 export const metadata: Metadata = {
   title: "Shop",
@@ -16,24 +17,6 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 export const dynamic = "force-dynamic";
 
-const SMALL_WORDS = new Set(["and", "or", "of", "the", "a", "an", "to", "in", "on", "for", "with", "&"]);
-function titleCase(s: string): string {
-  return s.toLowerCase().split(/\s+/).filter(Boolean).map((w, i, arr) =>
-    i > 0 && i < arr.length - 1 && SMALL_WORDS.has(w) ? w : w[0].toUpperCase() + w.slice(1),
-  ).join(" ");
-}
-function classify(rawName: string): { mode: "eat-in" | "takeaway"; cleanName: string } {
-  const upper = rawName.toUpperCase();
-  if (/^(EAT[\s-]?IN|DINE[\s-]?IN|IN[\s-]?STORE|RESTAURANT|TABLE)\b/.test(upper)) {
-    const cleanName = rawName.replace(/^(EAT[\s-]?IN|DINE[\s-]?IN|IN[\s-]?STORE|RESTAURANT|TABLE)[\s\-:|–]+/i, "").trim();
-    return { mode: "eat-in", cleanName: titleCase(cleanName || rawName) };
-  }
-  if (/^(TAKE[\s-]?AWAY|TAKE[\s-]?OUT|TO[\s-]?GO|GRAB[\s-]?AND[\s-]?GO)\b/.test(upper)) {
-    const cleanName = rawName.replace(/^(TAKE[\s-]?AWAY|TAKE[\s-]?OUT|TO[\s-]?GO|GRAB[\s-]?AND[\s-]?GO)[\s\-:|–]+/i, "").trim();
-    return { mode: "takeaway", cleanName: titleCase(cleanName || rawName) };
-  }
-  return { mode: "takeaway", cleanName: titleCase(rawName) };
-}
 
 async function loadMenu(): Promise<ShopMenu> {
   if (process.env.SQUARE_ACCESS_TOKEN) {
