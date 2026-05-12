@@ -307,7 +307,7 @@ function ItemCard({
   const finalPrice = Math.max(0, item.pricePence - discount.pence);
   return (
     <article className="group card card-interactive overflow-hidden flex flex-col">
-      <div className="relative aspect-[4/3] bg-bone overflow-hidden">
+      <div className="relative aspect-square bg-bone overflow-hidden">
         {item.imageUrl ? (
           <Image
             src={item.imageUrl}
@@ -315,14 +315,29 @@ function ItemCard({
             fill
             unoptimized
             sizes="(max-width: 768px) 100vw, 33vw"
-            className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-rose to-saffronSoft" />
+          <div className="absolute inset-0 bg-gradient-to-br from-rose to-saffronSoft flex items-center justify-center">
+            <span className="font-display font-700 text-coffee/30 text-5xl">
+              {item.name[0]}
+            </span>
+          </div>
         )}
+        {/* Subtle bottom gradient for legibility if the photo is busy */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-1/3 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{ background: "linear-gradient(to top, rgba(38,21,24,0.55), transparent)" }}
+        />
         {discount.promo && (
-          <span className="absolute top-3 left-3 inline-flex items-center rounded-pill bg-brick text-cream px-3 py-1 font-display font-700 text-xs tracking-wide uppercase shadow-chip">
+          <span className="absolute top-3 left-3 inline-flex items-center rounded-pill bg-brick text-cream px-3 py-1.5 font-display font-700 text-xs tracking-widest uppercase shadow-chip">
             {describeDiscount(discount.promo.discount)}
+          </span>
+        )}
+        {inCart > 0 && (
+          <span className="absolute top-3 right-3 inline-flex h-8 min-w-8 items-center justify-center rounded-pill bg-saffron text-coffee font-display font-700 text-sm tabular-nums shadow-chip px-2">
+            {inCart}
           </span>
         )}
       </div>

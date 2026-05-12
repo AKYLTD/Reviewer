@@ -394,6 +394,38 @@ body {
   }
 }
 
+/* PROMO BANNER — animated gradient + shimmer. The bg-position shift
+   gives the impression of a moving gradient; the ::after pseudo-element
+   is a thin diagonal shimmer that travels every 4s. */
+.promo-banner { background-size: 200% 200%; animation: promo-shift 9s ease-in-out infinite; }
+.promo-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.18) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: promo-shimmer 4.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.promo-brick   { background-image: linear-gradient(135deg, #C9483A 0%, #A8392E 40%, #8C2D24 100%); }
+.promo-saffron { background-image: linear-gradient(135deg, #F5A623 0%, #E89F3A 50%, #C28219 100%); }
+.promo-dusk    { background-image: linear-gradient(135deg, #261518 0%, #3D2024 50%, #5E353B 100%); }
+.promo-ember   { background-image: linear-gradient(135deg, #8C2D24 0%, #C9483A 50%, #F5A623 100%); }
+
+@keyframes promo-shift {
+  0%, 100% { background-position: 0% 0%; }
+  50%      { background-position: 100% 100%; }
+}
+@keyframes promo-shimmer {
+  0%   { transform: translateX(-110%); }
+  60%  { transform: translateX(110%); }
+  100% { transform: translateX(110%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .promo-banner          { animation: none; }
+  .promo-banner::after   { display: none; }
+}
+
 /* Subtle scrollbars */
 ::-webkit-scrollbar {
   width: 10px;

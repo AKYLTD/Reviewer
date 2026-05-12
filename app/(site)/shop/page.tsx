@@ -111,24 +111,38 @@ export default async function ShopPage() {
 
         {promoBanner && (
           <div
-            className={`mt-6 rounded-xl p-5 shadow-soft ${
+            className={`promo-banner mt-6 relative overflow-hidden rounded-xl p-6 md:p-8 shadow-pop ${
               promoBanner.accent === "saffron"
-                ? "bg-saffron text-coffee"
+                ? "promo-saffron text-coffee"
                 : promoBanner.accent === "dusk"
-                  ? "bg-dusk text-cream"
-                  : "bg-brick text-cream"
+                  ? "promo-dusk text-cream"
+                  : promoBanner.accent === "ember"
+                    ? "promo-ember text-cream"
+                    : "promo-brick text-cream"
             }`}
           >
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="font-display font-700 text-xl leading-tight">{promoBanner.title}</p>
+            <div className="relative flex flex-wrap items-center justify-between gap-4">
+              <div className="max-w-2xl">
+                <p className="font-display font-700 text-xs uppercase tracking-[0.22em] opacity-80">
+                  Limited offer
+                </p>
+                <p className="mt-2 font-display font-700 text-2xl md:text-3xl leading-tight">
+                  {promoBanner.title}
+                </p>
                 {promoBanner.description && (
-                  <p className="font-sans text-sm mt-1 opacity-90">{promoBanner.description}</p>
+                  <p className="font-sans text-sm md:text-base mt-2 opacity-90 max-w-prose">
+                    {promoBanner.description}
+                  </p>
                 )}
               </div>
               {promoBanner.code && (
-                <span className="font-display font-700 text-sm uppercase tracking-widest rounded-pill bg-cream/20 px-4 py-2">
-                  Code: <span className="ml-1 tabular-nums">{promoBanner.code}</span>
+                <span className="inline-flex flex-col items-end">
+                  <span className="font-sans text-[0.7rem] uppercase tracking-widest opacity-80">
+                    Use code
+                  </span>
+                  <span className="font-display font-700 text-2xl md:text-3xl rounded-md bg-cream/15 backdrop-blur-sm px-5 py-2 mt-1 tracking-widest">
+                    {promoBanner.code}
+                  </span>
                 </span>
               )}
             </div>

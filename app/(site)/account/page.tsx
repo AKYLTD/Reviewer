@@ -40,6 +40,13 @@ export default async function AccountPage({
     ((customer.points % POINTS_PER_REWARD) / POINTS_PER_REWARD) * 100,
   );
 
+  function tierLabel(points: number): string {
+    if (points >= 1000) return "Everything · tier IV";
+    if (points >= 500)  return "Poppy · tier III";
+    if (points >= 200)  return "Sesame · tier II";
+    return "Crust · tier I";
+  }
+
   return (
     <main>
       <Section size="slim" panel="cream">
@@ -59,41 +66,68 @@ export default async function AccountPage({
 
       <Section panel="cream">
         <div className="grid gap-8 lg:grid-cols-3">
-          {/* LOYALTY CARD — saffron with progress */}
-          <article className="lg:col-span-1 rounded-xl bg-saffron p-7 shadow-soft relative overflow-hidden">
-            <p className="font-sans font-600 text-xs uppercase tracking-wide text-coffee/80">
-              Loyalty balance
-            </p>
-            <p className="mt-2 font-display font-700 text-display-lg leading-none text-coffee tabular-nums">
-              {customer.points}
-            </p>
-            <p className="font-display text-coffee/80 mt-1">points</p>
+          {/* LOYALTY CARD — circular progress + tier ribbon. Tier ladder:
+              Crust (0), Sesame (200), Poppy (500), Everything (1000). */}
+          <article className="lg:col-span-1 rounded-xl panel-coffee p-7 shadow-pop relative overflow-hidden">
+            <div aria-hidden className="absolute -top-12 -right-12 h-48 w-48 rounded-pill bg-saffron/12 blur-3xl" />
+            <div aria-hidden className="absolute -bottom-16 -left-12 h-56 w-56 rounded-pill bg-brick/15 blur-3xl" />
 
-            <div className="mt-6">
-              {rewardsAvailable > 0 ? (
-                <p className="font-display font-700 text-coffee">
-                  {rewardsAvailable} reward{rewardsAvailable === 1 ? "" : "s"} ready to redeem.
-                </p>
-              ) : (
-                <p className="font-sans text-sm text-coffee">
-                  {nextReward} pts to your next £{(REWARD_VALUE_PENCE / 100).toFixed(0)} reward.
-                </p>
-              )}
-              <div
-                className="mt-3 h-2 rounded-pill bg-coffee/15 overflow-hidden"
-                role="progressbar"
-                aria-valuenow={Math.round(progressPct)}
-                aria-valuemin={0}
-                aria-valuemax={100}
-              >
-                <div
-                  className="h-full bg-coffee transition-all duration-700"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              <p className="mt-3 font-sans text-xs text-coffee/70">
-                Earn 1 point per £ spent. 100 pts = £5 off your next order.
+            <div className="relative">
+              <p className="label">Loyalty balance</p>
+              <p className="mt-1 font-display font-600 text-saffron text-sm uppercase tracking-widest">
+                {tierLabel(customer.points)}
               </p>
+
+              <div className="mt-6 flex items-center gap-6">
+                {/* CIRCULAR PROGRESS */}
+                <svg
+                  viewBox="0 0 100 100"
+                  className="h-32 w-32 -rotate-90 shrink-0"
+                  role="progressbar"
+                  aria-valuenow={Math.round(progressPct)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="Progress to next reward"
+                >
+                  <circle cx="50" cy="50" r="44" stroke="rgba(240,228,208,0.15)" strokeWidth="8" fill="none" />
+                  <circle
+                    cx="50" cy="50" r="44"
+                    stroke="#F5A623"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    fill="none"
+                    strokeDasharray={`${(progressPct / 100) * (2 * Math.PI * 44)} ${2 * Math.PI * 44}`}
+                    style={{ transition: "stroke-dasharray 700ms cubic-bezier(0.16, 1, 0.3, 1)" }}
+                  />
+                </svg>
+
+                <div className="min-w-0">
+                  <p className="font-display font-700 text-display-md text-cream leading-none tabular-nums">
+                    {customer.points}
+                  </p>
+                  <p className="mt-1 font-display text-saffron text-sm">points</p>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                {rewardsAvailable > 0 ? (
+                  <p className="font-display font-700 text-saffron text-lg">
+                    {rewardsAvailable} reward{rewardsAvailable === 1 ? "" : "s"} ready to redeem.
+                  </p>
+                ) : (
+                  <p className="font-sans text-cream/85">
+                    <span className="font-display font-700 text-saffron tabular-nums text-lg">
+                      {nextReward}
+                    </span>{" "}
+                    pts to your next £{(REWARD_VALUE_PENCE / 100).toFixed(0)} reward
+                  </p>
+                )}
+                <p className="mt-4 font-sans text-xs text-cream/65 leading-relaxed">
+                  Earn 1 point per £ spent. Each tier unlocks a small perk —
+                  Sesame: 5% off bagels. Poppy: a free coffee. Everything:
+                  a free Shabbat challah every month.
+                </p>
+              </div>
             </div>
           </article>
 
