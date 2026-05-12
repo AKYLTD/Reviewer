@@ -3,8 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, "Noto Sans", sans-serif;
+  color-scheme: light only;
 }
 
 html,
@@ -13,40 +12,418 @@ body {
 }
 
 body {
-  font-family: var(--font-sans);
-  background: #f7f7f8;
-  color: #13131a;
+  background: theme("colors.cream");
+  color: theme("colors.cocoa");
+  font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background: #08080d;
-    color: #f7f7f8;
+::selection {
+  background: theme("colors.brick");
+  color: theme("colors.cream");
+}
+
+/* Honour reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
-.shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.04) 0%,
-    rgba(0, 0, 0, 0.08) 50%,
-    rgba(0, 0, 0, 0.04) 100%
-  );
-  background-size: 200% 100%;
+@layer base {
+  /* All headings use the rounded display family by default. */
+  h1, h2, h3, h4 {
+    font-family: var(--font-display), "Recoleta", sans-serif;
+    color: theme("colors.coffee");
+  }
 }
 
-@media (prefers-color-scheme: dark) {
-  .shimmer {
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.04) 0%,
-      rgba(255, 255, 255, 0.08) 50%,
-      rgba(255, 255, 255, 0.04) 100%
-    );
-    background-size: 200% 100%;
+@layer components {
+  /* WIDE-TRACKED LABEL — small uppercase eyebrow above sections. */
+  .label {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.6875rem;
+    color: theme("colors.brick");
   }
+  /* Section-rule variant adds a hairline before the label — a single
+     editorial flourish reserved for section eyebrows on full-width
+     panels. Apply via `.label.label-rule` or just `.label-rule`. */
+  .label-rule {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.6875rem;
+    color: theme("colors.brick");
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .label-rule::before {
+    content: "";
+    display: inline-block;
+    width: 1.5rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.6;
+  }
+  .label-muted {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.6875rem;
+    color: theme("colors.muted");
+  }
+
+  /* BODY COPY — line-height 1.7 (skill rule line-height 1.5–1.75),
+     line-length implicit via max-w-prose on consumers. */
+  .editorial {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: theme("colors.cocoa");
+    max-width: 65ch;
+  }
+  @media (min-width: 768px) {
+    .editorial {
+      font-size: 1.125rem;
+    }
+  }
+  /* Lead paragraph — used right under hero headlines. */
+  .lede {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 1.125rem;
+    line-height: 1.55;
+    color: theme("colors.cocoa");
+    max-width: 38rem;
+    font-weight: 400;
+  }
+  @media (min-width: 768px) {
+    .lede {
+      font-size: 1.25rem;
+    }
+  }
+
+  /* SECTION RHYTHM */
+  .section {
+    padding-block: clamp(3.5rem, 8vw, 7rem);
+  }
+  .section-tall {
+    padding-block: clamp(5rem, 10vw, 9rem);
+  }
+  .section-slim {
+    padding-block: clamp(2.5rem, 5vw, 4.5rem);
+  }
+
+  /* PRIMARY ACTION — pill, brick fill, white text, soft shadow,
+     squashes briefly on press. min-height enforces the 44pt touch
+     target (UI/UX Pro Max Priority 2). */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    background: theme("colors.brick");
+    color: white;
+    border-radius: 999px;
+    padding: 0.85rem 1.75rem;
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+    box-shadow: theme("boxShadow.chip");
+    transition:
+      background 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .btn-primary:hover {
+    background: theme("colors.brickDark");
+    transform: translateY(-1px);
+    box-shadow: theme("boxShadow.pop");
+  }
+  .btn-primary:active {
+    transform: translateY(0) scale(0.98);
+  }
+  .btn-primary:focus-visible {
+    outline: 2px solid theme("colors.coffee");
+    outline-offset: 3px;
+  }
+
+  /* SAFFRON ACCENT BUTTON */
+  .btn-saffron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    background: theme("colors.saffron");
+    color: theme("colors.coffee");
+    border-radius: 999px;
+    padding: 0.85rem 1.75rem;
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    box-shadow: theme("boxShadow.chip");
+    transition:
+      transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      background 220ms;
+  }
+  .btn-saffron:hover {
+    transform: translateY(-1px);
+    box-shadow: theme("boxShadow.pop");
+    background: #FFB73D;
+  }
+  .btn-saffron:focus-visible {
+    outline: 2px solid theme("colors.coffee");
+    outline-offset: 3px;
+  }
+
+  /* GHOST — outline */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    background: transparent;
+    color: theme("colors.coffee");
+    border: 1.5px solid theme("colors.coffee");
+    border-radius: 999px;
+    padding: 0.75rem 1.65rem;
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: background 220ms, color 220ms, transform 220ms;
+  }
+  .btn-ghost:hover {
+    background: theme("colors.coffee");
+    color: theme("colors.cream");
+    transform: translateY(-1px);
+  }
+  .btn-ghost:focus-visible {
+    outline: 2px solid theme("colors.brick");
+    outline-offset: 3px;
+  }
+
+  /* CHIP — multi-state toggle pill used in forms, menu tabs, allergens
+     etc. Enforces 44pt minimum height (Priority 2). */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    background: theme("colors.ivory");
+    color: theme("colors.coffee");
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: background 220ms ease, color 220ms ease;
+    cursor: pointer;
+  }
+  .chip:hover { background: rgba(245, 166, 35, 0.4); }
+  .chip:focus-visible {
+    outline: 2px solid theme("colors.brick");
+    outline-offset: 2px;
+  }
+  .chip[aria-pressed="true"], .chip-active {
+    background: theme("colors.brick");
+    color: theme("colors.cream");
+    box-shadow: theme("boxShadow.chip");
+  }
+
+  /* Universal focus-visible for links + raw buttons. */
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid theme("colors.brick");
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* PRICE CHIP — saffron pill, used on every menu item.
+     tabular-nums ensures prices line up across rows (Priority 6). */
+  .price-chip {
+    display: inline-flex;
+    align-items: center;
+    font-variant-numeric: tabular-nums;
+    background: theme("colors.saffron");
+    color: theme("colors.coffee");
+    border-radius: 999px;
+    padding: 0.3rem 0.85rem;
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.005em;
+    box-shadow: theme("boxShadow.chip");
+  }
+
+  /* CARD — refined: tighter radius, e1 elevation, subtle hairline,
+     e2 lift on hover (UI/UX Pro Max P4 elevation-consistent). */
+  .card {
+    position: relative;
+    background: theme("colors.ivory");
+    border: 1px solid theme("colors.hairline");
+    border-radius: 1.25rem;
+    box-shadow: theme("boxShadow.e1");
+    transition:
+      box-shadow 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 280ms ease;
+  }
+  .card-interactive:hover,
+  .card-interactive:focus-within {
+    box-shadow: theme("boxShadow.e2");
+    transform: translateY(-2px);
+    border-color: rgba(42, 24, 16, 0.22);
+  }
+
+  /* SECTION HEADER pattern — eyebrow + title + sub-deck. Use on every
+     section that introduces a block. Centred and left-aligned variants
+     covered by the surrounding container's text alignment. */
+  .section-head {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: clamp(2rem, 5vw, 3rem);
+  }
+  .section-head .label {
+    margin: 0;
+  }
+  .section-head h2 {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    color: theme("colors.coffee");
+    letter-spacing: -0.012em;
+    line-height: 1.05;
+  }
+
+  /* HAIRLINE rule — slim divider used between editorial sections that
+     share the same panel colour. Keeps section ends visible without a
+     hard colour break. */
+  .rule {
+    border-top: 1px solid theme("colors.hairline");
+  }
+  .rule-strong {
+    border-top: 1px solid theme("colors.hairlineStrong");
+  }
+
+  /* ROSE PANEL — soft pastel surface. Used inline via panel="cream" or
+     panel="ivory"; .panel-coffee is reserved for the dusk footer now. */
+  .panel-rose {
+    background: theme("colors.rose");
+    color: theme("colors.cocoa");
+  }
+  .panel-rose h1, .panel-rose h2, .panel-rose h3, .panel-rose h4 {
+    color: theme("colors.cocoa");
+  }
+  .panel-rose .editorial {
+    color: theme("colors.cocoa");
+  }
+  .panel-rose .label {
+    color: theme("colors.brick");
+  }
+
+  /* COFFEE / DUSK PANEL — the dark anchor (footer + occasional CTA
+     blocks). Deep dusty wine; ties to brick and saffron without the
+     heavy chocolate-brown the user pushed back on. */
+  .panel-coffee {
+    background: theme("colors.dusk");
+    color: theme("colors.cream");
+  }
+  .panel-coffee h1, .panel-coffee h2, .panel-coffee h3, .panel-coffee h4 {
+    color: theme("colors.cream");
+  }
+  .panel-coffee .editorial {
+    color: rgba(240, 228, 208, 0.86);
+  }
+  .panel-coffee .label {
+    color: theme("colors.saffron");
+  }
+  .panel-coffee .label-muted {
+    color: rgba(240, 228, 208, 0.6);
+  }
+
+  .panel-brick {
+    background: theme("colors.brick");
+    color: theme("colors.cream");
+  }
+  .panel-brick h1, .panel-brick h2, .panel-brick h3, .panel-brick h4 {
+    color: theme("colors.cream");
+  }
+  .panel-brick .editorial {
+    color: rgba(255, 244, 223, 0.92);
+  }
+  .panel-brick .label {
+    color: theme("colors.saffron");
+  }
+
+  /* ANCHOR — wavy underline that retracts on hover */
+  .anchor {
+    position: relative;
+    display: inline-block;
+    color: inherit;
+    text-decoration: none;
+    padding-bottom: 0.1em;
+  }
+  .anchor::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 2px;
+    background: currentColor;
+    transform-origin: right;
+    transform: scaleX(1);
+    transition: transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    border-radius: 999px;
+  }
+  .anchor:hover::after {
+    transform-origin: left;
+    transform: scaleX(0);
+  }
+}
+
+/* PROMO BANNER — animated gradient + shimmer. The bg-position shift
+   gives the impression of a moving gradient; the ::after pseudo-element
+   is a thin diagonal shimmer that travels every 4s. */
+.promo-banner { background-size: 200% 200%; animation: promo-shift 9s ease-in-out infinite; }
+.promo-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.18) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: promo-shimmer 4.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.promo-brick   { background-image: linear-gradient(135deg, #C9483A 0%, #A8392E 40%, #8C2D24 100%); }
+.promo-saffron { background-image: linear-gradient(135deg, #F5A623 0%, #E89F3A 50%, #C28219 100%); }
+.promo-dusk    { background-image: linear-gradient(135deg, #261518 0%, #3D2024 50%, #5E353B 100%); }
+.promo-ember   { background-image: linear-gradient(135deg, #8C2D24 0%, #C9483A 50%, #F5A623 100%); }
+
+@keyframes promo-shift {
+  0%, 100% { background-position: 0% 0%; }
+  50%      { background-position: 100% 100%; }
+}
+@keyframes promo-shimmer {
+  0%   { transform: translateX(-110%); }
+  60%  { transform: translateX(110%); }
+  100% { transform: translateX(110%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .promo-banner          { animation: none; }
+  .promo-banner::after   { display: none; }
 }
 
 /* Subtle scrollbars */
@@ -55,14 +432,10 @@ body {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.18);
-  border-radius: 8px;
+  background: rgba(74, 31, 8, 0.18);
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(74, 31, 8, 0.32);
 }
-@media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.18);
-  }
-}
+

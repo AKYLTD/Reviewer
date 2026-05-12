@@ -1,0 +1,42 @@
+{
+  "categories": [
+    { "id": "bagels", "name": "Bagels" },
+    { "id": "breakfast", "name": "Breakfast" },
+    { "id": "salads", "name": "Salads" },
+    { "id": "sweet", "name": "Sweet" }
+  ],
+  "items": [
+    {
+      "id": "bagel-plain",
+      "name": "Plain bagel",
+      "description": "Boiled, baked, hand-rolled.",
+      "categoryId": "bagels",
+      "price": 250,
+      "imageSrc": ""
+    },
+    {
+      "id": "bagel-everything",
+      "name": "Everything bagel",
+      "description": "Sesame, poppy, garlic, onion, salt.",
+      "categoryId": "bagels",
+      "price": 280,
+      "imageSrc": ""
+    },
+    {
+      "id": "smoked-salmon",
+      "name": "Smoked salmon, cream cheese",
+      "description": "On a bagel of your choosing, with capers, dill, sliced cucumber, lemon.",
+      "categoryId": "breakfast",
+      "price": 1100,
+      "imageSrc": ""
+    },
+    {
+      "id": "shakshuka",
+      "name": "Shakshuka",
+      "description": "Two eggs poached in tomato, with challah toast.",
+      "categoryId": "breakfast",
+      "price": 1250,
+      "imageSrc": ""
+    }
+  ]
+}

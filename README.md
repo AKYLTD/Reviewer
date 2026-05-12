@@ -1,24 +1,21 @@
-# Reviewer
+# Roni's Belsize Village
 
-Type a brand name, get every review across Google, Deliveroo, Uber Eats,
-Trustpilot and more — broken down per store, filtered by timeline, ready to
-export as CSV or JSON.
+Marketing site for Roni's Belsize Village &mdash; bagel bakery and caf&eacute;
+at 37&ndash;39 Belsize Lane, London NW3.
 
-Built with Next.js 14 (App Router), TypeScript and Tailwind. Mobile-first,
-responsive, dark-mode aware.
+Confident-minimal-luxury aesthetic in the lineage of Aesop / Le Labo / *Cereal*
+magazine. Black on warm paper, the new shopfront sign as the masthead,
+photography brings the colour. See `BRIEF.md` (Alon's brief) for the full
+brand direction; the implementation here is the response.
 
-## Features
+## Tech
 
-- **Brand search** — type a brand, the app discovers its stores across every
-  configured channel and merges duplicates.
-- **Per-store breakdown** — average rating, rating distribution, and per-
-  channel split for every store.
-- **Timeline filter** — 7 days, 30 days, 90 days, 12 months, all-time, or a
-  custom date range.
-- **Channel & rating filters** — toggle channels and minimum rating; search
-  inside review text or by author.
-- **Export** — one click to CSV or JSON, scoped to the current filters.
-- **Pluggable channels** — add your own adapter in `lib/adapters/`.
+- Next.js 14 (App Router) + TypeScript
+- Tailwind for layout primitives
+- `next/font` for the three typographic registers from the sign:
+  - **Marcellus** &mdash; Didone-flavoured display serif for *RONI&rsquo;S*
+  - **EB Garamond** Bold Italic &mdash; *Belsize Village* descriptor
+  - **Public Sans** Light, wide-tracked &mdash; address numerals and labels
 
 ## Quick start
 
@@ -28,81 +25,57 @@ npm run dev
 # open http://localhost:3000
 ```
 
-The app boots in **demo mode** by default with a deterministic sample dataset
-so you can explore the UI immediately.
+## What's here
 
-## Going live
+| Route | Page |
+| --- | --- |
+| `/` | Homepage &mdash; masthead, opening note, ordering paths, catering teaser, visit footer |
+| `/click-collect` | Walk-in-walk-out ordering flow (will embed Square Online checkout) |
+| `/order-at-table` | QR-driven dine-in flow (placeholder; Square Online integration pending) |
+| `/catering` | Sample platters + enquiry form (`POST /api/catering`) |
+| `/cakes` | Custom cakes, occasions, allergen promise |
+| `/story` | 1989 &rarr; 2011 &rarr; 2025 long editorial scroll |
+| `/visit` | Hours, transport, parking, embedded map |
 
-Three data modes, configured via `DATA_MODE` in `.env.local`:
+## Photography
 
-### `live` — official APIs (recommended for production)
+Photographs aren&rsquo;t in the repo yet. The `Photo` component renders an
+intentional graphite holding-frame when no `src` is provided &mdash; not a
+broken image. Once shots arrive, drop them in `public/images/` and add the
+`src` prop to the matching `Photo` instance:
 
-```
-DATA_MODE=live
-GOOGLE_PLACES_API_KEY=AIza...        # required for Google
-DELIVEROO_FEED_URL=https://...       # optional, your own feed
-```
-
-Stable, fast, but Places Details only returns the latest 5 reviews per place
-and has per-call cost.
-
-### `scrape` — free Google Maps scraping (no API key)
-
-```
-DATA_MODE=scrape
-```
-
-Uses Playwright to drive a real Chromium and pull every public review for each
-discovered store. After `npm install`, run once:
-
-```
-npx playwright install chromium
+```tsx
+<Photo src="/images/hero-bagels.jpg" alt="…" aspect="16 / 9" priority />
 ```
 
-Trade-offs: ~10-20 seconds per brand search (it's driving a real browser),
-fragile to Google DOM changes, and Google may temporarily rate-limit your IP
-if hammered. Fine for personal/internal use; not appropriate for a public
-SaaS without proper proxying and caching. Note: Deliveroo and Uber Eats do
-**not** publish individual customer reviews on their public pages, only
-aggregate ratings — so there is nothing to scrape there.
+The brief calls for a fresh shoot (post-makeover interior, golden-hour
+shopfront). Existing studio shots may be reusable for bagels and breakfast.
 
-### Channels
+## The shopfront sign
 
-| Channel    | Status | Notes |
-| ---------- | ------ | ----- |
-| Google     | Live   | Uses Places Text Search to find stores and Place Details to fetch reviews. The Details endpoint returns up to 5 reviews per place; persist them over time for full history. |
-| Deliveroo  | Stub   | Deliveroo has no public reviews API. Point `DELIVEROO_FEED_URL` at your own scraper/feed that returns the shape in `lib/adapters/deliveroo.ts`. |
-| Uber Eats  | Demo   | Same pattern — drop a new adapter into `lib/adapters/`. |
-| Trustpilot | Demo   | Same. |
+The brand&rsquo;s source of truth is the new shopfront sign. Drop the artwork
+in `public/logos/sign-final.png` (or `sign.svg`) and pass it to the masthead:
 
-### Adding a channel
-
-1. Create `lib/adapters/<channel>.ts` exporting a `ChannelAdapter` factory.
-2. Register it in `lib/adapters/index.ts` (`liveAdapters()` for live mode,
-   `demoAdapters()` for the demo dataset).
-3. Add the channel to `Channel` and `CHANNEL_META` in `lib/types.ts`.
-
-## Architecture
-
-```
-app/
-  page.tsx              # dashboard shell
-  api/report/route.ts   # GET /api/report?brand=...&from=...&to=...
-  api/export/route.ts   # GET /api/export?brand=...&format=csv|json
-components/             # UI primitives (search, filters, store cards, charts)
-lib/
-  types.ts              # shared types
-  utils.ts              # report builder, CSV serializer, time helpers
-  adapters/             # channel adapters (google, deliveroo, demo, ...)
+```tsx
+<Masthead artwork="/logos/sign-final.png" artworkWidth={1600} artworkHeight={900} />
 ```
 
-The orchestrator (`gatherForBrand`) calls every enabled adapter in parallel,
-merges store lists by name+address, then fetches reviews for each store from
-every adapter that lists it.
+Until then, `<Masthead />` renders a faithful web-font reconstruction using
+the three families above. The reconstruction is good enough to ship; the real
+artwork should replace it as soon as it lands.
 
-## Build
+## Square integration (next)
 
-```bash
-npm run build
-npm start
-```
+Per `square-setup-plan.md` (in Alon&rsquo;s brief folder), the live site will:
+
+1. Embed Square Online for click-and-collect, dine-in, and catering checkout
+2. Route every order through to the kitchen printer at 37&ndash;39 Belsize Lane
+3. Use the Customer Directory for catering enquiry leads
+
+The `POST /api/catering` route is currently a capture stub that logs the
+enquiry server-side. Wire it through to email or Square Customer Directory
+in production.
+
+## Branch
+
+Development is on `claude/ronis-belsize-website-Fcu2K`.

@@ -1,0 +1,39 @@
+{
+  "channels": {
+    "click-collect": {
+      "leadMinutes": 12,
+      "cutOffMinutesBeforeClose": 30,
+      "enabled": true,
+      "squareOnlineUrl": "https://order.ronisbelsize.com"
+    },
+    "order-at-table": {
+      "enabled": true,
+      "squareOnlineUrl": ""
+    },
+    "catering": {
+      "leadHours": 48,
+      "minHeadcount": 6,
+      "enabled": true,
+      "replyEmail": "hello@ronisbelsize.com"
+    },
+    "cakes": {
+      "leadHours": 72,
+      "enabled": true,
+      "replyEmail": "info@ronisonline.com"
+    }
+  },
+  "cake": {
+    "sizes": [
+      { "id": "8",  "inches": 8,  "price": 3200,  "serves": "up to 8 people",   "label": "8 inch" },
+      { "id": "10", "inches": 10, "price": 4400,  "serves": "8 — 12 people",    "label": "10 inch" },
+      { "id": "12", "inches": 12, "price": 6500,  "serves": "15 — 20 people",   "label": "12 inch" },
+      { "id": "14", "inches": 14, "price": 8500,  "serves": "22 — 26 people",   "label": "14 inch" },
+      { "id": "18", "inches": 18, "price": 12500, "serves": "35 — 40 people",   "label": "18 inch" }
+    ],
+    "imageShapeSurcharge": 1200,
+    "fillingSurcharges": {
+      "fruits": 500,
+      "jam": 300
+    }
+  }
+}
