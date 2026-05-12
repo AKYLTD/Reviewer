@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 const NAV = [
+  { href: "/shop", label: "Shop" },
   { href: "/menu", label: "Menu" },
   { href: "/click-collect", label: "Order ahead" },
   { href: "/order-at-table", label: "Eat in" },
@@ -12,6 +13,7 @@ const NAV = [
   { href: "/cakes/order", label: "Order a cake" },
   { href: "/story", label: "Story" },
   { href: "/visit", label: "Visit" },
+  { href: "/account", label: "Your account" },
 ];
 
 /**

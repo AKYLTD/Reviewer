@@ -141,7 +141,9 @@ export default async function AdminHome() {
           <h2 className="mt-2 font-display font-700 text-coffee text-2xl">Edit the site</h2>
         </header>
         <ul className="grid gap-4 md:grid-cols-3">
-          <ShortcutTile href="/admin/menu" title="Menu" body={`Manage items and prices in the manual menu fallback. Square pulls live when configured.`} />
+          <ShortcutTile href="/admin/promotions" title="Promotions" body="Banner promos at the top of the shop + item/category cart discounts." />
+          <ShortcutTile href="/admin/site-images" title="Site images" body="Per-slot photo manager. Every photo across the site, in one place." />
+          <ShortcutTile href="/admin/menu" title="Menu" body="Manage items and prices in the manual menu fallback. Square pulls live when configured." />
           <ShortcutTile
             href="/admin/locations"
             title="Locations"
@@ -149,7 +151,6 @@ export default async function AdminHome() {
           />
           <ShortcutTile href="/admin/content" title="Content" body="Hero copy, opening note, story timeline, footer." />
           <ShortcutTile href="/admin/brand" title="Brand" body="Wordmark, taglines, logo source." />
-          <ShortcutTile href="/admin/images" title="Images" body="Upload photographs and the shopfront artwork." />
           <ShortcutTile href="/admin/settings" title="Settings" body="Channel lead times, cake sizes & prices." />
         </ul>
       </section>

@@ -319,25 +319,40 @@ body {
     border-top: 1px solid theme("colors.hairlineStrong");
   }
 
-  /* ROSE PANEL — the soft pastel that replaces the dark brown panel.
-     Light surface, cocoa text, brick accents. Class kept as
-     `.panel-coffee` for backward compatibility across the existing
-     pages; visually it's now rose.  */
-  .panel-coffee {
+  /* ROSE PANEL — soft pastel surface. Used inline via panel="cream" or
+     panel="ivory"; .panel-coffee is reserved for the dusk footer now. */
+  .panel-rose {
     background: theme("colors.rose");
     color: theme("colors.cocoa");
   }
-  .panel-coffee h1, .panel-coffee h2, .panel-coffee h3, .panel-coffee h4 {
+  .panel-rose h1, .panel-rose h2, .panel-rose h3, .panel-rose h4 {
     color: theme("colors.cocoa");
   }
-  .panel-coffee .editorial {
+  .panel-rose .editorial {
     color: theme("colors.cocoa");
   }
-  .panel-coffee .label {
+  .panel-rose .label {
     color: theme("colors.brick");
   }
+
+  /* COFFEE / DUSK PANEL — the dark anchor (footer + occasional CTA
+     blocks). Deep dusty wine; ties to brick and saffron without the
+     heavy chocolate-brown the user pushed back on. */
+  .panel-coffee {
+    background: theme("colors.dusk");
+    color: theme("colors.cream");
+  }
+  .panel-coffee h1, .panel-coffee h2, .panel-coffee h3, .panel-coffee h4 {
+    color: theme("colors.cream");
+  }
+  .panel-coffee .editorial {
+    color: rgba(240, 228, 208, 0.86);
+  }
+  .panel-coffee .label {
+    color: theme("colors.saffron");
+  }
   .panel-coffee .label-muted {
-    color: rgba(42, 24, 16, 0.6);
+    color: rgba(240, 228, 208, 0.6);
   }
 
   .panel-brick {

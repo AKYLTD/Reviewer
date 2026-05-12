@@ -27,6 +27,12 @@ const config: Config = {
         // with brick and saffron without competing.
         rose: "#F2D5CC",
         roseDeep: "#C9928A",
+        // Dusk — the dark companion to rose. Deep dusty wine/aubergine
+        // tone used for the footer and other heavyweight inverted
+        // surfaces. Still in the warm-red family so it ties to brick
+        // and saffron, but dark enough to act as a proper anchor.
+        dusk: "#3D2024",
+        duskSoft: "#5E353B",
         muted: "#7B6855",
         hairline: "rgba(42, 24, 16, 0.14)",
         hairlineStrong: "rgba(42, 24, 16, 0.22)",

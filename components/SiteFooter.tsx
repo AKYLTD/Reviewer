@@ -11,11 +11,11 @@ export async function SiteFooter() {
     <footer className="panel-coffee mt-24">
       <div className="mx-auto max-w-[1320px] px-page-x py-20 grid gap-12 md:grid-cols-12">
         <div className="md:col-span-5">
-          <p className="font-display text-display-md font-700 leading-none text-cocoa">
+          <p className="font-display text-display-md font-700 leading-none text-cream">
             {brand.wordmark}
-            <span className="text-brick">.</span>
+            <span className="text-saffron">.</span>
           </p>
-          <p className="font-display text-brick text-lg font-500 mt-1">
+          <p className="font-display text-saffron text-lg font-500 mt-1">
             {brand.subtitle}
           </p>
           <p className="editorial mt-6 max-w-prose">{brand.tagline}</p>
@@ -68,7 +68,7 @@ export async function SiteFooter() {
         </div>
       </div>
 
-      <div className="border-t border-cocoa/15">
+      <div className="border-t border-cream/10">
         <div className="mx-auto max-w-[1320px] px-page-x py-6 flex flex-wrap items-center justify-between gap-3">
           <p className="label-muted">
             &copy; {year} {brand.wordmark} {brand.subtitle}

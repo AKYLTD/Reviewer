@@ -3,11 +3,13 @@ import Link from "next/link";
 const NAV = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/promotions", label: "Promos" },
   { href: "/admin/menu", label: "Menu" },
+  { href: "/admin/site-images", label: "Site images" },
   { href: "/admin/locations", label: "Locations" },
   { href: "/admin/content", label: "Content" },
   { href: "/admin/brand", label: "Brand" },
-  { href: "/admin/images", label: "Images" },
+  { href: "/admin/images", label: "Uploads" },
   { href: "/admin/settings", label: "Settings" },
 ];
 

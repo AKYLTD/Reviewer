@@ -6,8 +6,8 @@ import { Masthead } from "./Masthead";
 import { MobileNav } from "./MobileNav";
 
 const NAV = [
+  { href: "/shop", label: "Shop" },
   { href: "/menu", label: "Menu" },
-  { href: "/click-collect", label: "Order" },
   { href: "/catering", label: "Catering" },
   { href: "/cakes", label: "Cakes" },
   { href: "/story", label: "Story" },
@@ -67,10 +67,21 @@ export function SiteNav() {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/click-collect"
+            href="/account"
+            className="hidden sm:inline-flex items-center gap-2 rounded-pill bg-ivory border border-hairline px-4 py-2 font-display font-600 text-xs text-coffee hover:bg-saffron/40 transition min-h-11"
+            aria-label="Your account"
+          >
+            <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
+              <circle cx="12" cy="8" r="3.2" />
+              <path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" strokeLinecap="round" />
+            </svg>
+            Account
+          </Link>
+          <Link
+            href="/shop"
             className="hidden sm:inline-flex btn-primary text-[0.85rem] px-5"
           >
-            <span>Order ahead</span>
+            <span>Shop</span>
           </Link>
           <MobileNav />
         </div>
