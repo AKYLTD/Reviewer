@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { MenuItemRecord, MenuData } from "./types";
+import type { MenuItemRecord, MenuData, MenuDisplayRecord } from "./types";
 
 const STORAGE_KEY = "ronis-cart-v1";
 const MODE_KEY = "ronis-cart-mode-v1";
@@ -49,7 +49,7 @@ function formatGBP(pence: number): string {
 export function MenuBrowser({ data }: Props) {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartMode, setCartMode] = useState<"eat-in" | "takeaway" | null>(null);
-  const [pickingFor, setPickingFor] = useState<MenuItemRecord | null>(null);
+  const [pickingFor, setPickingFor] = useState<MenuDisplayRecord | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const categoryRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -95,50 +95,98 @@ export function MenuBrowser({ data }: Props) {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // Group items by category, preserving the categories list order
+  // Dedupe: collapse eat-in + takeaway versions of the same item into
+  // a single visible row. The dedupe key is lowercase clean name +
+  // clean category. Each row exposes whichever modes exist.
   const grouped = useMemo(() => {
-    const map = new Map<string, MenuItemRecord[]>();
-    for (const c of data.categories) map.set(c, []);
+    const merged = new Map<string, MenuDisplayRecord>();
     for (const it of data.items) {
-      const arr = map.get(it.category) ?? [];
-      arr.push(it);
-      map.set(it.category, arr);
+      const key = `${it.category.toLowerCase()}::${it.name.toLowerCase().trim()}`;
+      const row = merged.get(key) ?? {
+        key,
+        name: it.name,
+        description: it.description,
+        category: it.category,
+        imageUrl: it.imageUrl,
+      };
+      if (it.mode === "takeaway") {
+        row.takeaway = { id: it.id, pricePence: it.pricePence };
+      } else {
+        row.eatIn = { id: it.id, pricePence: it.pricePence };
+      }
+      if (!row.imageUrl && it.imageUrl) row.imageUrl = it.imageUrl;
+      if (!row.description && it.description) row.description = it.description;
+      merged.set(key, row);
     }
-    // Drop empty categories
-    return Array.from(map.entries()).filter(([, items]) => items.length > 0);
+    // Group merged rows by category, in the order categories were
+    // declared on data.categories.
+    const map = new Map<string, MenuDisplayRecord[]>();
+    for (const c of data.categories) map.set(c, []);
+    for (const r of merged.values()) {
+      const arr = map.get(r.category) ?? [];
+      arr.push(r);
+      map.set(r.category, arr);
+    }
+    return Array.from(map.entries())
+      .filter(([, items]) => items.length > 0)
+      .map(([c, items]) => [c, items.sort((a, b) => a.name.localeCompare(b.name))] as const);
   }, [data]);
 
   const itemCount = cart.reduce((n, l) => n + l.quantity, 0);
 
   const handlePick = (mode: "eat-in" | "takeaway") => {
     if (!pickingFor) return;
-    addToCart(pickingFor, mode);
+    const variant = mode === "eat-in" ? pickingFor.eatIn : pickingFor.takeaway;
+    // Fall back to whichever variant exists if the picked mode isn't
+    // available for this item (e.g. takeaway-only item asked for eat-in).
+    const v = variant ?? pickingFor.takeaway ?? pickingFor.eatIn;
+    if (!v) return;
+    addToCart(pickingFor, v, mode);
     setCartMode(mode);
-    const remember = `Adding ${mode === "eat-in" ? "eat-in" : "takeaway"} items to this order. Clear cart to switch.`;
-    setToast(remember);
+    setToast(`${pickingFor.name} added — ${mode === "eat-in" ? "eat in" : "takeaway"}`);
     setPickingFor(null);
   };
 
-  const handleAddClick = (item: MenuItemRecord) => {
-    // If we already have a mode locked in, just add.
-    if (cartMode) {
-      addToCart(item, cartMode);
-      setToast(`${item.name} added — ${cartMode === "eat-in" ? "eat in" : "takeaway"}`);
+  const handleAddClick = (item: MenuDisplayRecord) => {
+    // Only one mode? Skip the modal.
+    if (item.takeaway && !item.eatIn) {
+      addToCart(item, item.takeaway, "takeaway");
+      setCartMode("takeaway");
+      setToast(`${item.name} added — takeaway`);
       return;
+    }
+    if (item.eatIn && !item.takeaway) {
+      addToCart(item, item.eatIn, "eat-in");
+      setCartMode("eat-in");
+      setToast(`${item.name} added — eat in`);
+      return;
+    }
+    // If we already have a mode locked in for the cart, route directly.
+    if (cartMode) {
+      const v = cartMode === "eat-in" ? item.eatIn : item.takeaway;
+      if (v) {
+        addToCart(item, v, cartMode);
+        setToast(`${item.name} added — ${cartMode === "eat-in" ? "eat in" : "takeaway"}`);
+        return;
+      }
     }
     setPickingFor(item);
   };
 
-  const addToCart = (item: MenuItemRecord, mode: "eat-in" | "takeaway") => {
+  const addToCart = (
+    item: MenuDisplayRecord,
+    variant: { id: string; pricePence: number },
+    mode: "eat-in" | "takeaway",
+  ) => {
     setCart((c) => {
-      const idx = c.findIndex((l) => l.itemId === item.id);
+      const idx = c.findIndex((l) => l.itemId === variant.id);
       if (idx === -1) {
         return [
           ...c,
           {
-            itemId: item.id,
+            itemId: variant.id,
             name: item.name,
-            unitPricePence: item.pricePence,
+            unitPricePence: variant.pricePence,
             discountPence: 0,
             quantity: 1,
             imageUrl: item.imageUrl,
@@ -248,20 +296,33 @@ export function MenuBrowser({ data }: Props) {
                   {cat}
                 </h2>
                 <span className="label-muted">
-                  {items.length} item{items.length === 1 ? "" : "s"} · {items[0]?.mode === "eat-in" ? "Eat-in" : "Takeaway"}
+                  {items.length} item{items.length === 1 ? "" : "s"}
                 </span>
               </header>
               <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <ItemCard
-                      item={item}
-                      inCart={inCart(item.id)}
-                      onAdd={() => handleAddClick(item)}
-                      onRemove={() => dec(item.id)}
-                    />
-                  </li>
-                ))}
+                {items.map((item) => {
+                  // The cart's in-count is summed across both variants
+                  // since they're "the same item" to the customer.
+                  const count =
+                    (item.takeaway ? inCart(item.takeaway.id) : 0) +
+                    (item.eatIn ? inCart(item.eatIn.id) : 0);
+                  return (
+                    <li key={item.key}>
+                      <ItemCard
+                        item={item}
+                        inCart={count}
+                        onAdd={() => handleAddClick(item)}
+                        onRemove={() => {
+                          // Remove from whichever variant has more in the cart.
+                          const taC = item.takeaway ? inCart(item.takeaway.id) : 0;
+                          const eiC = item.eatIn ? inCart(item.eatIn.id) : 0;
+                          if (taC >= eiC && item.takeaway) dec(item.takeaway.id);
+                          else if (item.eatIn) dec(item.eatIn.id);
+                        }}
+                      />
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ))
@@ -282,9 +343,24 @@ export function MenuBrowser({ data }: Props) {
               <h3 className="mt-2 font-display font-700 text-coffee text-2xl leading-tight">
                 {pickingFor.name}
               </h3>
-              <p className="mt-2 font-display font-700 text-brick text-xl tabular-nums">
-                {formatGBP(pickingFor.pricePence)}
-              </p>
+              <div className="mt-3 flex items-baseline gap-4">
+                {pickingFor.takeaway && (
+                  <p className="font-display font-700 text-brick text-xl tabular-nums">
+                    {formatGBP(pickingFor.takeaway.pricePence)}
+                    <span className="ml-1.5 text-[0.62rem] uppercase tracking-widest text-coffee/55">
+                      Takeaway
+                    </span>
+                  </p>
+                )}
+                {pickingFor.eatIn && (
+                  <p className={`font-display font-700 ${pickingFor.takeaway ? "text-coffee/75 text-base" : "text-brick text-xl"} tabular-nums`}>
+                    {formatGBP(pickingFor.eatIn.pricePence)}
+                    <span className="ml-1.5 text-[0.62rem] uppercase tracking-widest text-coffee/55">
+                      Eat in
+                    </span>
+                  </p>
+                )}
+              </div>
               {pickingFor.description && (
                 <p className="mt-3 font-sans text-sm text-coffee/80 leading-relaxed">
                   {pickingFor.description}
@@ -297,16 +373,18 @@ export function MenuBrowser({ data }: Props) {
                 <button
                   type="button"
                   onClick={() => handlePick("takeaway")}
-                  className="btn-primary"
+                  disabled={!pickingFor.takeaway}
+                  className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <span>Takeaway</span>
+                  <span>Takeaway{pickingFor.takeaway ? ` · ${formatGBP(pickingFor.takeaway.pricePence)}` : ""}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handlePick("eat-in")}
-                  className="btn-saffron"
+                  disabled={!pickingFor.eatIn}
+                  className="btn-saffron disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Eat in
+                  <span>Eat in{pickingFor.eatIn ? ` · ${formatGBP(pickingFor.eatIn.pricePence)}` : ""}</span>
                 </button>
               </div>
               <button
@@ -352,11 +430,15 @@ function ItemCard({
   onAdd,
   onRemove,
 }: {
-  item: MenuItemRecord;
+  item: MenuDisplayRecord;
   inCart: number;
   onAdd: () => void;
   onRemove: () => void;
 }) {
+  // Takeaway price is primary per the brief; eat-in shows as a small
+  // secondary marker. When only one mode exists we just show its price.
+  const primary = item.takeaway ?? item.eatIn;
+  const secondary = item.takeaway && item.eatIn ? item.eatIn : null;
   return (
     <article className="card card-interactive overflow-hidden flex flex-col group">
       <button
@@ -404,9 +486,26 @@ function ItemCard({
           </p>
         )}
         <div className="mt-auto pt-4 flex items-end justify-between gap-3">
-          <p className="font-display font-700 text-coffee text-lg tabular-nums">
-            {new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: item.pricePence % 100 === 0 ? 0 : 2 }).format(item.pricePence / 100)}
-          </p>
+          <div>
+            {primary && (
+              <p className="font-display font-700 text-coffee text-lg tabular-nums leading-none">
+                {formatGBP(primary.pricePence)}
+                {item.takeaway && (
+                  <span className="ml-2 font-sans font-500 text-[0.65rem] uppercase tracking-widest text-coffee/60 align-middle">
+                    {secondary ? "Takeaway" : item.eatIn ? "Eat in" : "Takeaway"}
+                  </span>
+                )}
+              </p>
+            )}
+            {secondary && (
+              <p className="mt-1 font-sans text-[0.85rem] text-coffee/70 tabular-nums">
+                {formatGBP(secondary.pricePence)}
+                <span className="ml-1 text-[0.62rem] uppercase tracking-widest text-coffee/55">
+                  Eat in
+                </span>
+              </p>
+            )}
+          </div>
           {inCart === 0 ? (
             <button
               type="button"

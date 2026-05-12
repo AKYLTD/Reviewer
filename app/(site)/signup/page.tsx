@@ -28,7 +28,15 @@ async function signUp(formData: FormData) {
       maxAge: CUSTOMER_MAX_AGE,
       path: "/",
     });
-    redirect(next);
+    // Always land at /account first so the customer sees their dashboard,
+    // their fresh loyalty zero, and a clear "continue your order" CTA
+    // if they were mid-checkout. The previous "next" intent is carried
+    // through as ?from=&continue= so the account page can offer the
+    // shortcut without losing the original destination.
+    const accountUrl = new URL("/account", "http://x");
+    accountUrl.searchParams.set("from", "signup");
+    if (next && next !== "/account") accountUrl.searchParams.set("continue", next);
+    redirect(accountUrl.pathname + accountUrl.search);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Something went wrong";
     redirect(`/signup?error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`);

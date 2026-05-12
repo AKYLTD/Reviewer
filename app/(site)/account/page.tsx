@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Section } from "@/components/Section";
+import { ContinueOrderCTA } from "@/components/account/ContinueOrderCTA";
+import { LoyaltyChart } from "@/components/account/LoyaltyChart";
 import { getCurrentCustomerSession } from "@/lib/customerAuth";
 import { getCustomer, updateCustomer, POINTS_PER_REWARD, REWARD_VALUE_PENCE } from "@/lib/customers";
 import { listOrders, priceFromPence } from "@/lib/orders";
@@ -23,7 +25,7 @@ async function saveProfile(formData: FormData) {
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams: { saved?: string };
+  searchParams: { saved?: string; from?: string; continue?: string };
 }) {
   const session = await getCurrentCustomerSession();
   if (!session) redirect("/login?next=/account");
@@ -63,6 +65,37 @@ export default async function AccountPage({
           </Link>
         </header>
       </Section>
+
+      {/* CONTINUE-YOUR-ORDER CTA — only renders if the cart has items.
+          The /signup redirect lands here with ?from=signup&continue=…
+          so the message + destination are fresh-signup-aware. */}
+      <Section panel="cream" size="slim">
+        <ContinueOrderCTA
+          continueHref={searchParams.continue}
+          freshSignup={searchParams.from === "signup"}
+        />
+      </Section>
+
+      {/* LOYALTY CHART — cumulative points over the customer's history.
+          Renders nothing if the history is empty (brand-new accounts). */}
+      {customer.history.length > 0 && (
+        <Section panel="cream" size="slim">
+          <article className="rounded-xl bg-ivory p-6 md:p-8 shadow-soft">
+            <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <p className="label">Points accumulation</p>
+                <h2 className="mt-2 font-display font-700 text-coffee text-xl">
+                  Your loyalty history
+                </h2>
+              </div>
+              <p className="font-display font-700 text-coffee text-2xl tabular-nums">
+                {customer.points} pts
+              </p>
+            </header>
+            <LoyaltyChart history={customer.history} currentBalance={customer.points} />
+          </article>
+        </Section>
+      )}
 
       <Section panel="cream">
         <div className="grid gap-8 lg:grid-cols-3">
