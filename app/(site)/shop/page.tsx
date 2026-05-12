@@ -8,7 +8,7 @@ import { getMenu, getContent } from "@/lib/content";
 import { activePromotions } from "@/lib/promotionsStore";
 import { getCurrentCustomerSession } from "@/lib/customerAuth";
 import { getCustomer } from "@/lib/customers";
-import { classify, titleCase } from "@/lib/menuClassify";
+import { classify, titleCase, classifyItemName } from "@/lib/menuClassify";
 
 export const metadata: Metadata = {
   title: "Shop",
@@ -28,12 +28,14 @@ async function loadMenu(): Promise<ShopMenu> {
       for (const it of square.items) {
         if (!it.isAvailable) continue;
         const rawCat = it.categoryIds[0] ? catLookup.get(it.categoryIds[0]) ?? "Other" : "Other";
-        const { mode, cleanName } = classify(rawCat);
+        const { mode: catMode, cleanName } = classify(rawCat);
+        const itemFlag = classifyItemName(it.name);
+        const mode = itemFlag.takeaway ? "takeaway" : catMode;
         const v = it.variations[0];
         if (!v?.price) continue;
         items.push({
           id: it.id,
-          name: titleCase(it.name),
+          name: itemFlag.cleanName,
           description: it.description ?? "",
           category: cleanName,
           pricePence: v.price.amount,
@@ -55,10 +57,12 @@ async function loadMenu(): Promise<ShopMenu> {
   const catLookup = new Map(manual.categories.map((c) => [c.id, c.name]));
   const items: ShopItem[] = manual.items.map((it) => {
     const raw = catLookup.get(it.categoryId) ?? "Other";
-    const { mode, cleanName } = classify(raw);
+    const { mode: catMode, cleanName } = classify(raw);
+    const itemFlag = classifyItemName(it.name);
+    const mode = itemFlag.takeaway ? "takeaway" : catMode;
     return {
       id: it.id,
-      name: titleCase(it.name),
+      name: itemFlag.cleanName,
       description: it.description,
       category: cleanName,
       pricePence: it.price,

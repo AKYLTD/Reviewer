@@ -2,6 +2,7 @@
 
 import { useState, useRef, type ReactNode } from "react";
 import { CakeLayerDiagram } from "./CakeLayerDiagram";
+import { CakeTopView } from "./CakeTopView";
 import {
   BASE_OPTIONS,
   COVER_OPTIONS,
@@ -111,11 +112,21 @@ export function CakeBuilder({ locations, defaultLocationId }: CakeBuilderProps) 
     <div className="grid gap-10 md:grid-cols-12 md:gap-14">
       {/* ----------------------------------------------------- PREVIEW */}
       <aside className="md:col-span-5 md:sticky md:top-24 self-start">
-        <div className="rounded-xl bg-ivory p-5 md:p-6 shadow-soft">
-          <CakeLayerDiagram config={config} className="w-full" />
+        <div className="rounded-xl bg-ivory p-5 md:p-6 shadow-soft space-y-6">
+          {/* Top-down view — shape + message */}
+          <div>
+            <p className="label-muted mb-2">Top view</p>
+            <CakeTopView config={config} className="mx-auto max-w-[280px]" />
+          </div>
+
+          {/* Cross-section / layer diagram */}
+          <div>
+            <p className="label-muted mb-2">Cross section</p>
+            <CakeLayerDiagram config={config} className="w-full" />
+          </div>
 
           {fields.imageFileName && config.shape === "image" && (
-            <p className="mt-4 font-sans text-coffee text-xs truncate">
+            <p className="mt-2 font-sans text-coffee text-xs truncate">
               Image attached: {fields.imageFileName}
             </p>
           )}
@@ -632,9 +643,10 @@ function ThankYou({
   return (
     <div className="grid gap-10 md:grid-cols-12 items-center">
       <aside className="md:col-span-5">
-        <div className="rounded-xl bg-ivory p-6 shadow-soft">
+        <div className="rounded-xl bg-ivory p-6 shadow-soft space-y-5">
+          <CakeTopView config={config} className="mx-auto max-w-[240px]" />
           <CakeLayerDiagram config={config} className="w-full" />
-          <div className="mt-5 rounded-md bg-saffron px-5 py-4 text-center shadow-chip">
+          <div className="rounded-md bg-saffron px-5 py-4 text-center shadow-chip">
             <p className="font-sans font-600 text-xs uppercase tracking-wide text-coffee/80">
               Estimated total
             </p>

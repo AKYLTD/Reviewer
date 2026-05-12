@@ -6,7 +6,7 @@ import { TableBanner } from "@/components/TableBanner";
 import type { MenuData, MenuItemRecord } from "@/components/menu/types";
 import { getLiveMenu, formatPrice, SquareNotConfiguredError } from "@/lib/square";
 import { getMenu, priceFromPence, getContent } from "@/lib/content";
-import { classify, titleCase } from "@/lib/menuClassify";
+import { classify, titleCase, classifyItemName } from "@/lib/menuClassify";
 
 export const metadata: Metadata = {
   title: "Menu",
@@ -26,12 +26,17 @@ async function loadMenu(): Promise<MenuData> {
       for (const it of sq.items) {
         if (!it.isAvailable) continue;
         const rawCat = it.categoryIds[0] ? catLookup.get(it.categoryIds[0]) ?? "Other" : "Other";
-        const { mode, cleanName } = classify(rawCat);
+        const { mode: catMode, cleanName } = classify(rawCat);
+        // Item-name "ta" tag overrides the category mode — e.g. a
+        // "Basque Cheesecake Ta" item in a category called "Sweets" is
+        // forced into takeaway and the "ta" stripped from the name.
+        const itemFlag = classifyItemName(it.name);
+        const mode = itemFlag.takeaway ? "takeaway" : catMode;
         const v = it.variations[0];
         if (!v?.price) continue;
         items.push({
           id: it.id,
-          name: titleCase(it.name),
+          name: itemFlag.cleanName,
           description: it.description ?? "",
           category: cleanName,
           pricePence: v.price.amount,
@@ -52,10 +57,12 @@ async function loadMenu(): Promise<MenuData> {
   const lookup = new Map(manual.categories.map((c) => [c.id, c.name]));
   const items: MenuItemRecord[] = manual.items.map((it) => {
     const raw = lookup.get(it.categoryId) ?? "Other";
-    const { mode, cleanName } = classify(raw);
+    const { mode: catMode, cleanName } = classify(raw);
+    const itemFlag = classifyItemName(it.name);
+    const mode = itemFlag.takeaway ? "takeaway" : catMode;
     return {
       id: it.id,
-      name: titleCase(it.name),
+      name: itemFlag.cleanName,
       description: it.description,
       category: cleanName,
       pricePence: it.price,

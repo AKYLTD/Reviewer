@@ -35,9 +35,9 @@ interface Props {
 export function CakeLayerDiagram({ config, className = "", compact = false }: Props) {
   const sizeRec = SIZE_OPTIONS.find((s) => s.id === config.size) ?? SIZE_OPTIONS[1];
   const fillings = FILLING_OPTIONS.filter((f) => config.fillings.includes(f.id));
-  // At least one sponge layer, even if no fillings (so cake has a body).
-  const fillingCount = Math.max(1, fillings.length);
-  const spongeCount = fillingCount + 1;
+  // Always exactly two sponge layers — the customer's brief: don't add
+  // more sponges per filling; stack the fillings between the two.
+  const SPONGE_COUNT = 2;
 
   // Slab geometry — coordinates in the 600x780 viewBox.
   const VW = 600;
@@ -84,28 +84,39 @@ export function CakeLayerDiagram({ config, className = "", compact = false }: Pr
   });
   cursor += COVER_H;
 
-  // Interleave sponges and fillings: sponge, [filling, sponge]*N
-  for (let i = 0; i < spongeCount; i++) {
+  // Top sponge (Layer 2)
+  slabs.push({
+    key: "sponge-top",
+    kind: "sponge",
+    y: cursor,
+    height: SPONGE_H,
+    label: `${baseLabel(config.base)} Sponge (Layer 2)`,
+  });
+  cursor += SPONGE_H;
+
+  // All fillings stacked between the two sponges. If the customer
+  // picked nothing, default to one vanilla filling so there's a band.
+  const fillingsToRender = fillings.length > 0 ? fillings : [FILLING_OPTIONS[1]];
+  for (const f of fillingsToRender) {
     slabs.push({
-      key: `sponge-${i}`,
-      kind: "sponge",
+      key: `filling-${f.id}`,
+      kind: "filling",
       y: cursor,
-      height: SPONGE_H,
-      label: `${baseLabel(config.base)} Sponge${spongeCount > 1 ? ` (Layer ${spongeCount - i})` : ""}`,
+      height: FILLING_H,
+      label: fillingLabel(f.id),
     });
-    cursor += SPONGE_H;
-    if (i < fillingCount) {
-      const f = fillings[i] ?? FILLING_OPTIONS[1];
-      slabs.push({
-        key: `filling-${i}`,
-        kind: "filling",
-        y: cursor,
-        height: FILLING_H,
-        label: fillingLabel(f.id),
-      });
-      cursor += FILLING_H;
-    }
+    cursor += FILLING_H;
   }
+
+  // Bottom sponge (Layer 1)
+  slabs.push({
+    key: "sponge-bottom",
+    kind: "sponge",
+    y: cursor,
+    height: SPONGE_H,
+    label: `${baseLabel(config.base)} Sponge (Layer 1)`,
+  });
+  cursor += SPONGE_H;
 
   slabs.push({
     key: "base",
@@ -210,12 +221,9 @@ function renderSlabBody(
     case "sponge":
       return <SpongeSlab y={slab.y} height={slab.height} left={ctx.left} right={ctx.right} base={ctx.config.base} />;
     case "filling": {
-      // Recover the filling index from this slab's position among
-      // filling-kind slabs.
-      const fillingSlabs = all.filter((s) => s.kind === "filling");
-      const idx = fillingSlabs.findIndex((s) => s.key === slab.key);
-      const f = ctx.config.fillings[idx] ?? "vanilla";
-      return <FillingSlab y={slab.y} height={slab.height} left={ctx.left} right={ctx.right} centreX={ctx.centreX} kind={f as CakeFilling} />;
+      // Filling id is encoded in the slab key as `filling-{id}`.
+      const id = slab.key.replace(/^filling-/, "") as CakeFilling;
+      return <FillingSlab y={slab.y} height={slab.height} left={ctx.left} right={ctx.right} centreX={ctx.centreX} kind={id} />;
     }
     case "base":
       return <BaseFrostingSlab y={slab.y} height={slab.height} left={ctx.left} right={ctx.right} centreX={ctx.centreX} cover={ctx.config.cover} />;

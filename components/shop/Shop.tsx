@@ -116,8 +116,9 @@ export function Shop({ menu, promotions, customer }: ShopProps) {
     <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
       {/* ============================================ MAIN COLUMN */}
       <div>
-        {/* Mode + search bar */}
-        <div className="sticky top-[68px] z-30 -mx-page-x px-page-x py-4 bg-cream/95 backdrop-blur border-b border-hairline">
+        {/* Mode + search bar — non-sticky so it doesn't float over the
+            cart sidebar; flows with the rest of the column. */}
+        <div className="rounded-xl bg-ivory shadow-soft p-4 mb-6 border border-hairline">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex rounded-pill bg-ivory shadow-soft p-1.5 gap-1">
               <button

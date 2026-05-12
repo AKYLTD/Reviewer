@@ -58,9 +58,26 @@ export function classify(rawName: string): { mode: "eat-in" | "takeaway"; cleanN
     return { mode: "takeaway", cleanName: titleCase(cleaned || rawName) };
   }
   // 3) Default — eat-in (the brief: "if a category repeat itself without
-  //    ta it means it is eat-in"). This flips the previous default which
-  //    fell back to takeaway.
+  //    ta it means it is eat-in").
   return { mode: "eat-in", cleanName: titleCase(rawName) };
+}
+
+/**
+ * Item-name level "ta" check. Some items carry the takeaway tag in their
+ * own name (e.g. "Basque Cheesecake Ta") regardless of category. When
+ * this fires we force the item into the takeaway mode and strip the tag
+ * from the displayed name.
+ */
+export function classifyItemName(rawName: string): { takeaway: boolean; cleanName: string } {
+  if (TA_TAG_RE.test(rawName)) {
+    const cleaned = rawName.replace(TA_TAG_RE, " ").replace(/\s+/g, " ").trim();
+    return { takeaway: true, cleanName: titleCase(cleaned || rawName) };
+  }
+  if (LEGACY_TAKEAWAY_RE.test(rawName)) {
+    const cleaned = strip(rawName, LEGACY_TAKEAWAY_RE) || rawName;
+    return { takeaway: true, cleanName: titleCase(cleaned) };
+  }
+  return { takeaway: false, cleanName: titleCase(rawName) };
 }
 
 export { titleCase };
