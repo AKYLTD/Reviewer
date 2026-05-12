@@ -48,6 +48,9 @@ export interface Location {
   /** Optional latitude/longitude for nearest-shop detection. Set in admin. */
   lat?: number;
   lng?: number;
+  /** Table counts for the eat-in QR-code generator. */
+  tablesInside?: number;
+  tablesOutside?: number;
 }
 
 export interface SiteContent {

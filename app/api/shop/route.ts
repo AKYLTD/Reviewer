@@ -18,6 +18,9 @@ interface Payload {
   cart: CartLine[];
   customer: { name: string; email: string; phone: string; customerId: string | null };
   pickup: { locationId: string; time: string; notes: string };
+  service?:
+    | { mode: "eat-in"; table: number; zone: "inside" | "outside" }
+    | { mode: "takeaway" };
   redeemPoints: boolean;
 }
 
@@ -73,16 +76,26 @@ export async function POST(req: Request) {
   let squareError: string | undefined;
   if (chosen.squareLocationId && process.env.SQUARE_ACCESS_TOKEN) {
     try {
+      const isEatIn = payload.service?.mode === "eat-in";
+      const tableDesc = isEatIn && payload.service?.mode === "eat-in"
+        ? `Table ${payload.service.table} (${payload.service.zone})`
+        : "";
       const result = await createSquareOrder({
         squareLocationId: chosen.squareLocationId,
-        ticketName: `Web — ${customer.name}`,
+        ticketName: isEatIn
+          ? `${tableDesc} · ${customer.name}`
+          : `Web — ${customer.name}`,
         idempotencyKey: randomUUID(),
         pickup: {
           displayName: customer.name,
           email: customer.email,
           phone: customer.phone,
           pickupAt: new Date(pickupISO).toISOString(),
-          note: `Web shop order. Pickup: ${chosen.name}. ${pickup.notes ? `Notes: ${pickup.notes}` : ""}`.trim(),
+          note: [
+            isEatIn ? `EAT-IN · ${tableDesc}` : `Web shop order`,
+            `Location: ${chosen.name}.`,
+            pickup.notes ? `Notes: ${pickup.notes}` : "",
+          ].filter(Boolean).join(" "),
         },
         lineItems: cart.map((l) => ({
           name: l.name,
@@ -110,9 +123,13 @@ export async function POST(req: Request) {
       scheduledFor: pickupISO,
       pickupLocationId: pickup.locationId,
       customer: { name: customer.name, email: customer.email, phone: customer.phone },
-      summary: `Shop order · ${cart.reduce((n, l) => n + l.quantity, 0)} items`,
+      summary:
+        payload.service?.mode === "eat-in"
+          ? `Eat-in · Table ${payload.service.table} (${payload.service.zone}) · ${cart.reduce((n, l) => n + l.quantity, 0)} items`
+          : `Shop order · ${cart.reduce((n, l) => n + l.quantity, 0)} items`,
       details: {
         kind: "shop",
+        service: payload.service ?? { mode: "takeaway" },
         cart,
         pickup,
         subtotal,

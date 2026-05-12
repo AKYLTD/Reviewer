@@ -46,7 +46,7 @@ const PREFERRED_KEY = "ronis-preferred-shop";
  * or a small inline trigger (variant="pill").
  */
 export function LocationFinder({ locations, variant = "banner", storageKey = "ronis-location-prompt-v1" }: Props) {
-  const [status, setStatus] = useState<"idle" | "asking" | "located" | "denied" | "error" | "confirmed" | "dismissed">("idle");
+  const [status, setStatus] = useState<"idle" | "asking" | "located" | "at" | "denied" | "error" | "confirmed" | "dismissed">("idle");
   const [nearest, setNearest] = useState<{ shop: ShopLite; km: number } | null>(null);
   const [preferred, setPreferred] = useState<string | null>(null);
 
@@ -80,7 +80,14 @@ export function LocationFinder({ locations, variant = "banner", storageKey = "ro
         }
         if (best) {
           setNearest(best);
-          setStatus("located");
+          // 120m radius is "at" the shop — tight enough to mean the
+          // customer is on-premises or right outside, loose enough to
+          // forgive low-end GPS accuracy in dense streets.
+          if (best.km <= 0.12) {
+            setStatus("at");
+          } else {
+            setStatus("located");
+          }
         } else {
           setStatus("error");
         }
@@ -89,7 +96,7 @@ export function LocationFinder({ locations, variant = "banner", storageKey = "ro
         if (err.code === err.PERMISSION_DENIED) setStatus("denied");
         else setStatus("error");
       },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 },
     );
   };
 
@@ -179,17 +186,50 @@ export function LocationFinder({ locations, variant = "banner", storageKey = "ro
             Asking your browser for your location…
           </p>
         )}
-        {status === "located" && nearest && (
+        {status === "at" && nearest && (
           <>
             <div>
-              <p className="font-sans text-xs font-600 uppercase tracking-widest text-coffee/80">
-                We think you&rsquo;re nearest
+              <p className="font-sans text-xs font-700 uppercase tracking-[0.22em] text-coffee">
+                You&rsquo;re at
               </p>
               <p className="mt-1 font-display font-700 text-coffee text-2xl">
                 {nearest.shop.name}
               </p>
               <p className="font-sans text-sm text-coffee/85 mt-1">
-                {nearest.shop.addressLine1} · {nearest.km.toFixed(1)} km away
+                {nearest.shop.addressLine1} · {(nearest.km * 1000).toFixed(0)} m from you
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/shop?location=${nearest.shop.id}`}
+                className="btn-primary text-sm"
+              >
+                <span>Order here</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => confirmShop(nearest.shop)}
+                className="btn-ghost text-sm"
+              >
+                Save as my shop
+              </button>
+            </div>
+          </>
+        )}
+        {status === "located" && nearest && (
+          <>
+            <div>
+              <p className="font-sans text-xs font-600 uppercase tracking-widest text-coffee/80">
+                Your nearest shop
+              </p>
+              <p className="mt-1 font-display font-700 text-coffee text-2xl">
+                {nearest.shop.name}
+              </p>
+              <p className="font-sans text-sm text-coffee/85 mt-1">
+                {nearest.shop.addressLine1} ·{" "}
+                {nearest.km < 1
+                  ? `${(nearest.km * 1000).toFixed(0)} m`
+                  : `${nearest.km.toFixed(1)} km`} away
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

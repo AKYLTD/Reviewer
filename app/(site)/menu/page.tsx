@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/components/Section";
 import { MenuBrowser } from "@/components/menu/MenuBrowser";
+import { TableBanner } from "@/components/TableBanner";
 import type { MenuData, MenuItemRecord } from "@/components/menu/types";
 import { getLiveMenu, formatPrice, SquareNotConfiguredError } from "@/lib/square";
-import { getMenu, priceFromPence } from "@/lib/content";
+import { getMenu, priceFromPence, getContent } from "@/lib/content";
 import { classify, titleCase } from "@/lib/menuClassify";
 
 export const metadata: Metadata = {
@@ -72,25 +73,33 @@ function sortedUniqueCats(items: MenuItemRecord[]): string[] {
 }
 
 export default async function MenuPage() {
-  const menu = await loadMenu();
+  const [menu, content] = await Promise.all([loadMenu(), getContent()]);
+  const shopLites = content.locations.map((l) => ({
+    id: l.id,
+    name: l.name,
+    shortName: l.shortName,
+  }));
 
   return (
     <main>
       <Section size="slim" panel="cream">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <p className="label-rule">Menu</p>
-            <h1 className="mt-4 font-display font-700 text-display-lg text-coffee">
-              Today, on the counter.
-            </h1>
-            <p className="lede mt-4 max-w-prose">
-              Tap any item to add it. We&rsquo;ll ask whether it&rsquo;s for
-              eat-in or takeaway. Prices live from the till.
-            </p>
+        <div className="space-y-5">
+          <TableBanner locations={shopLites} />
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <p className="label-rule">Menu</p>
+              <h1 className="mt-4 font-display font-700 text-display-lg text-coffee">
+                Today, on the counter.
+              </h1>
+              <p className="lede mt-4 max-w-prose">
+                Tap any item to add it. We&rsquo;ll ask whether it&rsquo;s for
+                eat-in or takeaway. Prices live from the till.
+              </p>
+            </div>
+            <Link href="/shop/checkout" className="btn-ghost">
+              View order
+            </Link>
           </div>
-          <Link href="/shop/checkout" className="btn-ghost">
-            View order
-          </Link>
         </div>
       </Section>
 

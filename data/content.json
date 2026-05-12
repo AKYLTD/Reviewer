@@ -67,7 +67,9 @@
       ],
       "squareLocationId": "",
       "lat": 51.5476,
-      "lng": -0.1697
+      "lng": -0.1697,
+      "tablesInside": 12,
+      "tablesOutside": 6
     },
     {
       "id": "swains-lane",
@@ -87,7 +89,9 @@
       ],
       "squareLocationId": "",
       "lat": 51.5621,
-      "lng": -0.1452
+      "lng": -0.1452,
+      "tablesInside": 8,
+      "tablesOutside": 4
     },
     {
       "id": "west-hampstead",
@@ -107,7 +111,9 @@
       ],
       "squareLocationId": "",
       "lat": 51.5479,
-      "lng": -0.1909
+      "lng": -0.1909,
+      "tablesInside": 14,
+      "tablesOutside": 6
     },
     {
       "id": "muswell-hill",
@@ -127,7 +133,9 @@
       ],
       "squareLocationId": "",
       "lat": 51.5904,
-      "lng": -0.1438
+      "lng": -0.1438,
+      "tablesInside": 10,
+      "tablesOutside": 4
     }
   ]
 }

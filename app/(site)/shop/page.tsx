@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/Section";
 import { Shop } from "@/components/shop/Shop";
+import { TableBanner } from "@/components/TableBanner";
 import type { ShopItem, ShopMenu } from "@/components/shop/types";
 import { getLiveMenu, formatPrice, SquareNotConfiguredError } from "@/lib/square";
-import { getMenu } from "@/lib/content";
+import { getMenu, getContent } from "@/lib/content";
 import { activePromotions } from "@/lib/promotionsStore";
 import { getCurrentCustomerSession } from "@/lib/customerAuth";
 import { getCustomer } from "@/lib/customers";
@@ -77,11 +78,14 @@ export default async function ShopPage() {
   ]);
   const customer = customerSession ? await getCustomer(customerSession.sub) : null;
   const promoBanner = promotions.find((p) => p.kind === "banner");
+  const content = await getContent();
+  const shopLites = content.locations.map((l) => ({ id: l.id, name: l.name, shortName: l.shortName }));
 
   return (
     <main>
       <Section size="slim" panel="cream">
-        <header className="mb-6">
+        <TableBanner locations={shopLites} />
+        <header className="mb-6 mt-6">
           <p className="label-rule">Shop</p>
           <h1 className="mt-4 font-display font-700 text-display-lg text-coffee">
             Order ahead.

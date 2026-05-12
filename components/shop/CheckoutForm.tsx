@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { CartLine } from "./types";
+import { useTableSession } from "../tableContext";
 
 const STORAGE_KEY = "ronis-cart-v1";
+const MODE_KEY = "ronis-cart-mode-v1";
 
 interface Props {
   locations: { id: string; label: string }[];
@@ -26,7 +28,9 @@ function formatGBP(pence: number): string {
 }
 
 export function CheckoutForm({ locations, customer }: Props) {
+  const { table: tableSession, setTable } = useTableSession();
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [mode, setMode] = useState<"eat-in" | "takeaway">("takeaway");
   const [redeemPoints, setRedeemPoints] = useState(false);
   const [pickupLocation, setPickupLocation] = useState(locations[0]?.id ?? "");
   const [pickupTime, setPickupTime] = useState("");
@@ -34,6 +38,8 @@ export function CheckoutForm({ locations, customer }: Props) {
   const [email, setEmail] = useState(customer?.email ?? "");
   const [phone, setPhone] = useState(customer?.phone ?? "");
   const [notes, setNotes] = useState("");
+  const [tableNumber, setTableNumber] = useState("");
+  const [tableZone, setTableZone] = useState<"inside" | "outside">("inside");
   const [status, setStatus] = useState<"idle" | "submitting" | "sent" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -42,8 +48,21 @@ export function CheckoutForm({ locations, customer }: Props) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setCart(JSON.parse(raw) as CartLine[]);
+      const m = localStorage.getItem(MODE_KEY);
+      if (m === "eat-in" || m === "takeaway") setMode(m);
     } catch {}
   }, []);
+
+  // If a table session is active, lock us into eat-in at that location
+  // and pre-fill the table number.
+  useEffect(() => {
+    if (tableSession) {
+      setMode("eat-in");
+      setPickupLocation(tableSession.locationId);
+      setTableNumber(String(tableSession.table));
+      setTableZone(tableSession.zone);
+    }
+  }, [tableSession]);
 
   // Sensible default pickup time — 30 min from now, rounded up to next 5.
   useEffect(() => {
@@ -74,6 +93,12 @@ export function CheckoutForm({ locations, customer }: Props) {
     setStatus("submitting");
     setError(null);
     try {
+      // Eat-in must have a table number (the user explicitly asked).
+      if (mode === "eat-in" && !tableNumber.trim()) {
+        setStatus("error");
+        setError("Please enter your table number for eat-in orders.");
+        return;
+      }
       const res = await fetch("/api/shop", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -81,6 +106,9 @@ export function CheckoutForm({ locations, customer }: Props) {
           cart,
           customer: { name, email, phone, customerId: customer?.id ?? null },
           pickup: { locationId: pickupLocation, time: pickupTime, notes },
+          service: mode === "eat-in"
+            ? { mode: "eat-in", table: Number(tableNumber), zone: tableZone }
+            : { mode: "takeaway" },
           redeemPoints: redeemPoints && canRedeem,
         }),
       });
@@ -133,13 +161,56 @@ export function CheckoutForm({ locations, customer }: Props) {
   return (
     <form onSubmit={submit} className="grid gap-8 md:grid-cols-[1fr_22rem]">
       <div className="space-y-8">
+        {/* MODE */}
+        <section className="rounded-xl bg-ivory p-6 shadow-soft">
+          <h2 className="font-display font-700 text-coffee text-xl">How are you having it?</h2>
+          <div className="mt-4 inline-flex rounded-pill bg-cream shadow-soft p-1.5 gap-1">
+            <button
+              type="button"
+              onClick={() => setMode("takeaway")}
+              aria-pressed={mode === "takeaway"}
+              className={`inline-flex items-center justify-center min-h-11 rounded-pill px-5 py-2 font-display font-700 text-sm transition ${
+                mode === "takeaway" ? "bg-brick text-cream shadow-chip" : "text-coffee hover:bg-saffron/30"
+              }`}
+            >
+              Takeaway
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("eat-in")}
+              aria-pressed={mode === "eat-in"}
+              className={`inline-flex items-center justify-center min-h-11 rounded-pill px-5 py-2 font-display font-700 text-sm transition ${
+                mode === "eat-in" ? "bg-saffron text-coffee shadow-chip" : "text-coffee hover:bg-saffron/30"
+              }`}
+            >
+              Eat in
+            </button>
+          </div>
+          {tableSession && (
+            <p className="mt-3 font-sans text-sm text-coffee/80">
+              You scanned a QR for{" "}
+              <strong className="font-700">
+                Table {tableSession.table} ({tableSession.zone})
+              </strong>{" "}
+              — locked to eat-in.{" "}
+              <button
+                type="button"
+                onClick={() => setTable(null)}
+                className="anchor font-600"
+              >
+                Clear table
+              </button>
+            </p>
+          )}
+        </section>
+
         {/* PICKUP */}
         <section className="rounded-xl bg-ivory p-6 shadow-soft">
-          <h2 className="font-display font-700 text-coffee text-xl">Where & when</h2>
+          <h2 className="font-display font-700 text-coffee text-xl">Where &amp; when</h2>
           <div className="mt-5 grid gap-5">
             <div>
               <label className="block font-sans font-600 text-sm uppercase tracking-wide text-coffee">
-                Pick up from
+                {mode === "eat-in" ? "Eating at" : "Pick up from"}
               </label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {locations.map((loc) => (
@@ -159,9 +230,55 @@ export function CheckoutForm({ locations, customer }: Props) {
                 ))}
               </div>
             </div>
+            {mode === "eat-in" && (
+              <>
+                <div>
+                  <label htmlFor="table" className="block font-sans font-600 text-sm uppercase tracking-wide text-coffee">
+                    Table number
+                  </label>
+                  <input
+                    id="table"
+                    type="number"
+                    min={1}
+                    value={tableNumber}
+                    onChange={(e) => setTableNumber(e.target.value)}
+                    placeholder="e.g. 12"
+                    className="mt-2 w-full max-w-[14rem] rounded-md bg-cream border border-hairline px-4 py-3 font-sans text-[1.1rem] tabular-nums text-coffee focus:border-brick focus:outline-none focus:ring-2 focus:ring-brick/20 min-h-11"
+                    required
+                  />
+                </div>
+                <div>
+                  <span className="block font-sans font-600 text-sm uppercase tracking-wide text-coffee">
+                    Zone
+                  </span>
+                  <div className="mt-2 inline-flex rounded-pill bg-cream shadow-soft p-1.5 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setTableZone("inside")}
+                      aria-pressed={tableZone === "inside"}
+                      className={`inline-flex items-center justify-center min-h-11 rounded-pill px-4 py-2 font-display font-600 text-sm transition ${
+                        tableZone === "inside" ? "bg-brick text-cream shadow-chip" : "text-coffee hover:bg-saffron/40"
+                      }`}
+                    >
+                      Inside
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTableZone("outside")}
+                      aria-pressed={tableZone === "outside"}
+                      className={`inline-flex items-center justify-center min-h-11 rounded-pill px-4 py-2 font-display font-600 text-sm transition ${
+                        tableZone === "outside" ? "bg-brick text-cream shadow-chip" : "text-coffee hover:bg-saffron/40"
+                      }`}
+                    >
+                      Outside
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
             <div>
               <label htmlFor="time" className="block font-sans font-600 text-sm uppercase tracking-wide text-coffee">
-                Pickup time
+                {mode === "eat-in" ? "Serve at" : "Pickup time"}
               </label>
               <input
                 id="time"

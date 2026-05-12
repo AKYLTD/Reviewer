@@ -87,6 +87,10 @@ async function updateLocation(formData: FormData) {
     hours: parseHours(String(formData.get("hours") ?? "")),
     transport: parseTransport(String(formData.get("transport") ?? "")),
     squareLocationId: String(formData.get("squareLocationId") ?? "").trim(),
+    lat: Number(formData.get("lat") ?? content.locations[idx].lat ?? 0) || undefined,
+    lng: Number(formData.get("lng") ?? content.locations[idx].lng ?? 0) || undefined,
+    tablesInside: Math.max(0, Math.round(Number(formData.get("tablesInside") ?? content.locations[idx].tablesInside ?? 0))) || undefined,
+    tablesOutside: Math.max(0, Math.round(Number(formData.get("tablesOutside") ?? content.locations[idx].tablesOutside ?? 0))) || undefined,
   };
 
   if (formData.get("makePrimary") === "1") {
@@ -266,7 +270,7 @@ export default async function LocationsAdminPage({
                 <div className="md:col-span-2">
                   <Field
                     label="Square location ID"
-                    hint="Find it in Square Dashboard → Account → Locations. Required for cake orders to ring up at this shop."
+                    hint="Find it in Square Dashboard → Account → Locations. Required for orders to ring up at this shop."
                   >
                     <Input
                       name="squareLocationId"
@@ -275,6 +279,20 @@ export default async function LocationsAdminPage({
                     />
                   </Field>
                 </div>
+
+                <Field label="Latitude" hint="For 'nearest shop' detection.">
+                  <Input name="lat" type="number" defaultValue={String(loc.lat ?? "")} placeholder="51.5476" />
+                </Field>
+                <Field label="Longitude">
+                  <Input name="lng" type="number" defaultValue={String(loc.lng ?? "")} placeholder="-0.1697" />
+                </Field>
+
+                <Field label="Inside tables" hint="Number of tables inside. QR codes generated for 1 → N.">
+                  <Input name="tablesInside" type="number" min={0} defaultValue={String(loc.tablesInside ?? 0)} />
+                </Field>
+                <Field label="Outside tables">
+                  <Input name="tablesOutside" type="number" min={0} defaultValue={String(loc.tablesOutside ?? 0)} />
+                </Field>
 
                 <div className="md:col-span-2">
                   <Field

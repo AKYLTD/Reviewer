@@ -191,10 +191,19 @@ export function Shop({ menu, promotions, customer }: ShopProps) {
               </svg>
             </button>
             {catMenuOpen && (
-              <ul
-                role="listbox"
-                className="absolute z-40 mt-2 max-h-[60vh] overflow-y-auto w-72 rounded-md bg-ivory shadow-pop border border-hairline py-2"
-              >
+              <>
+                {/* Click-outside scrim */}
+                <button
+                  type="button"
+                  aria-hidden
+                  tabIndex={-1}
+                  onClick={() => setCatMenuOpen(false)}
+                  className="fixed inset-0 z-20 cursor-default"
+                />
+                <ul
+                  role="listbox"
+                  className="absolute z-30 mt-2 max-h-[60vh] overflow-y-auto w-72 max-w-[calc(100vw-2rem)] rounded-md bg-ivory shadow-pop border border-hairline py-2"
+                >
                 <li>
                   <button
                     type="button"
@@ -223,7 +232,8 @@ export function Shop({ menu, promotions, customer }: ShopProps) {
                     </button>
                   </li>
                 ))}
-              </ul>
+                </ul>
+              </>
             )}
           </div>
         </div>
