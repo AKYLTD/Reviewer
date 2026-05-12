@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, type ReactNode } from "react";
-import { CakePhoto } from "./CakePhoto";
+import { CakeLayerDiagram } from "./CakeLayerDiagram";
 import {
   BASE_OPTIONS,
   COVER_OPTIONS,
@@ -112,7 +112,7 @@ export function CakeBuilder({ locations, defaultLocationId }: CakeBuilderProps) 
       {/* ----------------------------------------------------- PREVIEW */}
       <aside className="md:col-span-5 md:sticky md:top-24 self-start">
         <div className="rounded-xl bg-ivory p-5 md:p-6 shadow-soft">
-          <CakePhoto config={config} />
+          <CakeLayerDiagram config={config} className="w-full" />
 
           {fields.imageFileName && config.shape === "image" && (
             <p className="mt-4 font-sans text-coffee text-xs truncate">
@@ -633,7 +633,7 @@ function ThankYou({
     <div className="grid gap-10 md:grid-cols-12 items-center">
       <aside className="md:col-span-5">
         <div className="rounded-xl bg-ivory p-6 shadow-soft">
-          <CakePhoto config={config} />
+          <CakeLayerDiagram config={config} className="w-full" />
           <div className="mt-5 rounded-md bg-saffron px-5 py-4 text-center shadow-chip">
             <p className="font-sans font-600 text-xs uppercase tracking-wide text-coffee/80">
               Estimated total

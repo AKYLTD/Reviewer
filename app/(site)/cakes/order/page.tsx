@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/Section";
 import { CakeBuilder } from "@/components/cake/CakeBuilder";
-import { CakePhoto } from "@/components/cake/CakePhoto";
+import { CakeLayerDiagram } from "@/components/cake/CakeLayerDiagram";
 import { getContent, primaryLocation } from "@/lib/content";
 import type { CakeConfig } from "@/components/cake/types";
 
@@ -141,7 +141,7 @@ export default async function CakeOrderPage() {
               key={p.name}
               className="rounded-xl bg-cream p-6 text-center shadow-soft transition-all hover:-translate-y-1 hover:shadow-pop"
             >
-              <CakePhoto config={p.config} compact className="mx-auto w-40" />
+              <CakeLayerDiagram config={p.config} compact className="mx-auto h-48 w-auto" />
               <p className="mt-4 font-display font-700 text-coffee text-lg">{p.name}</p>
               <p className="mt-1 font-sans text-xs text-coffee/70">{p.sub}</p>
             </li>
