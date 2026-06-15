@@ -8,6 +8,13 @@ import {
   waitStepSec,
   importBase44Json,
 } from "./lib/importBase44.js";
+// Persistence layer (Supabase). The UI keeps its in-memory shapes; db.js maps
+// them to/from the database and exposes the reads/writes the App needs.
+import {
+  loadAll, upsertRows, deleteByIds, saveSingleton, verifyPin as dbVerifyPin,
+  persistProduction, persistCancellation, clearQueueForLocation, scheduleSync,
+  ingToRow, recToRow, staffToRow, locToRow,
+} from "./lib/db.js";
 
 /* ============================================================================
    PROOF·FLOOR v4 — Roni's Bakery production manager
@@ -164,12 +171,17 @@ const SEED_INGREDIENTS = _seed.ingredients;
 function App() {
   const [screen, setScreen] = useState("home");
   const [user, setUser] = useState(null);
-  const [staff, setStaff] = useState(STAFF0);
-  const [ingredients, setIngredients] = useState(SEED_INGREDIENTS);
-  const [recipes, setRecipes] = useState(SEED_RECIPES);
-  const [cpu, setCpu] = useState(CPU0);
-  const [locations, setLocations] = useState(LOCATIONS0);
-  const [delivery, setDelivery] = useState(DELIVERY0);
+  // State starts empty and is populated from Supabase on mount (see load effect).
+  const [staff, setStaff] = useState([]);
+  const [ingredients, setIngredients] = useState([]);
+  const [recipes, setRecipes] = useState([]);
+  const [cpu, setCpu] = useState({ name: "", address: "" });
+  const [locations, setLocations] = useState([]);
+  const [delivery, setDelivery] = useState({ perMile: 0, perHour: 0 });
+  const [ready, setReady] = useState(false);
+  // Gate persistence until the first load completes, so the initial empty state
+  // is never written back over the database.
+  const readyRef = useRef(false);
 
   const stores = locations.map((l) => l.name);
 
@@ -193,6 +205,56 @@ function App() {
 
   const active = productions.find((p) => p.id === activeId) || null;
 
+  // ---- load all state from Supabase once on mount ----
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await loadAll();
+        if (data && !cancelled) {
+          setStaff(data.staff); setIngredients(data.ingredients); setRecipes(data.recipes);
+          setCpu(data.cpu); setLocations(data.locations); setDelivery(data.delivery);
+          setStoreStock(data.storeStock); setCentralStock(data.centralStock); setDeliveryQueue(data.deliveryQueue);
+          setRuns(data.runs); setCancellations(data.cancellations); setAlerts(data.alerts);
+        }
+      } catch (e) {
+        console.error("Load failed", e); flash("Couldn't load data from the database");
+      } finally {
+        if (!cancelled) { readyRef.current = true; setReady(true); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ---- persistence-aware setters for admin-managed data ----
+  // Same call signature as React setters; they also sync the change to Supabase
+  // (debounced, so per-keystroke edits coalesce into one write).
+  const alertToRow = (a) => ({ id: a.id, recipe: a.recipe, from_sec: a.from, to_sec: a.to, dir: a.dir, diff: a.diff, runs: a.runs, when_label: a.when });
+  const persistColl = (setState, table, toRow) => (updater) => setState((prev) => {
+    const next = typeof updater === "function" ? updater(prev) : updater;
+    if (readyRef.current) {
+      const nextIds = new Set(next.map((x) => x.id));
+      const removed = prev.filter((x) => !nextIds.has(x.id)).map((x) => x.id);
+      if (removed.length) deleteByIds(table, removed).catch((e) => console.error(`delete ${table} failed`, e));
+      scheduleSync(table, () => upsertRows(table, next.map(toRow)));
+    }
+    return next;
+  });
+  const persistOne = (setState, table, toRow) => (updater) => setState((prev) => {
+    const next = typeof updater === "function" ? updater(prev) : updater;
+    if (readyRef.current) scheduleSync(table, () => saveSingleton(table, toRow(next)));
+    return next;
+  });
+  const setIngredientsP = persistColl(setIngredients, "ingredients", ingToRow);
+  const setRecipesP = persistColl(setRecipes, "recipes", recToRow);
+  const setStaffP = persistColl(setStaff, "staff", staffToRow);
+  const setLocationsP = persistColl(setLocations, "locations", locToRow);
+  const setAlertsP = persistColl(setAlerts, "alerts", alertToRow);
+  const setCpuP = persistOne(setCpu, "cpu", (c) => ({ name: c.name, address: c.address || "" }));
+  const setDeliveryP = persistOne(setDelivery, "delivery_settings", (d) => ({ per_mile: Number(d.perMile) || 0, per_hour: Number(d.perHour) || 0 }));
+
+  const locId = (name) => locations.find((l) => l.name === name)?.id;
+
   const startProduction = (recipe, targetQty) => {
     const p = { id: uid("p"), recipe, targetQty, stepIndex: 0, durations: [], startedBy: user, startedAt: Date.now() };
     setProductions((ps) => [...ps, p]); setActiveId(p.id); setScreen("run");
@@ -203,45 +265,61 @@ function App() {
 
   const commitDistribution = (alloc, notForDelivery) => {
     const p = finishing;
-    setStoreStock((prev) => { const next = { ...prev }; alloc.forEach(({ store, qty }) => { next[store] = { ...(next[store] || {}) }; next[store][p.recipe.name] = (next[store][p.recipe.name] || 0) + qty; }); return next; });
-    setDeliveryQueue((prev) => { const next = { ...prev }; alloc.forEach(({ store, qty }) => { next[store] = [...(next[store] || []), { id: uid("q"), recipe: p.recipe.name, qty, unit: p.recipe.yieldUnit, by: p.startedBy?.name, when: new Date().toLocaleString("en-GB") }]; }); return next; });
-    if (notForDelivery > 0) setCentralStock((prev) => ({ ...prev, [p.recipe.name]: (prev[p.recipe.name] || 0) + notForDelivery }));
+    const whenLabel = new Date().toLocaleString("en-GB");
+    const rName = p.recipe.name, rId = p.recipe.id, yUnit = p.recipe.yieldUnit;
+    // deterministic queue-item ids so the in-memory state and the DB rows match
+    const allocIds = alloc.map((a) => ({ ...a, qid: uid("q") }));
+
+    setStoreStock((prev) => { const next = { ...prev }; alloc.forEach(({ store, qty }) => { next[store] = { ...(next[store] || {}) }; next[store][rName] = (next[store][rName] || 0) + qty; }); return next; });
+    setDeliveryQueue((prev) => { const next = { ...prev }; allocIds.forEach(({ store, qty, qid }) => { next[store] = [...(next[store] || []), { id: qid, recipe: rName, qty, unit: yUnit, by: p.startedBy?.name, when: whenLabel }]; }); return next; });
+    if (notForDelivery > 0) setCentralStock((prev) => ({ ...prev, [rName]: (prev[rName] || 0) + notForDelivery }));
 
     const totalSec = p.durations.reduce((a, b) => a + b, 0);
     const labour = (totalSec / 3600) * (p.startedBy?.wage || 0);
     const ingCost = recipeCost(p.recipe, ingredients) * (p.targetQty / p.recipe.yieldKg);
     const deliv = alloc.reduce((sum, { store }) => sum + deliveryCost(locations.find((l) => l.name === store), delivery), 0);
-    const thisRun = { id: uid("run"), recipeId: p.recipe.id, recipe: p.recipe.name, qty: p.targetQty, unit: p.recipe.yieldUnit, by: p.startedBy?.name, totalSec, labour, ingCost, deliv, total: labour + ingCost + deliv, when: new Date().toLocaleString("en-GB") };
-    setRuns((r) => {
-      const updated = [thisRun, ...r];
-      // rolling average of actual time for this recipe vs the set expected time
-      const sameRecipe = updated.filter((x) => x.recipeId === p.recipe.id);
-      const avg = sameRecipe.reduce((a, x) => a + x.totalSec, 0) / sameRecipe.length;
-      const expected = p.recipe.expectedSec || 0;
-      if (expected && sameRecipe.length >= 2 && Math.abs(avg - expected) >= DRIFT_THRESHOLD_SEC) {
-        const diff = Math.round(avg - expected);
-        const dir = diff > 0 ? "up" : "down";
-        // auto-correct the recipe's expected time and alert admin
-        setRecipes((rs) => rs.map((x) => x.id === p.recipe.id ? { ...x, expectedSec: Math.round(avg) } : x));
-        setAlerts((al) => [{
-          id: uid("al"), recipe: p.recipe.name, from: expected, to: Math.round(avg),
-          dir, diff: Math.abs(diff), runs: sameRecipe.length, when: new Date().toLocaleString("en-GB"),
-        }, ...al.filter((a) => a.recipe !== p.recipe.name)]);
-        flash(`Heads up: ${p.recipe.name} time went ${dir} by ${fmtClock(Math.abs(diff))} — updated`);
-      }
-      return updated;
-    });
+    const thisRun = { id: uid("run"), recipeId: rId, recipe: rName, qty: p.targetQty, unit: yUnit, by: p.startedBy?.name, totalSec, labour, ingCost, deliv, total: labour + ingCost + deliv, when: whenLabel };
+
+    // rolling average of actual time for this recipe vs the set expected time
+    const updated = [thisRun, ...runs];
+    const sameRecipe = updated.filter((x) => x.recipeId === rId);
+    const avg = sameRecipe.reduce((a, x) => a + x.totalSec, 0) / sameRecipe.length;
+    const expected = p.recipe.expectedSec || 0;
+    let recipeExpected = null, alertRow = null;
+    if (expected && sameRecipe.length >= 2 && Math.abs(avg - expected) >= DRIFT_THRESHOLD_SEC) {
+      const newExp = Math.round(avg);
+      const diff = Math.round(avg - expected);
+      const dir = diff > 0 ? "up" : "down";
+      // auto-correct the recipe's expected time and alert admin
+      setRecipes((rs) => rs.map((x) => x.id === rId ? { ...x, expectedSec: newExp } : x));
+      const al = { id: uid("al"), recipe: rName, from: expected, to: newExp, dir, diff: Math.abs(diff), runs: sameRecipe.length, when: whenLabel };
+      setAlerts((prev) => [al, ...prev.filter((a) => a.recipe !== rName)]);
+      flash(`Heads up: ${rName} time went ${dir} by ${fmtClock(Math.abs(diff))} — updated`);
+      recipeExpected = { id: rId, sec: newExp };
+      alertRow = alertToRow(al);
+    }
+    setRuns((r) => [thisRun, ...r]);
     removeProduction(p.id); setFinishing(null);
     setActiveId(productions.find((x) => x.id !== p.id)?.id || null);
     setScreen("home"); flash("Production logged");
+
+    // ---- persist to Supabase (production adds stock; Square will later subtract) ----
+    if (readyRef.current) {
+      const storeUpserts = alloc.map(({ store, qty }) => { const li = locId(store); return li ? { location_id: li, recipe_id: rId, qty: (storeStock[store]?.[rName] || 0) + qty } : null; }).filter(Boolean);
+      const queueInserts = allocIds.map(({ store, qty, qid }) => { const li = locId(store); return li ? { id: qid, location_id: li, recipe_id: rId, recipe: rName, qty, unit: yUnit, by_name: p.startedBy?.name, when_label: whenLabel } : null; }).filter(Boolean);
+      const centralUpsert = notForDelivery > 0 ? { recipe_id: rId, qty: (centralStock[rName] || 0) + notForDelivery } : null;
+      const runRow = { id: thisRun.id, recipe_id: rId, recipe: rName, qty: thisRun.qty, unit: thisRun.unit, by_name: thisRun.by, total_sec: totalSec, labour, ing_cost: ingCost, deliv, total: thisRun.total, when_label: whenLabel };
+      persistProduction({ storeUpserts, queueInserts, centralUpsert, runRow, recipeExpected, alert: alertRow })
+        .catch((e) => { console.error("Persist production failed", e); flash("Saved on screen, but database write failed"); });
+    }
   };
   const cancelProduction = (p) => {
-    setCancellations((c) => [{
-      id: uid("cx"), recipe: p.recipe.name, qty: p.targetQty, unit: p.recipe.yieldUnit,
-      by: p.startedBy?.name, stoppedAtStep: (p.stepIndex || 0) + 1, totalSteps: p.recipe.steps.length,
-      when: new Date().toLocaleString("en-GB"),
-    }, ...c]);
+    const whenLabel = new Date().toLocaleString("en-GB");
+    const row = { id: uid("cx"), recipe: p.recipe.name, qty: p.targetQty, unit: p.recipe.yieldUnit, by: p.startedBy?.name, stoppedAtStep: (p.stepIndex || 0) + 1, totalSteps: p.recipe.steps.length, when: whenLabel };
+    setCancellations((c) => [row, ...c]);
     removeProduction(p.id); setFinishing(null); setActiveId(null); setScreen("home"); flash("Production cancelled — logged");
+    if (readyRef.current) persistCancellation({ id: row.id, recipe: row.recipe, qty: row.qty, unit: row.unit, by_name: row.by, stopped_at_step: row.stoppedAtStep, total_steps: row.totalSteps, when_label: row.when })
+      .catch((e) => { console.error("Persist cancellation failed", e); flash("Database write failed"); });
   };
 
   const requestSignOut = () => {
@@ -304,7 +382,7 @@ function App() {
 
       <div style={{ maxWidth: 1060, margin: "0 auto", padding: "26px 18px 80px" }}>
         {screen === "home" && (
-          <Home user={user} staff={staff} recipes={recipes} ingredients={ingredients}
+          <Home user={user} staff={staff} recipes={recipes} ingredients={ingredients} verifyPin={dbVerifyPin}
             onSignIn={(u) => { setUser(u); setScreen(u.role === "driver" ? "driver" : u.role === "admin" ? "admin" : "home"); }}
             onPick={(r) => { setFinishing({ _pickQty: r }); setScreen("qty"); }} />
         )}
@@ -323,16 +401,16 @@ function App() {
         )}
         {screen === "driver" && (
           <DriverView deliveryQueue={deliveryQueue} stores={stores}
-            onCollected={(store) => { setDeliveryQueue((p) => ({ ...p, [store]: [] })); flash(`${store} collected`); }} />
+            onCollected={(store) => { setDeliveryQueue((p) => ({ ...p, [store]: [] })); flash(`${store} collected`); const li = locId(store); if (readyRef.current && li) clearQueueForLocation(li).catch((e) => console.error("Clear queue failed", e)); }} />
         )}
         {screen === "stock" && (
           <LiveStock recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} onBack={() => setScreen(user?.role === "driver" ? "driver" : "home")} />
         )}
         {screen === "admin" && (
-          <Admin ingredients={ingredients} setIngredients={setIngredients} recipes={recipes} setRecipes={setRecipes}
-            staff={staff} setStaff={setStaff} cpu={cpu} setCpu={setCpu} locations={locations} setLocations={setLocations}
-            delivery={delivery} setDelivery={setDelivery} storeStock={storeStock} centralStock={centralStock}
-            deliveryQueue={deliveryQueue} runs={runs} cancellations={cancellations} alerts={alerts} setAlerts={setAlerts} stores={stores} onClose={() => { if (user?.role === "admin") { setUser(null); } setScreen("home"); }} />
+          <Admin ingredients={ingredients} setIngredients={setIngredientsP} recipes={recipes} setRecipes={setRecipesP}
+            staff={staff} setStaff={setStaffP} cpu={cpu} setCpu={setCpuP} locations={locations} setLocations={setLocationsP}
+            delivery={delivery} setDelivery={setDeliveryP} storeStock={storeStock} centralStock={centralStock}
+            deliveryQueue={deliveryQueue} runs={runs} cancellations={cancellations} alerts={alerts} setAlerts={setAlertsP} stores={stores} onClose={() => { if (user?.role === "admin") { setUser(null); } setScreen("home"); }} />
         )}
       </div>
 
@@ -391,7 +469,7 @@ function Eyebrow({ children }) {
   return <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}><span style={{ width: 30, height: 2, background: C.rust }} /><span style={{ color: C.rust, fontWeight: 700, letterSpacing: 3, fontSize: 12, textTransform: "uppercase" }}>{children}</span></div>;
 }
 
-function Home({ user, staff, recipes, ingredients, onSignIn, onPick }) {
+function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin }) {
   const [pinFor, setPinFor] = useState(null);
   const [pin, setPin] = useState("");
   const [err, setErr] = useState(false);
@@ -430,7 +508,7 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick }) {
                 {[1,2,3,4,5,6,7,8,9].map((n) => <button key={n} onClick={() => { setErr(false); setPin((p) => (p + n).slice(0, 4)); }} style={padBtn}>{n}</button>)}
                 <button onClick={() => setPin("")} style={{ ...padBtn, fontSize: 15 }}>clear</button>
                 <button onClick={() => setPin((p) => (p + "0").slice(0, 4))} style={padBtn}>0</button>
-                <button onClick={() => { if (pin === pinFor.pin) onSignIn(pinFor); else { setErr(true); setPin(""); } }} style={{ ...padBtn, background: C.go, color: "#fff" }}>✓</button>
+                <button onClick={async () => { try { const u = await verifyPin(pin); if (u && u.id === pinFor.id) onSignIn(u); else { setErr(true); setPin(""); } } catch { setErr(true); setPin(""); } }} style={{ ...padBtn, background: C.go, color: "#fff" }}>✓</button>
               </div>
               {err && <p style={{ color: C.rust, fontSize: 13, marginBottom: 0, marginTop: 12 }}>Wrong PIN — try again.</p>}
               <p style={{ color: C.inkSoft, fontSize: 12, marginTop: 12, marginBottom: 0, textAlign: "center" }}>Demo: Marco 1234 · Aylin 2222 · Tomas 3333 · Driver Sam 9999</p>
@@ -1177,7 +1255,7 @@ function AdminStaff({ staff, setStaff }) {
           <div key={s.id} style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px 140px 40px", minWidth: 620, gap: 12, alignItems: "center", padding: "10px 18px", borderTop: idx ? `1px solid ${C.line}` : "none" }}>
             <input value={s.name} onChange={(e) => upd(idx, { name: e.target.value })} style={cellInput} />
             <select value={s.role} onChange={(e) => upd(idx, { role: e.target.value })} style={cellInput}><option value="production">production</option><option value="driver">driver</option></select>
-            <input value={s.pin} onChange={(e) => upd(idx, { pin: e.target.value.slice(0, 4) })} style={cellInput} />
+            <input value={s.pin || ""} placeholder="set PIN" onChange={(e) => upd(idx, { pin: e.target.value.slice(0, 4) })} style={cellInput} />
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ color: C.inkSoft }}>£</span><input type="number" step="0.10" value={s.wage} onChange={(e) => upd(idx, { wage: parseFloat(e.target.value) || 0 })} style={cellInput} /><span style={{ color: C.inkSoft, fontSize: 13 }}>/hr</span></div>
             <button onClick={() => setStaff((p) => p.filter((_, i) => i !== idx))} style={{ background: "none", border: "none", color: C.rust, cursor: "pointer", fontSize: 18 }}>✕</button>
           </div>
