@@ -1,0 +1,3006 @@
+[
+  {
+    "title": "CHICKEN SOUP",
+    "category": "Traybake",
+    "department": "Production",
+    "ingredients": [
+      {
+        "name": "Chixken wings",
+        "unit": "kg",
+        "quantity": 1.8
+      }
+    ],
+    "method": [
+      "Boil chixken wings for 1.5H"
+    ],
+    "notes": "",
+    "allergen_tags": [],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/3dc172493_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2220.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/a3f33dcc4_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2235.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/dbbfb7da4_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2242.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/15dcf1d0c_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2244.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Babka Cake",
+    "category": "Cake",
+    "department": "Pastry",
+    "ingredients": [
+      {
+        "name": "Flour",
+        "unit": "kg",
+        "quantity": 2.5
+      },
+      {
+        "name": "Yolk eggs",
+        "unit": "",
+        "quantity": 10.0
+      },
+      {
+        "name": "Cold water",
+        "unit": "L",
+        "quantity": 1.2
+      },
+      {
+        "name": "Sugar",
+        "unit": "g",
+        "quantity": 350.0
+      },
+      {
+        "name": "Salt",
+        "unit": "tbsp",
+        "quantity": 1.0
+      },
+      {
+        "name": "Yeast",
+        "unit": "g",
+        "quantity": 85.0
+      },
+      {
+        "name": "Pastry Margarine",
+        "unit": "kg",
+        "quantity": 1.5
+      }
+    ],
+    "method": [
+      "Mix all ingredients { no Marg } until smooth and the side of mixer bowl is clean. Aprox 8 mins",
+      "Use 1.5kg of margarine for 4.5kg of pastry roll and fold 3x single fold. Allow to rest for a while, then roll out and use. store the pastry in a fridge or cool place as it rise so quickly"
+    ],
+    "notes": "",
+    "allergen_tags": [],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/b78ecf371_edited-image.jpg",
+      "process": []
+    }
+  },
+  {
+    "title": "Tahini biscuits",
+    "category": "Biscuit",
+    "department": "Pastry",
+    "ingredients": [
+      {
+        "name": "Margarine",
+        "unit": "g",
+        "quantity": 600.0
+      },
+      {
+        "name": "Raw Tahini",
+        "unit": "g",
+        "quantity": 700.0
+      },
+      {
+        "name": "Brown sugar",
+        "unit": "g",
+        "quantity": 600.0
+      },
+      {
+        "name": "Ground almond",
+        "unit": "kg",
+        "quantity": 1.2
+      }
+    ],
+    "method": [
+      "Put all  ingredients in mixer and mix together",
+      "Take out and start portioning on try ready to bake",
+      "Add sprinkle of sesame seed on top",
+      "Bake for 10 mins on 150C"
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Sesame",
+      "Nuts"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/41f10f3e3_IMG_7408.jpeg",
+      "process": []
+    }
+  },
+  {
+    "title": "Coconut Macaroon",
+    "category": "Biscuit",
+    "department": "Pastry",
+    "ingredients": [
+      {
+        "name": "Coconut",
+        "unit": "kg",
+        "quantity": 1.2
+      },
+      {
+        "name": "Granulated Sugar",
+        "unit": "kg",
+        "quantity": 1.0
+      },
+      {
+        "name": "Macaroon paste",
+        "unit": "g",
+        "quantity": 350.0
+      },
+      {
+        "name": "Eggs whites",
+        "unit": "L",
+        "quantity": 1.2
+      }
+    ],
+    "method": [
+      "Add to the mixer sugar, macaroon paste, and coconut. mix for 5 mins on speed 1",
+      "add egg whites to the mix and keep mixing for 5 to 8 mins on speed 2",
+      "take out of mixer and start portioning on try ready to bake",
+      "Bake on 150C for 14 mins"
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/9571f2f79_IMG_0321.jpeg",
+      "process": []
+    }
+  },
+  {
+    "title": "Salmon bagel",
+    "category": "Filling",
+    "department": "Kitchen Service",
+    "ingredients": [
+      {
+        "name": "Bagel",
+        "unit": "",
+        "quantity": 1.0
+      },
+      {
+        "name": "Cream Cheese",
+        "unit": "g",
+        "quantity": 18.0
+      },
+      {
+        "name": "Smoked Salmon",
+        "unit": "g",
+        "quantity": 50.0
+      }
+    ],
+    "method": [
+      "Slice the bagels in half and toasted if required",
+      "Spread the cream cheese then add Salmon",
+      "Close the bagel and presented on plate as required in the service book"
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Milk",
+      "Fish"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/36fad8e54_edited-image.jpg",
+      "process": []
+    }
+  },
+  {
+    "title": "Bagel",
+    "category": "Dough",
+    "department": "Bakery",
+    "ingredients": [
+      {
+        "name": "Bagel flour",
+        "unit": "kg",
+        "quantity": 16.0
+      },
+      {
+        "name": "Malt flour",
+        "unit": "g",
+        "quantity": 450.0
+      },
+      {
+        "name": "Yeast",
+        "unit": "g",
+        "quantity": 110.0
+      },
+      {
+        "name": "White sugar",
+        "unit": "kg",
+        "quantity": 1.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 220.0
+      },
+      {
+        "name": "Water",
+        "unit": "L",
+        "quantity": 6.2
+      }
+    ],
+    "method": [
+      "Add all ingredients to the mixer",
+      "Mix on slaw mixing for 2 mins then fast mixing for 10mins then 2 mins again before finish",
+      "Take the dough out of the mixer on prepared table",
+      "Cover the dough for 4 mins then start making the bagels and put it nicely on the wood trays ready to bake",
+      "Once finished leave the bagels out of the fridge to prove for about 30mins then put in the fridge",
+      "Take t5he bagels out of the fridge half an hour before baking",
+      "Prepare the boiler to very hot water / get the oven ready to bake [450F / maxim top heat / 0 bottom heat]",
+      "Start boiling the bagels to get to the right size for about 1min \nTake the  bagels of the water and wash with cold water to cool down \nPlaced the bagels on the woods upside down then put in the oven with the wood\nLeave it in the oven until dry [ about 2 mins or less]\n\nBake for about 12 mins"
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Sesame"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/e85d62a8c_IMG_7138.jpeg",
+      "process": []
+    }
+  },
+  {
+    "title": "Chollah",
+    "category": "Dough",
+    "department": "Bakery",
+    "ingredients": [
+      {
+        "name": "White flour",
+        "unit": "kg",
+        "quantity": 16.0
+      },
+      {
+        "name": "white sugar",
+        "unit": "kg",
+        "quantity": 1.5
+      },
+      {
+        "name": "Veg oil",
+        "unit": "L",
+        "quantity": 1.5
+      },
+      {
+        "name": "Eggs",
+        "unit": "",
+        "quantity": 15.0
+      },
+      {
+        "name": "Yeast",
+        "unit": "g",
+        "quantity": 475.0
+      },
+      {
+        "name": "Warm water",
+        "unit": "L",
+        "quantity": 6.5
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 220.0
+      }
+    ],
+    "method": [
+      "Add all the ingredients to the mixer except salt and start slaw mixing for 4 mins",
+      "add the salt and keep mixing on high speed for 10 mins until smooth dough",
+      "Take the dough out and start portions 550G each challah",
+      "Make the shapes of challah then nicely put on trays ready to bake",
+      "Keep the challah dough out of the fridge to prove then in the fridge",
+      "Take out of the fridge half an hour before baking",
+      "Bake for 20 to 25 mins in stone bake oven {350F /6 top heat/ 2 bottom heat}"
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs",
+      "Gluten",
+      "Sesame"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/8d3e0edc4_IMG_7015.jpeg",
+      "process": []
+    }
+  },
+  {
+    "title": "Cinnamon Buns",
+    "category": "Pastry",
+    "department": "Pastry",
+    "ingredients": [
+      {
+        "name": "Flour",
+        "unit": "kg",
+        "quantity": 2.5
+      },
+      {
+        "name": "Egg Yolk",
+        "unit": "",
+        "quantity": 10.0
+      },
+      {
+        "name": "Sugar",
+        "unit": "g",
+        "quantity": 350.0
+      },
+      {
+        "name": "Yeast",
+        "unit": "g",
+        "quantity": 85.0
+      },
+      {
+        "name": "Water cold",
+        "unit": "L",
+        "quantity": 1.2
+      },
+      {
+        "name": "Pastry margerine",
+        "unit": "kg",
+        "quantity": 1.5
+      }
+    ],
+    "method": [
+      "Mix all ingredients together",
+      "Add the Margrine to the dough and fold, double, double and single. To no.3.",
+      "Spread the Cinnamon paste",
+      "Cut first and roll"
+    ],
+    "notes": "Cinnamon paste - 100g cake margarine, 2xL spoons Cinnamon, 80g brown sugar",
+    "allergen_tags": [],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/2d699b713_edited-image.jpg",
+      "process": []
+    }
+  },
+  {
+    "title": "Sufganyot / Donuts",
+    "category": "Pastry",
+    "department": "Pastry",
+    "ingredients": [
+      {
+        "name": "Flour",
+        "unit": "kg",
+        "quantity": 3.0
+      },
+      {
+        "name": "Margarine",
+        "unit": "g",
+        "quantity": 400.0
+      },
+      {
+        "name": "Eggs",
+        "unit": "unit",
+        "quantity": 10.0
+      },
+      {
+        "name": "Fresh Yeast",
+        "unit": "g",
+        "quantity": 150.0
+      },
+      {
+        "name": "Sugar",
+        "unit": "g",
+        "quantity": 400.0
+      },
+      {
+        "name": "Salt",
+        "unit": "tbsp",
+        "quantity": 3.0
+      },
+      {
+        "name": "Water",
+        "unit": "L",
+        "quantity": 1.2
+      },
+      {
+        "name": "Vanilla",
+        "unit": "tbsp",
+        "quantity": 2.0
+      }
+    ],
+    "method": [
+      "Mix all ingridient together. Mix for 10 to 15 minutes",
+      "Cut 50g portions. And make balls and orgenise on white proving trays",
+      "Leave to prove until double in size",
+      "Heat Oil to 160 degrees",
+      "Fry"
+    ],
+    "notes": "",
+    "allergen_tags": [],
+    "images": {
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/e5660c60d_87508.jpg",
+      "ingredients": [],
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/b1f31a95a_87500.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/eddeb0d8a_87503.jpg"
+      ],
+      "final": []
+    }
+  },
+  {
+    "title": "Eggmayo",
+    "category": "Filling",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Boiled eggs",
+        "unit": "unit",
+        "quantity": 60.0
+      },
+      {
+        "name": "Mayonnaise",
+        "unit": "g",
+        "quantity": 250.0
+      },
+      {
+        "name": "Chives",
+        "unit": "bunch",
+        "quantity": 1.0
+      }
+    ],
+    "method": [
+      "Boiled 60 eggs for 12 min from boiling",
+      "Cool in cold water",
+      "Chopped chives",
+      "Slice eggs vertical and horizontal",
+      "Add mayonnaise and mix all"
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs",
+      "Mustard",
+      "Milk",
+      "Sulphur Dioxide"
+    ],
+    "images": {
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/69652ed2e_17592256220114315519706092217085.jpg",
+      "ingredients": [],
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/7c7952a16_1759223464087951881703780840923.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/af02b1c79_17592234910057620637918516183743.jpg"
+      ],
+      "final": []
+    }
+  },
+  {
+    "title": "Quiche Dough",
+    "category": "Dough / Base",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Flour",
+        "unit": "g",
+        "quantity": 1000.0
+      },
+      {
+        "name": "Margarine",
+        "unit": "g",
+        "quantity": 250.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 10.0
+      },
+      {
+        "name": "Cold Water",
+        "unit": "g",
+        "quantity": 300.0
+      }
+    ],
+    "method": [
+      "Mix flour, margarine, salt & water in large bowl.",
+      "Mix well until dough forms.",
+      "Rest in fridge for at least 2 hours."
+    ],
+    "notes": "Must rest in fridge for at least 2 hours before use",
+    "allergen_tags": [
+      "Gluten"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/a72c25d68_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2160.jpg",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/709e09fb0_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2200.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Quiche Filling (Example)",
+    "category": "Filling / Bake",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Eggs (beaten)",
+        "unit": "unit",
+        "quantity": 9.0
+      },
+      {
+        "name": "Milk",
+        "unit": "ml",
+        "quantity": 100.0
+      },
+      {
+        "name": "Sundried Tomato",
+        "unit": "g",
+        "quantity": 50.0
+      },
+      {
+        "name": "Fresh Broccoli",
+        "unit": "g",
+        "quantity": 150.0
+      }
+    ],
+    "method": [
+      "Spread veg on quiche base.",
+      "Cover with egg & milk mix.",
+      "Bake at 165°C for 40 min."
+    ],
+    "notes": "Any vegetables may be used for filling",
+    "allergen_tags": [
+      "Eggs",
+      "Milk"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/068157ddb_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2143.jpg",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/78447d563_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2151.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/9bc54a35c_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2153.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/791987df1_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2158.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/b36effbf3_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2160.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/ce730cba4_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2161.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Moroccan Omelette",
+    "category": "Bake / Protein",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Potatoes (boiled, mashed)",
+        "unit": "unit",
+        "quantity": 6.0
+      },
+      {
+        "name": "Frozen Peas",
+        "unit": "g",
+        "quantity": 150.0
+      },
+      {
+        "name": "Carrots (cooked, cubed)",
+        "unit": "unit",
+        "quantity": 3.0
+      },
+      {
+        "name": "Eggs (boiled, cubed)",
+        "unit": "unit",
+        "quantity": 2.0
+      },
+      {
+        "name": "Parsley (chopped)",
+        "unit": "g",
+        "quantity": 30.0
+      },
+      {
+        "name": "Dill (chopped)",
+        "unit": "g",
+        "quantity": 30.0
+      },
+      {
+        "name": "Coriander (chopped)",
+        "unit": "g",
+        "quantity": 30.0
+      },
+      {
+        "name": "Soup Powder (kosher)",
+        "unit": "g",
+        "quantity": 15.0
+      },
+      {
+        "name": "Turmeric",
+        "unit": "g",
+        "quantity": 7.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 15.0
+      },
+      {
+        "name": "Black Pepper",
+        "unit": "g",
+        "quantity": 7.0
+      },
+      {
+        "name": "Eggs (beaten)",
+        "unit": "unit",
+        "quantity": 10.0
+      }
+    ],
+    "method": [
+      "Mix potatoes with all ingredients.",
+      "Heat 2 tbsp oil in pot, pour mixture in.",
+      "Cook uncovered 5 min, cover & cook 5 min more.",
+      "Transfer to oven, bake 200°C for 40 min."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs",
+      "Celery"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/c66ad014d_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_1974.jpg",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/598807c64_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_1981.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/ef722fdb7_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_1989.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/3bd81ae12_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_1993.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Harissa",
+    "category": "Sauce",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Red Peppers",
+        "unit": "g",
+        "quantity": 750.0
+      },
+      {
+        "name": "Rose harissa",
+        "unit": "g",
+        "quantity": 400.0
+      },
+      {
+        "name": "Fresh garlic",
+        "unit": "g",
+        "quantity": 75.0
+      },
+      {
+        "name": "Cracked chilli",
+        "unit": "g",
+        "quantity": 60.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 60.0
+      },
+      {
+        "name": "Sugar",
+        "unit": "g",
+        "quantity": 50.0
+      },
+      {
+        "name": "Coriander powder",
+        "unit": "g",
+        "quantity": 40.0
+      },
+      {
+        "name": "Chopped tomatoes",
+        "unit": "unit",
+        "quantity": 1.0
+      }
+    ],
+    "method": [
+      "Blend all ingredients to smooth paste.",
+      "Add oil if too thick."
+    ],
+    "notes": "Add oil if consistency is too thick",
+    "allergen_tags": [],
+    "images": {
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/dc036bfb9_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2045.jpg",
+      "ingredients": [],
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/8134ee112_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2061.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/0803f21be_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2053.jpg"
+      ],
+      "final": []
+    }
+  },
+  {
+    "title": "Asian Slaw",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "White Cabbage (sliced)",
+        "unit": "g",
+        "quantity": 1200.0
+      },
+      {
+        "name": "Red Peppers (sliced)",
+        "unit": "unit",
+        "quantity": 2.0
+      },
+      {
+        "name": "Carrots (thin strips)",
+        "unit": "g",
+        "quantity": 500.0
+      },
+      {
+        "name": "Coriander",
+        "unit": "g",
+        "quantity": 100.0
+      },
+      {
+        "name": "Asian Dressing",
+        "unit": "g",
+        "quantity": 300.0
+      },
+      {
+        "name": "Sesame Seeds (black or white)",
+        "unit": "g",
+        "quantity": 10.0
+      }
+    ],
+    "method": [
+      "Mix all ingredients in bowl.",
+      "Garnish with sesame seeds & coriander."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Sesame",
+      "Soya"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Broccoli Salad",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Broccoli (florets)",
+        "unit": "g",
+        "quantity": 1000.0
+      },
+      {
+        "name": "Chili & Garlic Mix",
+        "unit": "g",
+        "quantity": 50.0
+      },
+      {
+        "name": "Chili Oil",
+        "unit": "ml",
+        "quantity": 30.0
+      }
+    ],
+    "method": [
+      "Blanch broccoli in salted water 2.5 min, chill in ice water.",
+      "Char-grill on hot griddle 1 min each side.",
+      "Mix with chili, garlic & oil, season with salt."
+    ],
+    "notes": "",
+    "allergen_tags": [],
+    "images": {}
+  },
+  {
+    "title": "Chili & Garlic",
+    "category": "Base / Dressing",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Garlic (thinly sliced)",
+        "unit": "g",
+        "quantity": 1000.0
+      },
+      {
+        "name": "Fresh Chili (thinly sliced)",
+        "unit": "g",
+        "quantity": 200.0
+      },
+      {
+        "name": "Vegetable Oil",
+        "unit": "ml",
+        "quantity": 3000.0
+      },
+      {
+        "name": "Olive Oil",
+        "unit": "ml",
+        "quantity": 1000.0
+      }
+    ],
+    "method": [
+      "Heat oil to 150°C. Fry garlic until golden, drain on cloth.",
+      "Repeat process with sliced chili.",
+      "Keep oil for salad dressing."
+    ],
+    "notes": "Save the infused oil for salad dressings",
+    "allergen_tags": [],
+    "images": {}
+  },
+  {
+    "title": "Labneh",
+    "category": "Base / Spread",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Greek Yogurt",
+        "unit": "kg",
+        "quantity": 10.0
+      },
+      {
+        "name": "Salt",
+        "unit": "ml",
+        "quantity": 1000.0
+      },
+      {
+        "name": "Olive Oil",
+        "unit": "L",
+        "quantity": 1.0
+      }
+    ],
+    "method": [
+      "Our all the ingredients together in the mixer let run for about 30 minutes then pour the mixture in"
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Milk"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/8b47a2ae4_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2407.jpg",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/d15f95c01_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2410.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/724155623_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2409.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Sausage Roll",
+    "category": "Bake",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Beef Mince",
+        "unit": "g",
+        "quantity": 1000.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 10.0
+      },
+      {
+        "name": "Garlic Powder",
+        "unit": "g",
+        "quantity": 10.0
+      },
+      {
+        "name": "Paprika",
+        "unit": "g",
+        "quantity": 5.0
+      },
+      {
+        "name": "Onion (diced)",
+        "unit": "g",
+        "quantity": 60.0
+      },
+      {
+        "name": "Black Pepper",
+        "unit": "g",
+        "quantity": 3.0
+      },
+      {
+        "name": "Egg",
+        "unit": "unit",
+        "quantity": 1.0
+      }
+    ],
+    "method": [
+      "Mix all ingredients.",
+      "Place 400 g mix on pastry sheet, roll tightly.",
+      "Cut into 4 equal portions."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Eggs"
+    ],
+    "images": {
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/c53c62092_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2138.jpg",
+      "ingredients": [],
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/c3f9ffb2e_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_1883.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/de4099e13_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_1889.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/f35840320_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_1896.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/68eb1c115_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_1902.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/eae6189d9_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_1908.jpg"
+      ],
+      "final": []
+    }
+  },
+  {
+    "title": "Sweet Corn Salad",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Sweetcorn (tins, 1425 g each)",
+        "unit": "unit",
+        "quantity": 5.0
+      },
+      {
+        "name": "Red Peppers (diced)",
+        "unit": "g",
+        "quantity": 950.0
+      },
+      {
+        "name": "Dill (chopped)",
+        "unit": "g",
+        "quantity": 30.0
+      },
+      {
+        "name": "Pickles (diced)",
+        "unit": "g",
+        "quantity": 400.0
+      },
+      {
+        "name": "Mayonnaise",
+        "unit": "g",
+        "quantity": 200.0
+      }
+    ],
+    "method": [
+      "Squeeze sweetcorn & pickles dry with cloth.",
+      "Mix all ingredients in large bowl."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs",
+      "Mustard"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/91e390913_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_1843.jpg",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/38369133b_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_1847.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/325b21a1d_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_1852.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Potato Latkes",
+    "category": "Side",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Potatoes",
+        "unit": "g",
+        "quantity": 3500.0
+      },
+      {
+        "name": "Onions",
+        "unit": "g",
+        "quantity": 2800.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 60.0
+      },
+      {
+        "name": "Eggs",
+        "unit": "unit",
+        "quantity": 11.0
+      },
+      {
+        "name": "Plain Flour",
+        "unit": "g",
+        "quantity": 200.0
+      },
+      {
+        "name": "Garlic powder",
+        "unit": "g",
+        "quantity": 50.0
+      },
+      {
+        "name": "Parsley (chopped)",
+        "unit": "g",
+        "quantity": 50.0
+      },
+      {
+        "name": "Golden bread crumbs",
+        "unit": "g",
+        "quantity": 80.0
+      },
+      {
+        "name": "Turmeric",
+        "unit": "g",
+        "quantity": 10.0
+      },
+      {
+        "name": "Coriander",
+        "unit": "unit",
+        "quantity": 1.0
+      }
+    ],
+    "method": [
+      "Mix veg & salt, rest 20 min.",
+      "Squeeze liquid, add eggs & flour.",
+      "Shape 120 g patties, fry until golden.",
+      "Finish in oven 175°C ~20 min."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs",
+      "Gluten"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/dc293aa32_edited-image.jpg",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/d12055aa1_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_2119.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Omelette Base",
+    "category": "Base",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Eggs",
+        "unit": "unit",
+        "quantity": 20.0
+      },
+      {
+        "name": "Roasted Vegetables (any)",
+        "unit": "g",
+        "quantity": 600.0
+      },
+      {
+        "name": "Fresh Herbs (chopped)",
+        "unit": "g",
+        "quantity": 10.0
+      }
+    ],
+    "method": [
+      "Place roasted veg on lined tray.",
+      "Pour beaten eggs & herbs over veg.",
+      "Season with salt & pepper.",
+      "Bake at 175°C for ~20 min."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/4579aa6d2_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_1974.jpg",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/02b362eab_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_1981.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/47a2f34cb_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_1986.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/705a4beec_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_1993.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Beetroot Salad",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Cooked Beetroot",
+        "unit": "g",
+        "quantity": 900.0
+      },
+      {
+        "name": "Olive Oil",
+        "unit": "g",
+        "quantity": 20.0
+      },
+      {
+        "name": "Lemon Juice",
+        "unit": "g",
+        "quantity": 20.0
+      },
+      {
+        "name": "Balsamic Reduction",
+        "unit": "g",
+        "quantity": 10.0
+      },
+      {
+        "name": "Lemon Zest",
+        "unit": "unit",
+        "quantity": 1.0
+      },
+      {
+        "name": "White Vinegar",
+        "unit": "g",
+        "quantity": 40.0
+      },
+      {
+        "name": "Parsley (picked)",
+        "unit": "handful",
+        "quantity": 1.0
+      },
+      {
+        "name": "Salt",
+        "unit": "tsp",
+        "quantity": 1.0
+      },
+      {
+        "name": "Sugar",
+        "unit": "tsp",
+        "quantity": 1.0
+      },
+      {
+        "name": "Cumin",
+        "unit": "tsp",
+        "quantity": 1.0
+      },
+      {
+        "name": "Labneh",
+        "unit": "unit",
+        "quantity": 8.0
+      }
+    ],
+    "method": [
+      "Mix all ingredients.",
+      "Plate with fresh mint leaves.",
+      "Add 6–8 labneh balls around."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Milk"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Berries Compote",
+    "category": "Dessert Base",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Frozen Mixed Berries",
+        "unit": "g",
+        "quantity": 4000.0
+      },
+      {
+        "name": "Caster Sugar",
+        "unit": "g",
+        "quantity": 3600.0
+      },
+      {
+        "name": "Lemon juice",
+        "unit": "unit",
+        "quantity": 6.0
+      },
+      {
+        "name": "Fish gélatine",
+        "unit": "tbsp",
+        "quantity": 6.0
+      }
+    ],
+    "method": [
+      "Drop the frozen berries in the pot under very low heat for about 30 minutes then add the lemon juice and turn heat to medium for 30 minutes more to simer, turn the head to low add the sugar coock for 20 minutes turn it off and add the gelatin and stir it really well let cool down and then blend it"
+    ],
+    "notes": "Adjust sugar depending on berries supplier.",
+    "allergen_tags": [],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/efb002356_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_1855.jpg",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/1306d5c02_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_1854.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Shakshuka Base",
+    "category": "Base",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Red Peppers (julian sliced)",
+        "unit": "g",
+        "quantity": 2100.0
+      },
+      {
+        "name": "Onions ( julian sliced)",
+        "unit": "g",
+        "quantity": 4200.0
+      },
+      {
+        "name": "Fresh  garlic",
+        "unit": "g",
+        "quantity": 75.0
+      },
+      {
+        "name": "Cooking oil",
+        "unit": "ml",
+        "quantity": 200.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 90.0
+      },
+      {
+        "name": "Paprika",
+        "unit": "g",
+        "quantity": 90.0
+      },
+      {
+        "name": "Cracked chilli",
+        "unit": "g",
+        "quantity": 30.0
+      },
+      {
+        "name": "Custer sugar",
+        "unit": "g",
+        "quantity": 25.0
+      },
+      {
+        "name": "Bay leaves",
+        "unit": "unit",
+        "quantity": 5.0
+      },
+      {
+        "name": "Tomato paste",
+        "unit": "g",
+        "quantity": 420.0
+      },
+      {
+        "name": "Tinned Chopped Tomato",
+        "unit": "unit",
+        "quantity": 3.0
+      }
+    ],
+    "method": [
+      "Put your  pot on high heat pour 3 minutes then drop your onion let simer for 12 minutes the the red for about 10 minutes and keep stirring, turn the head medium add the garlic spicies and tomato paste stir all the ingredients together to ancorporat the aroma for 5 minutes then add 3 tins of chopped tomatoes cooked 70 minutes and keep stirring time to time"
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Celery"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/d0d9a4551_edited-image.jpg",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/ad6c2cb5e_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_1932.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/6f94e827e_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_1938.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/7134924ee_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_1941.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/66f7b256a_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_1944.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Coleslaw",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "White Cabbage (thinly sliced)",
+        "unit": "g",
+        "quantity": 2500.0
+      },
+      {
+        "name": "Carrots (grated)",
+        "unit": "g",
+        "quantity": 1000.0
+      },
+      {
+        "name": "Mayonnaise",
+        "unit": "g",
+        "quantity": 1200.0
+      },
+      {
+        "name": "Black Pepper",
+        "unit": "g",
+        "quantity": 5.0
+      },
+      {
+        "name": "Sugar",
+        "unit": "g",
+        "quantity": 200.0
+      }
+    ],
+    "method": [
+      "Mix cabbage & carrot.",
+      "Add mayo & pepper, combine."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs",
+      "Mustard"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/fc9497f0f_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_2080.jpg",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/896703fdc_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_2085.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/c7c63dfa0_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_2087.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/1694273d2_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_2093.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/cfbc5bdda_233d9528-74b4-4e8f-a553-3257e78b9fbf-1_all_2096.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Fried Cauliflower Salad",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Cauliflower (florets)",
+        "unit": "g",
+        "quantity": 2000.0
+      },
+      {
+        "name": "Onion (rings)",
+        "unit": "unit",
+        "quantity": 1.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 10.0
+      },
+      {
+        "name": "Tahini",
+        "unit": "g",
+        "quantity": 150.0
+      },
+      {
+        "name": "Turmeric",
+        "unit": "g",
+        "quantity": 3.0
+      },
+      {
+        "name": "Parsley (chopped)",
+        "unit": "handful",
+        "quantity": 1.0
+      },
+      {
+        "name": "Pomegranate Seeds",
+        "unit": "g",
+        "quantity": 50.0
+      }
+    ],
+    "method": [
+      "Fry cauliflower at high temp until golden.",
+      "Fry onion rings, mix with cauliflower.",
+      "Spread on flat plate.",
+      "Mix tahini & turmeric, drizzle.",
+      "Garnish with parsley & pomegranate."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Sesame"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Moroccan Carrots",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Carrots (sliced)",
+        "unit": "g",
+        "quantity": 1900.0
+      },
+      {
+        "name": "Coriander (chopped)",
+        "unit": "g",
+        "quantity": 60.0
+      },
+      {
+        "name": "Rose Harissa",
+        "unit": "g",
+        "quantity": 200.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 80.0
+      },
+      {
+        "name": "Lemon Juice",
+        "unit": "g",
+        "quantity": 40.0
+      }
+    ],
+    "method": [
+      "Boil carrots ~14 min, drain, cool.",
+      "Mix with remaining ingredients."
+    ],
+    "notes": "",
+    "allergen_tags": [],
+    "images": {}
+  },
+  {
+    "title": "Zakalugh Aubergine Salad",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Roasted Aubergine",
+        "unit": "g",
+        "quantity": 1200.0
+      },
+      {
+        "name": "White Onion",
+        "unit": "g",
+        "quantity": 200.0
+      },
+      {
+        "name": "Garlic (chopped)",
+        "unit": "g",
+        "quantity": 30.0
+      },
+      {
+        "name": "Kalamata Olives",
+        "unit": "g",
+        "quantity": 100.0
+      },
+      {
+        "name": "Tomato Paste",
+        "unit": "g",
+        "quantity": 250.0
+      }
+    ],
+    "method": [
+      "Sauté onion & garlic until golden.",
+      "Add tomato paste, mix well.",
+      "Combine with roasted aubergine by hand until paste-like.",
+      "Garnish with coriander."
+    ],
+    "notes": "",
+    "allergen_tags": [],
+    "images": {}
+  },
+  {
+    "title": "Schnitzel",
+    "category": "Protein",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Chicken Breast",
+        "unit": "g",
+        "quantity": 3500.0
+      },
+      {
+        "name": "Mustard (mild)",
+        "unit": "g",
+        "quantity": 60.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 30.0
+      },
+      {
+        "name": "Eggs (beaten)",
+        "unit": "unit",
+        "quantity": 4.0
+      },
+      {
+        "name": "Panko",
+        "unit": "g",
+        "quantity": 1000.0
+      },
+      {
+        "name": "Garlic powder",
+        "unit": "g",
+        "quantity": 20.0
+      },
+      {
+        "name": "Paprika",
+        "unit": "g",
+        "quantity": 20.0
+      }
+    ],
+    "method": [
+      "Mix mustard, ketchup, garlic, salt, soy sauce. Marinate chicken 24h.",
+      "Dip chicken in flour → egg → panko.",
+      "Lay on tray."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs",
+      "Mustard",
+      "Gluten"
+    ],
+    "images": {
+      "thumbnail": null,
+      "ingredients": [],
+      "process": [],
+      "final": []
+    }
+  },
+  {
+    "title": "Green Beans & Confit Garlic Salad",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "French Beans (blanched)",
+        "unit": "g",
+        "quantity": 500.0
+      },
+      {
+        "name": "Mange Tout (blanched)",
+        "unit": "g",
+        "quantity": 500.0
+      },
+      {
+        "name": "Confit Garlic",
+        "unit": "g",
+        "quantity": 150.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 4.0
+      },
+      {
+        "name": "Parsley (roughly chopped)",
+        "unit": "g",
+        "quantity": 30.0
+      },
+      {
+        "name": "Lemon Zest",
+        "unit": "tsp",
+        "quantity": 2.0
+      }
+    ],
+    "method": [
+      "Mix all ingredients together."
+    ],
+    "notes": "",
+    "allergen_tags": [],
+    "images": {}
+  },
+  {
+    "title": "Roasted Sweet Potato Wedges",
+    "category": "Side",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Sweet Potato (wedges)",
+        "unit": "g",
+        "quantity": 2000.0
+      },
+      {
+        "name": "Paprika Powder",
+        "unit": "g",
+        "quantity": 20.0
+      },
+      {
+        "name": "Olive Oil",
+        "unit": "g",
+        "quantity": 50.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 5.0
+      }
+    ],
+    "method": [
+      "Mix potato with oil, salt, paprika.",
+      "Lay on tray with baking paper.",
+      "Roast 185°C for ~20 min."
+    ],
+    "notes": "",
+    "allergen_tags": [],
+    "images": {}
+  },
+  {
+    "title": "Russian Salad",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Carrots (cubed)",
+        "unit": "g",
+        "quantity": 1800.0
+      },
+      {
+        "name": "Potatoes (cubed)",
+        "unit": "g",
+        "quantity": 2000.0
+      },
+      {
+        "name": "Frozen Peas",
+        "unit": "g",
+        "quantity": 600.0
+      },
+      {
+        "name": "Pickles (cubed)",
+        "unit": "g",
+        "quantity": 600.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 30.0
+      },
+      {
+        "name": "Black Pepper",
+        "unit": "g",
+        "quantity": 5.0
+      },
+      {
+        "name": "Eggs (boiled, cubed)",
+        "unit": "unit",
+        "quantity": 14.0
+      },
+      {
+        "name": "Mayonnaise",
+        "unit": "g",
+        "quantity": 500.0
+      }
+    ],
+    "method": [
+      "Boil carrot & potato ~15 min. Add peas last 30 sec. Cool on tray.",
+      "Mix with eggs, pickles, mayo, seasoning."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs",
+      "Mustard"
+    ],
+    "images": {
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/f622a63bf_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_1967.jpg",
+      "ingredients": [],
+      "process": [],
+      "final": []
+    }
+  },
+  {
+    "title": "Spinach Rolls",
+    "category": "Bake",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Spinach (fresh)",
+        "unit": "unit",
+        "quantity": 12.0
+      },
+      {
+        "name": "Cheddar Cheese (grated)",
+        "unit": "g",
+        "quantity": 500.0
+      },
+      {
+        "name": "Feta Cheese",
+        "unit": "g",
+        "quantity": 1200.0
+      },
+      {
+        "name": "Eggs (beaten)",
+        "unit": "",
+        "quantity": 7.0
+      },
+      {
+        "name": "Puff Pastry Sheets",
+        "unit": "unit",
+        "quantity": 1.0
+      },
+      {
+        "name": "Sesame Seeds",
+        "unit": "g",
+        "quantity": 30.0
+      },
+      {
+        "name": "Cracked black pepper",
+        "unit": "g",
+        "quantity": 10.0
+      }
+    ],
+    "method": [
+      "Mix spinach, cheeses & eggs until combined.",
+      "Spread 390 g mix onto pastry sheet.",
+      "Roll & cut into 3 pieces.",
+      "Egg wash, sprinkle sesame.",
+      "Bake at 175°C for ~27 min."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs",
+      "Milk",
+      "Gluten",
+      "Sesame"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/ff2cea605_edited-image.jpg",
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/5e990d1aa_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2139.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/107bbeee3_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2413.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/36a98d369_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2417.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/46bc20d3a_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2418.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/2684ee2ca_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2420.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/ebac866b7_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2425.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/8aafc649c_8c57dfd9-b1c3-4df7-9ab9-2ccbfba95ca9-1_all_2428.jpg"
+      ]
+    }
+  },
+  {
+    "title": "Chicken Soup",
+    "category": "Soup",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Carrots",
+        "unit": "g",
+        "quantity": 15000.0
+      },
+      {
+        "name": "White Onion (peeled)",
+        "unit": "g",
+        "quantity": 1000.0
+      },
+      {
+        "name": "Dill (fresh)",
+        "unit": "bunch",
+        "quantity": 1.0
+      },
+      {
+        "name": "Celery",
+        "unit": "g",
+        "quantity": 300.0
+      },
+      {
+        "name": "Bay Leaves",
+        "unit": "unit",
+        "quantity": 6.0
+      },
+      {
+        "name": "Water",
+        "unit": "L",
+        "quantity": 14.0
+      },
+      {
+        "name": "Chicken Stock powder",
+        "unit": "g",
+        "quantity": 100.0
+      },
+      {
+        "name": "Chicken wings",
+        "unit": "g",
+        "quantity": 1700.0
+      },
+      {
+        "name": "Veg stock",
+        "unit": "g",
+        "quantity": 30.0
+      },
+      {
+        "name": "Fresh garlic",
+        "unit": "g",
+        "quantity": 75.0
+      },
+      {
+        "name": "Vermicelles",
+        "unit": "unit",
+        "quantity": 8.0
+      },
+      {
+        "name": "Turmeric",
+        "unit": "g",
+        "quantity": 5.0
+      }
+    ],
+    "method": [
+      "To cook  the chicken soup there is two mager steps Place all then ingredients to boil for 1:30 minutes except the dill drop it in your pan 15 minutes before the end the first half of the process.",
+      "The second part is filter your soup using colander split the soup from the chicken and vegetables put back  your soup on the stove dice 800 gr of carrot and 4 stolks of celery add some water let coock for about 15 minutes till the diced vegetables soften switch it of then break 8 nest of vermicelle in your pot"
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Celery",
+      "Sulphur Dioxide"
+    ],
+    "images": {
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/46156d8f4_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2235.jpg",
+      "ingredients": [],
+      "process": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/36788553c_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2245.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/17a50da7a_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2244.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/edf88aca8_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2222.jpg",
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/a41a80aa5_5f1c138c-f284-443c-9159-cb1cb83fbb9f-1_all_2220.jpg"
+      ],
+      "final": []
+    }
+  },
+  {
+    "title": "Greek Salad",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Cucumber",
+        "unit": "unit",
+        "quantity": 4.0
+      },
+      {
+        "name": "Tomato",
+        "unit": "unit",
+        "quantity": 4.0
+      },
+      {
+        "name": "Red pepper",
+        "unit": "unit",
+        "quantity": 1.0
+      },
+      {
+        "name": "Mixed Olives",
+        "unit": "g",
+        "quantity": 300.0
+      },
+      {
+        "name": "Olive Oil",
+        "unit": "ml",
+        "quantity": 50.0
+      },
+      {
+        "name": "Lemon Juice (fresh)",
+        "unit": "ml",
+        "quantity": 30.0
+      },
+      {
+        "name": "Dry Oregano",
+        "unit": "g",
+        "quantity": 5.0
+      },
+      {
+        "name": "Lettuce",
+        "unit": "unit",
+        "quantity": 1.0
+      }
+    ],
+    "method": [
+      "Prepare a  large mixing bowl, dice the cucumber and tomato cut the red pepper julian add choppe the lettuce in stripes around 2 centimètres wide add the olives lemon juice and olive oil mix every thing gently pour it in your displaying bowl dice your feta sprinkle your oregano dush of olive oil on the top and display."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Milk"
+    ],
+    "images": {
+      "thumbnail": null,
+      "ingredients": [],
+      "process": [],
+      "final": []
+    }
+  },
+  {
+    "title": "Tuna & Beans",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Tuna (tins, drained)",
+        "unit": "unit",
+        "quantity": 2.0
+      },
+      {
+        "name": "White Kidney Beans",
+        "unit": "g",
+        "quantity": 312.0
+      },
+      {
+        "name": "Red Kidney Beans",
+        "unit": "g",
+        "quantity": 312.0
+      },
+      {
+        "name": "Celery (diced)",
+        "unit": "g",
+        "quantity": 250.0
+      },
+      {
+        "name": "Basil (sliced)",
+        "unit": "bunch",
+        "quantity": 1.0
+      },
+      {
+        "name": "Olive Oil",
+        "unit": "g",
+        "quantity": 200.0
+      },
+      {
+        "name": "White Wine Vinegar",
+        "unit": "g",
+        "quantity": 70.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 10.0
+      }
+    ],
+    "method": [
+      "Squeeze tuna dry.",
+      "Mix all ingredients gently."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Fish",
+      "Celery"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Potato Kugel",
+    "category": "Bake",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Potatoes (grated)",
+        "unit": "g",
+        "quantity": 2000.0
+      },
+      {
+        "name": "Eggs (beaten)",
+        "unit": "unit",
+        "quantity": 10.0
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 20.0
+      },
+      {
+        "name": "White Onion (grated)",
+        "unit": "g",
+        "quantity": 300.0
+      },
+      {
+        "name": "Vegetable Oil",
+        "unit": "g",
+        "quantity": 250.0
+      }
+    ],
+    "method": [
+      "Mix all ingredients.",
+      "Transfer to baking dish.",
+      "Bake 180°C for 25 min."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Red Pepper Salad",
+    "category": "Salad",
+    "department": "Prep",
+    "ingredients": [
+      {
+        "name": "Roasted Red Peppers",
+        "unit": "g",
+        "quantity": 1500.0
+      },
+      {
+        "name": "Pesto",
+        "unit": "g",
+        "quantity": 10.0
+      }
+    ],
+    "method": [
+      "Cut peppers into wedges, season with salt & olive oil.",
+      "Roast until soft.",
+      "Mix with pesto.",
+      "Plate on flat tray with baking paper."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Nuts",
+      "Milk"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Scone (about 50 scones)",
+    "category": "Pastry",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "Flour",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "Baking powder",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "Margarine",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "Sugar",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "Double cream",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "Raisin",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "Quinoa",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "Salt",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "Vanilla",
+        "unit": "",
+        "quantity": 0.0
+      }
+    ],
+    "method": [
+      "Mix flour, baking powder, sugar and margarine. Gradually add milk, and knead until relatively smooth and elastic. Knead in raisins.",
+      "Roll out to 2 cm high and cut circles 10 cm diameter.",
+      "Bake 145 for 30 min."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Milk"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/0244515dd_IMG_8233.png",
+      "process": []
+    }
+  },
+  {
+    "title": "Baked Cheesecake - Classic Style",
+    "category": "Cake",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "full fat cheese",
+        "unit": "kg",
+        "quantity": 4.0
+      },
+      {
+        "name": "granulated sugar",
+        "unit": "g",
+        "quantity": 800.0
+      },
+      {
+        "name": "eggs",
+        "unit": "",
+        "quantity": 25.0
+      },
+      {
+        "name": "milk",
+        "unit": "L",
+        "quantity": 0.5
+      },
+      {
+        "name": "flour",
+        "unit": "g",
+        "quantity": 453.59
+      },
+      {
+        "name": "egg whites",
+        "unit": "g",
+        "quantity": 500.0
+      }
+    ],
+    "method": [
+      "Mix cheese and sugar. Add 12 eggs at a time; mix until smooth.",
+      "Meanwhile whip egg whites until firm; add sugar; whip to shiny meringue.",
+      "When all eggs are incorporated, add milk and sifted flour; mix with cheese mixture.",
+      "Carefully fold meringue into the cheesy mix.",
+      "Divide between rings lined with digestive biscuit base.",
+      "Bake 1.5-2 hours at 300F. Surface lightly skinned and golden, flexible when pressed. Cool overnight; slice next day with hot knife."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Eggs",
+      "Milk"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Brownie (about 14x20 inches baking mold)",
+    "category": "Traybake",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "Margarine",
+        "unit": "g",
+        "quantity": 950.0
+      },
+      {
+        "name": "Dark chocolate",
+        "unit": "g",
+        "quantity": 900.0
+      },
+      {
+        "name": "Eggs",
+        "unit": "",
+        "quantity": 15.0
+      },
+      {
+        "name": "Brown Sugar",
+        "unit": "g",
+        "quantity": 750.0
+      },
+      {
+        "name": "Ground Almond",
+        "unit": "g",
+        "quantity": 750.0
+      },
+      {
+        "name": "Coca powder",
+        "unit": "g",
+        "quantity": 100.0
+      },
+      {
+        "name": "Walnut on top",
+        "unit": "",
+        "quantity": 0.0
+      }
+    ],
+    "method": [
+      "Melt the margarine and chocolate (microwave or low heat). Cool slightly.",
+      "Mix eggs with sugar until foamy, light and fluffy.",
+      "Combine chocolate mix with egg mixture; add almond and cocoa; mix until smooth; add walnut pieces.",
+      "Baking: 150, 30 mins. Inside should be still sticky. Cool before slicing."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Eggs",
+      "Nuts"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/812c5c081_IMG_8209.jpeg",
+      "process": []
+    }
+  },
+  {
+    "title": "Florentin",
+    "category": "Biscuit",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "margarine",
+        "unit": "g",
+        "quantity": 600.0
+      },
+      {
+        "name": "granulated sugar",
+        "unit": "g",
+        "quantity": 600.0
+      },
+      {
+        "name": "double cream",
+        "unit": "ml",
+        "quantity": 180.0
+      },
+      {
+        "name": "glucose syrup",
+        "unit": "g",
+        "quantity": 160.0
+      },
+      {
+        "name": "sliced almond",
+        "unit": "g",
+        "quantity": 600.0
+      },
+      {
+        "name": "raisin and glace cherry",
+        "unit": "",
+        "quantity": 0
+      }
+    ],
+    "method": [
+      "In a saucepan, melt margarine, sugar, double cream and glucose syrup.",
+      "Bring to the boil; cook until colour turns golden, stirring continuously; add almond and cook another 2 minutes.",
+      "Sprinkle the sheets with the raisins and cherries.",
+      "Bake in large sheets and cut while still warm, or place 1 tbsp doses on trays. 150 for 30 mins until golden."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Milk",
+      "Nuts"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Puff Pastry (12 kg dough)",
+    "category": "Dough",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "Flour",
+        "unit": "kg",
+        "quantity": 2.0
+      },
+      {
+        "name": "Cold water",
+        "unit": "L",
+        "quantity": 1.2
+      },
+      {
+        "name": "Salt",
+        "unit": "g",
+        "quantity": 20.0
+      },
+      {
+        "name": "Pastry Maragrine",
+        "unit": "kg",
+        "quantity": 1.5
+      }
+    ],
+    "method": [
+      "Mix flour, margarine and salt with water; knead until bowl is clean and pastry is smooth and elastic.",
+      "Fold 2x double and 1x single for the mix above."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/0cc5d4b2d_edited-image.jpg",
+      "process": []
+    }
+  },
+  {
+    "title": "Danish Dough (around 12 kg dough)",
+    "category": "Dough",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "flour",
+        "unit": "g",
+        "quantity": 2500.0
+      },
+      {
+        "name": "yolk eggs",
+        "unit": "",
+        "quantity": 10.0
+      },
+      {
+        "name": "cold water",
+        "unit": "ml",
+        "quantity": 1200.0
+      },
+      {
+        "name": "sugar",
+        "unit": "g",
+        "quantity": 350.0
+      },
+      {
+        "name": "salt",
+        "unit": "tbsp",
+        "quantity": 1.0
+      },
+      {
+        "name": "yeast",
+        "unit": "g",
+        "quantity": 70.0
+      },
+      {
+        "name": "pastry margarine",
+        "unit": "kg",
+        "quantity": 1.5
+      }
+    ],
+    "method": [
+      "Mix all ingredients (no margarine) until smooth and the side of the caldron is clean (~8 minutes).",
+      "Use 1.5 kg of pastry margarine for 4.5 kg of pastry. Roll and fold 3x single fold. Rest; then roll out and use. Store pastry in fridge/cool place as it rises quickly."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Eggs"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Granola Biscuit",
+    "category": "Biscuit",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "rolled oats",
+        "unit": "g",
+        "quantity": 500.0
+      },
+      {
+        "name": "margarine",
+        "unit": "g",
+        "quantity": 450.0
+      },
+      {
+        "name": "eggs",
+        "unit": "",
+        "quantity": 2.0
+      },
+      {
+        "name": "walnut",
+        "unit": "g",
+        "quantity": 100.0
+      },
+      {
+        "name": "almond, sliced",
+        "unit": "g",
+        "quantity": 100.0
+      },
+      {
+        "name": "coconut",
+        "unit": "g",
+        "quantity": 80.0
+      },
+      {
+        "name": "raisins",
+        "unit": "g",
+        "quantity": 100.0
+      },
+      {
+        "name": "brown sugar",
+        "unit": "g",
+        "quantity": 350.0
+      },
+      {
+        "name": "granulated sugar",
+        "unit": "g",
+        "quantity": 100.0
+      },
+      {
+        "name": "flour",
+        "unit": "g",
+        "quantity": 150.0
+      },
+      {
+        "name": "cinnamon",
+        "unit": "tbsp",
+        "quantity": 1.0
+      }
+    ],
+    "method": [
+      "Mix margarine with sugar until fluffy; beat in the eggs.",
+      "Add all remaining ingredients and mix until combined.",
+      "Form balls and put on a baking tray. Baking: 360F, 15-20 mins."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Eggs",
+      "Nuts"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Fresh Cheesecake (Cheese Mousse)",
+    "category": "Cake",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "Vanilla",
+        "unit": "tbsp",
+        "quantity": 2.0
+      },
+      {
+        "name": "Full fat cheese",
+        "unit": "kg",
+        "quantity": 2.0
+      },
+      {
+        "name": "Whipping cream or double cream",
+        "unit": "L",
+        "quantity": 2.2
+      },
+      {
+        "name": "Icing Sugar",
+        "unit": "g",
+        "quantity": 750.0
+      },
+      {
+        "name": "Fish gelatine",
+        "unit": "tbsp",
+        "quantity": 6.0
+      },
+      {
+        "name": "Water",
+        "unit": "ml",
+        "quantity": 200.0
+      },
+      {
+        "name": "Digestive biscuit",
+        "unit": "g",
+        "quantity": 600.0
+      },
+      {
+        "name": "Margarine",
+        "unit": "g",
+        "quantity": 300.0
+      }
+    ],
+    "method": [
+      "Put gelatine into a saucepan with the water; set aside.",
+      "Whip fresh cream not too hard (just stands on its own).",
+      "Mix the cheese with vanilla and sugar; mix 5 minutes until soft.",
+      "Mix together carefully the cream and the cheese.",
+      "Melt the gelatine; add a few spoons of cheese & cream; stir smooth (runny). Gradually add to remaining cream; stir quickly.",
+      "Prepare biscuit base with digestive + margarine; fill and set."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Eggs",
+      "Milk",
+      "Fish"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/13672ff9e_IMG_1436.webp",
+      "process": []
+    }
+  },
+  {
+    "title": "Orange and Walnut Florentin",
+    "category": "Biscuit",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "walnut",
+        "unit": "g",
+        "quantity": 300.0
+      },
+      {
+        "name": "granulated sugar",
+        "unit": "g",
+        "quantity": 300.0
+      },
+      {
+        "name": "candied orange",
+        "unit": "g",
+        "quantity": 300.0
+      },
+      {
+        "name": "margarine",
+        "unit": "g",
+        "quantity": 40.0
+      },
+      {
+        "name": "flour",
+        "unit": "g",
+        "quantity": 40.0
+      },
+      {
+        "name": "double cream",
+        "unit": "ml",
+        "quantity": 200.0
+      }
+    ],
+    "method": [
+      "Chop the walnut (or crush with rolling pin) to small pieces.",
+      "Put walnut, sugar, orange, margarine and cream into a saucepan; bring to the boil; stir 2-3 mins; add flour; stir through and set aside to cool.",
+      "Pipe walnut-sized balls on baking sheet, 2-3 cm apart (they will flatten).",
+      "Baking: 390-400F, 6-10 mins, until golden on the edges. Coat one side with dark chocolate."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Milk",
+      "Nuts"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Viennese Biscuit",
+    "category": "Biscuit",
+    "department": "Pastry",
+    "ingredients": [
+      {
+        "name": "margarine",
+        "unit": "g",
+        "quantity": 2250.0
+      },
+      {
+        "name": "icing sugar",
+        "unit": "g",
+        "quantity": 1325.0
+      },
+      {
+        "name": "vanilla",
+        "unit": "g",
+        "quantity": 60.0
+      },
+      {
+        "name": "Flour",
+        "unit": "g",
+        "quantity": 3000.0
+      }
+    ],
+    "method": [
+      "Mix margarine and icing sugar until pale and fluffy, about 5 mins. Add vanilla compound meanwhile.",
+      "Slowly add the flour; take care not to overmix.",
+      "Immediately put in a piping bag and pipe desired forms.",
+      "Baking: 150, 10-12 mins, until pale and firm, and lightly golden.",
+      "Fill with jam; dip end with melted dark chocolate."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Milk"
+    ],
+    "images": {
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/715c7274a_recipe_page2_img3.png",
+      "ingredients": [
+        "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/3e7924444_recipe_page3_img3.png"
+      ],
+      "process": [],
+      "final": []
+    }
+  },
+  {
+    "title": "Cinnamon Balls (4 big trays)",
+    "category": "Biscuit",
+    "department": "Pastry",
+    "ingredients": [
+      {
+        "name": "Ground almond",
+        "unit": "g",
+        "quantity": 2041.0
+      },
+      {
+        "name": "Macaroon paste",
+        "unit": "g",
+        "quantity": 1134.0
+      },
+      {
+        "name": "Granulated sugar",
+        "unit": "g",
+        "quantity": 1134.0
+      },
+      {
+        "name": "Cinnamon",
+        "unit": "g",
+        "quantity": 100.0
+      },
+      {
+        "name": "Golden syrup",
+        "unit": "g",
+        "quantity": 200.0
+      },
+      {
+        "name": "Egg whites (20)",
+        "unit": "g",
+        "quantity": 600.0
+      }
+    ],
+    "method": [
+      "Mix all dry ingredients with the macaron paste on high speed until the lumps disappear.",
+      "Add golden syrup and egg whites; mix.",
+      "Form balls, cover with icing sugar, and bake immediately.",
+      "Baking: 160, 10 mins, until cracks appear on the surface, but still soft inside.",
+      "The raw mix can be stored in refrigerator for a week."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Nuts",
+      "Eggs"
+    ],
+    "images": {
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/public/68c7f70c8764c9386f5252cb/11292294d_1000174920.jpg",
+      "ingredients": [],
+      "process": [],
+      "final": []
+    }
+  },
+  {
+    "title": "Carrot Cake (2x 8-inch cake)",
+    "category": "Cake",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "oil",
+        "unit": "ml",
+        "quantity": 300.0
+      },
+      {
+        "name": "brown sugar",
+        "unit": "g",
+        "quantity": 400.0
+      },
+      {
+        "name": "eggs",
+        "unit": "",
+        "quantity": 4.0
+      },
+      {
+        "name": "carrots, grated",
+        "unit": "g",
+        "quantity": 350.0
+      },
+      {
+        "name": "flour",
+        "unit": "g",
+        "quantity": 350.0
+      },
+      {
+        "name": "baking powder",
+        "unit": "tsp",
+        "quantity": 2.0
+      },
+      {
+        "name": "bicarbonate of soda",
+        "unit": "tsp",
+        "quantity": 2.0
+      },
+      {
+        "name": "cinnamon",
+        "unit": "tsp",
+        "quantity": 4.0
+      },
+      {
+        "name": "walnut, chopped",
+        "unit": "g",
+        "quantity": 100.0
+      }
+    ],
+    "method": [
+      "Mix the sugar with the oil and beat with the eggs until smooth.",
+      "Stir in the carrots and walnuts, then fold through the dry ingredients.",
+      "Divide the batter in 2 or 4 (sandwich) tins, and bake.",
+      "Baking: 160, 25-30 mins.",
+      "Finish with cream cheese filling and coating (see next recipe)."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Eggs",
+      "Milk",
+      "Nuts"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Dates & Walnuts Strudel Biscuits",
+    "category": "Pastry",
+    "department": "Pastry",
+    "ingredients": [
+      {
+        "name": "Flour",
+        "unit": "kg",
+        "quantity": 2.2
+      },
+      {
+        "name": "Corn flour",
+        "unit": "g",
+        "quantity": 200.0
+      },
+      {
+        "name": "Margarine",
+        "unit": "g",
+        "quantity": 700.0
+      },
+      {
+        "name": "Oil",
+        "unit": "g",
+        "quantity": 700.0
+      },
+      {
+        "name": "Cold water",
+        "unit": "ml",
+        "quantity": 700000.0
+      },
+      {
+        "name": "Baking powder",
+        "unit": "tbsp",
+        "quantity": 1.0
+      },
+      {
+        "name": "Salt",
+        "unit": "tbsp",
+        "quantity": 1.0
+      },
+      {
+        "name": "Vanilla",
+        "unit": "tbsp",
+        "quantity": 2.0
+      }
+    ],
+    "method": [
+      "Mix ingredients together for 3 minutes; roll flat.",
+      "Add dates and walnuts.",
+      "Roll twice and cut into strips.",
+      "Bake 160 for 23 min."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Nuts"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/07e439ee6_edited-image.jpg",
+      "process": []
+    }
+  },
+  {
+    "title": "Marble Cake",
+    "category": "Cake",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "Oil",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "eggs",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "sugar",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "flour",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "baking powder",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "orange juice",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "vanilla compound",
+        "unit": "",
+        "quantity": 0.0
+      },
+      {
+        "name": "coca powder",
+        "unit": "",
+        "quantity": 0.0
+      }
+    ],
+    "method": [
+      "Mix oil, eggs and sugar until light and creamy; add vanilla compound.",
+      "Sift flours and baking powder together; add flour and orange juice, stirring constantly.",
+      "Divide the dough in half; add cocoa powder + some water to one part.",
+      "Layer in the paper cups (or mix with chocolate chips for muffins).",
+      "Bake at 150 until ~30 mins or until skewer comes out clean."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Eggs"
+    ],
+    "images": {
+      "final": [],
+      "ingredients": [],
+      "thumbnail": "https://base44.app/api/apps/68c7f70c8764c9386f5252cb/files/mp/public/68c7f70c8764c9386f5252cb/cb0168457_edited-image.jpg",
+      "process": []
+    }
+  },
+  {
+    "title": "Almond Crescent (Half-Moon Biscuit)",
+    "category": "Biscuit",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "margarine",
+        "unit": "g",
+        "quantity": 1000.0
+      },
+      {
+        "name": "sugar (preferably icing sugar)",
+        "unit": "g",
+        "quantity": 500.0
+      },
+      {
+        "name": "ground almond",
+        "unit": "g",
+        "quantity": 700.0
+      },
+      {
+        "name": "egg yolks",
+        "unit": "",
+        "quantity": 7.0
+      },
+      {
+        "name": "flour",
+        "unit": "g",
+        "quantity": 1200.0
+      },
+      {
+        "name": "Almond flavour",
+        "unit": "tbsp",
+        "quantity": 2.0
+      }
+    ],
+    "method": [
+      "Mix margarine with sugar, flour and ground almond until crumbly, then add egg yolks and mix until combined.",
+      "On lightly floured surface roll it into long stripes around 2 cm in diameter. Cut up into 2-3 cm long pieces, and shape into small crescents/half moons.",
+      "Leave space between them as they will flatten a bit.",
+      "Baking: 150, 10 mins, until pale and firm.",
+      "Dust with icing sugar, or dip into melted chocolate."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Eggs",
+      "Nuts"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Filling for Carrot & Red Velvet Cakes",
+    "category": "Filling",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "soft cheese",
+        "unit": "g",
+        "quantity": 400.0
+      },
+      {
+        "name": "margarine (soft)",
+        "unit": "g",
+        "quantity": 200.0
+      },
+      {
+        "name": "icing sugar",
+        "unit": "g",
+        "quantity": 250.0
+      },
+      {
+        "name": "vanilla",
+        "unit": "tbsp",
+        "quantity": 2.0
+      }
+    ],
+    "method": [
+      "Beat all ingredients together until smooth and fluffy.",
+      "Sandwich the layers with the icing and coat with the remaining cream.",
+      "Decorate with marzipan carrots.",
+      "You can freeze the whole ready-to-eat cake for weeks."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Milk",
+      "Eggs"
+    ],
+    "images": {}
+  },
+  {
+    "title": "Gingerbread Man",
+    "category": "Biscuit",
+    "department": "",
+    "ingredients": [
+      {
+        "name": "margarine",
+        "unit": "g",
+        "quantity": 1250.0
+      },
+      {
+        "name": "golden syrup",
+        "unit": "g",
+        "quantity": 1250.0
+      },
+      {
+        "name": "brown sugar",
+        "unit": "g",
+        "quantity": 2000.0
+      },
+      {
+        "name": "egg yolks",
+        "unit": "",
+        "quantity": 30.0
+      },
+      {
+        "name": "flour",
+        "unit": "g",
+        "quantity": 4000.0
+      },
+      {
+        "name": "cinnamon",
+        "unit": "tbsp",
+        "quantity": 5.0
+      },
+      {
+        "name": "ground ginger",
+        "unit": "tbsp",
+        "quantity": 3.0
+      },
+      {
+        "name": "ground nutmeg",
+        "unit": "tbsp",
+        "quantity": 1.0
+      },
+      {
+        "name": "baking powder",
+        "unit": "tbsp",
+        "quantity": 1.0
+      }
+    ],
+    "method": [
+      "Mix margarine, golden syrup and sugar, then add egg yolks, and mix again until pale and fluffy.",
+      "Add flour and spices, and mix until combined.",
+      "Knead through and roll out on a lightly floured surface to a 0.5 cm thickness; cut out the GBMs; decorate with smarties.",
+      "Baking: 150, 12 mins, until lightly golden-brown, pale and firm. It will harden after cooled, but will become soft again in one day.",
+      "Decorate with dark chocolate."
+    ],
+    "notes": "",
+    "allergen_tags": [
+      "Gluten",
+      "Eggs",
+      "Nuts"
+    ],
+    "images": {}
+  }
+]
