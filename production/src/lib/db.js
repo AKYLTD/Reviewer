@@ -34,7 +34,7 @@ export const staffToRow = (s) => {
 export const locFromRow = (r) => ({ id: r.id, name: r.name, address: r.address || "", distanceMi: Number(r.distance_mi) || 0, driveMin: Number(r.drive_min) || 0 });
 export const locToRow = (l) => ({ id: l.id, name: l.name, address: l.address || "", distance_mi: Number(l.distanceMi) || 0, drive_min: Number(l.driveMin) || 0 });
 
-const runFromRow = (r) => ({ id: r.id, recipeId: r.recipe_id, recipe: r.recipe, qty: Number(r.qty), unit: r.unit, by: r.by_name, totalSec: r.total_sec, labour: Number(r.labour), ingCost: Number(r.ing_cost), deliv: Number(r.deliv), total: Number(r.total), when: r.when_label });
+const runFromRow = (r) => ({ id: r.id, recipeId: r.recipe_id, recipe: r.recipe, qty: Number(r.qty), unit: r.unit, by: r.by_name, totalSec: r.total_sec, labour: Number(r.labour), ingCost: Number(r.ing_cost), deliv: Number(r.deliv), total: Number(r.total), when: r.when_label, at: r.created_at });
 const cancelFromRow = (r) => ({ id: r.id, recipe: r.recipe, qty: Number(r.qty), unit: r.unit, by: r.by_name, stoppedAtStep: r.stopped_at_step, totalSteps: r.total_steps, when: r.when_label });
 const alertFromRow = (r) => ({ id: r.id, recipe: r.recipe, from: r.from_sec, to: r.to_sec, dir: r.dir, diff: r.diff, runs: r.runs, when: r.when_label });
 

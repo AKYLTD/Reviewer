@@ -31,6 +31,14 @@ import {
 
 const fmtMoney = (n) => "£" + (n || 0).toFixed(2);
 const fmtClock = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+// Human duration: "2h 05m" / "45m" / "30s" — used for how long a production took.
+const fmtDur = (sec) => {
+  sec = Math.max(0, Math.round(sec || 0));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  if (h) return `${h}h ${String(m).padStart(2, "0")}m`;
+  if (m) return `${m}m`;
+  return `${s}s`;
+};
 const uid = (p = "id") => p + Math.random().toString(36).slice(2, 9);
 
 const UNITS = ["kg", "boxes", "units", "slices"];
@@ -278,7 +286,7 @@ function App() {
     const labour = (totalSec / 3600) * (p.startedBy?.wage || 0);
     const ingCost = recipeCost(p.recipe, ingredients) * (p.targetQty / p.recipe.yieldKg);
     const deliv = alloc.reduce((sum, { store }) => sum + deliveryCost(locations.find((l) => l.name === store), delivery), 0);
-    const thisRun = { id: uid("run"), recipeId: rId, recipe: rName, qty: p.targetQty, unit: yUnit, by: p.startedBy?.name, totalSec, labour, ingCost, deliv, total: labour + ingCost + deliv, when: whenLabel };
+    const thisRun = { id: uid("run"), recipeId: rId, recipe: rName, qty: p.targetQty, unit: yUnit, by: p.startedBy?.name, totalSec, labour, ingCost, deliv, total: labour + ingCost + deliv, when: whenLabel, at: new Date().toISOString() };
 
     // rolling average of actual time for this recipe vs the set expected time
     const updated = [thisRun, ...runs];
@@ -383,6 +391,7 @@ function App() {
       <div style={{ maxWidth: 1060, margin: "0 auto", padding: "26px 18px 80px" }}>
         {screen === "home" && (
           <Home user={user} staff={staff} recipes={recipes} ingredients={ingredients} verifyPin={dbVerifyPin}
+            storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} runs={runs}
             onSignIn={(u) => { setUser(u); setScreen(u.role === "driver" ? "driver" : u.role === "admin" ? "admin" : "home"); }}
             onPick={(r) => { setFinishing({ _pickQty: r }); setScreen("qty"); }} />
         )}
@@ -404,7 +413,7 @@ function App() {
             onCollected={(store) => { setDeliveryQueue((p) => ({ ...p, [store]: [] })); flash(`${store} collected`); const li = locId(store); if (readyRef.current && li) clearQueueForLocation(li).catch((e) => console.error("Clear queue failed", e)); }} />
         )}
         {screen === "stock" && (
-          <LiveStock recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} onBack={() => setScreen(user?.role === "driver" ? "driver" : "home")} />
+          <LiveStock recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} runs={runs} onBack={() => setScreen(user?.role === "driver" ? "driver" : "home")} />
         )}
         {screen === "admin" && (
           <Admin ingredients={ingredients} setIngredients={setIngredientsP} recipes={recipes} setRecipes={setRecipesP}
@@ -469,7 +478,7 @@ function Eyebrow({ children }) {
   return <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}><span style={{ width: 30, height: 2, background: C.rust }} /><span style={{ color: C.rust, fontWeight: 700, letterSpacing: 3, fontSize: 12, textTransform: "uppercase" }}>{children}</span></div>;
 }
 
-function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin }) {
+function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, storeStock = {}, centralStock = {}, cpu, stores = [], runs = [] }) {
   const [pinFor, setPinFor] = useState(null);
   const [pin, setPin] = useState("");
   const [err, setErr] = useState(false);
@@ -511,6 +520,12 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin }
             </button>
           ))}
         </div>
+
+        {/* "What we have" + leaderboard, visible to everyone on the sign-in page */}
+        <div style={{ marginTop: 34, borderTop: `1px solid ${C.line}`, paddingTop: 22 }}>
+          <LiveStock embedded recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} runs={runs} />
+        </div>
+
         {pinFor && (
           <Modal onClose={() => { setPinFor(null); setPin(""); setErr(false); }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -839,7 +854,7 @@ function DriverView({ deliveryQueue, stores, onCollected }) {
 }
 
 /* ===================== LIVE PRODUCTION STOCK (all users) ===================== */
-function LiveStock({ recipes, storeStock, centralStock, cpu, stores, onBack }) {
+function LiveStock({ recipes, storeStock, centralStock, cpu, stores, runs = [], embedded = false, onBack }) {
   const [query, setQuery] = useState("");
   // build a unified table: every recipe that has stock anywhere, qty per location + CPU
   const cpuName = cpu?.name || "CPU";
@@ -856,13 +871,15 @@ function LiveStock({ recipes, storeStock, centralStock, cpu, stores, onBack }) {
 
   return (
     <div className="scr">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
-        <button onClick={onBack} style={pillGhost}>← Back</button>
-        <div style={{ flex: 1 }} />
-      </div>
-      <Eyebrow>Live stock</Eyebrow>
-      <h1 className="display" style={{ fontSize: "clamp(32px, 6vw, 44px)", fontWeight: 800, margin: "0 0 4px" }}>What we <span style={{ color: C.rust }}>have</span></h1>
-      <p style={{ fontSize: 17, color: C.inkSoft, marginTop: 0 }}>Live quantities of each recipe at every shop and the CPU. Production adds to this; sales (via Square, later) will subtract.</p>
+      {!embedded && (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
+          <button onClick={onBack} style={pillGhost}>← Back</button>
+          <div style={{ flex: 1 }} />
+        </div>
+      )}
+      <Eyebrow>{embedded ? "On the shelves" : "Live stock"}</Eyebrow>
+      <h1 className="display" style={{ fontSize: embedded ? "clamp(28px,5vw,38px)" : "clamp(32px, 6vw, 44px)", fontWeight: 800, margin: "0 0 4px" }}>What we <span style={{ color: C.rust }}>have</span></h1>
+      <p style={{ fontSize: 16, color: C.inkSoft, marginTop: 0 }}>Live quantities of each recipe at every shop and the CPU. Production adds to this; sales (via Square, later) will subtract.</p>
 
       <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search a recipe…" style={{ width: "100%", maxWidth: 360, background: C.card, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 999, padding: "11px 18px", fontSize: 15, marginBottom: 16 }} />
 
@@ -893,6 +910,106 @@ function LiveStock({ recipes, storeStock, centralStock, cpu, stores, onBack }) {
             {cols.map((c) => <span key={c} className="display" style={{ textAlign: "right", fontWeight: 800 }}>{colTotal(c).toFixed(1)}</span>)}
             <span className="display" style={{ textAlign: "right", fontWeight: 800, color: C.rust }}>{rows.reduce((a, r) => a + r.total, 0).toFixed(1)}</span>
           </div>
+        </div>
+      )}
+
+      <Leaderboard runs={runs} recipes={recipes} />
+      <ProductionsLog runs={runs} />
+    </div>
+  );
+}
+
+function CrownIcon({ size = 18, color = C.gold }) {
+  return (<svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden="true" style={{ flexShrink: 0 }}><path d="M2.5 7.5l4.2 3.6L12 4l5.3 7.1 4.2-3.6L20 19H4L2.5 7.5z" /></svg>);
+}
+
+/* Fair leaderboard: each run scores expectedTime / actualTime, so doing a long
+   recipe at pace beats doing a short one — short recipes can't win just for being
+   short. Summed over runs it rewards both speed and volume. Crown on the top. */
+function Leaderboard({ runs, recipes }) {
+  const expById = Object.fromEntries(recipes.map((r) => [r.id, r.expectedSec]));
+  const people = {};
+  runs.forEach((r) => {
+    const key = r.by || "—";
+    const g = (people[key] ||= { name: key, made: 0, paceSum: 0, paceN: 0, secs: 0 });
+    g.made++; g.secs += r.totalSec || 0;
+    const exp = expById[r.recipeId];
+    if (exp > 0 && r.totalSec > 0) { g.paceSum += exp / r.totalSec; g.paceN++; }
+  });
+  const board = Object.values(people)
+    .map((g) => ({ ...g, pace: g.paceN ? g.paceSum / g.paceN : 0, points: g.paceSum }))
+    .sort((a, b) => b.points - a.points || b.made - a.made);
+
+  if (!board.length) return null;
+  const medal = ["#E8A93C", "#B9B3A6", "#C28E5A"]; // gold / silver / bronze accents
+
+  return (
+    <div style={{ marginTop: 26 }}>
+      <Eyebrow>Leaderboard</Eyebrow>
+      <p style={{ fontSize: 14, color: C.inkSoft, margin: "0 0 12px" }}>Ranked by pace vs each recipe's expected time and how many were made — so a longer recipe counts for more than a quick one.</p>
+      <div style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, overflow: "hidden" }}>
+        {board.map((g, i) => (
+          <div key={g.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderTop: i ? `1px solid ${C.line}` : "none", background: i === 0 ? C.cardSoft : "transparent" }}>
+            <span style={{ width: 26, display: "grid", placeItems: "center", fontWeight: 800, color: C.inkSoft }}>{i === 0 ? <CrownIcon size={22} color={C.gold} /> : i + 1}</span>
+            <span style={{ width: 34, height: 34, borderRadius: 999, background: medal[i] || C.line, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 15, flexShrink: 0 }}>{(g.name || "?")[0]}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>{g.name}</div>
+              <div style={{ fontSize: 13, color: C.inkSoft }}>{g.made} recipe{g.made === 1 ? "" : "s"} made</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div className="display" style={{ fontWeight: 800, fontSize: 18, color: g.pace >= 1 ? C.go : C.rust }}>{g.pace ? g.pace.toFixed(2) + "×" : "—"}</div>
+              <div style={{ fontSize: 11, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5 }}>pace vs expected</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Recent productions: date made, who made it, how long it took. Newest first,
+   with a date-range filter. */
+function ProductionsLog({ runs }) {
+  const [range, setRange] = useState("all"); // all | today | 7 | 30
+  const now = Date.now();
+  const cutoff = range === "today" ? new Date().setHours(0, 0, 0, 0)
+    : range === "7" ? now - 7 * 864e5
+    : range === "30" ? now - 30 * 864e5
+    : 0;
+  const list = runs
+    .filter((r) => { const t = r.at ? Date.parse(r.at) : 0; return cutoff ? t >= cutoff : true; })
+    .slice()
+    .sort((a, b) => (Date.parse(b.at || 0) || 0) - (Date.parse(a.at || 0) || 0)); // newest first
+
+  const sel = { background: C.card, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 999, padding: "8px 14px", fontSize: 14, fontWeight: 600, cursor: "pointer" };
+  return (
+    <div style={{ marginTop: 26 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+        <Eyebrow>Recent productions</Eyebrow>
+        <div style={{ flex: 1 }} />
+        <select value={range} onChange={(e) => setRange(e.target.value)} style={sel}>
+          <option value="all">All time</option>
+          <option value="today">Today</option>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+        </select>
+      </div>
+      {list.length === 0 ? (
+        <div style={{ background: C.card, borderRadius: 14, padding: 20, color: C.inkSoft, border: `1px solid ${C.line}` }}>No productions in this period yet.</div>
+      ) : (
+        <div style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, overflowX: "auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr", minWidth: 560, gap: 10, padding: "13px 18px", borderBottom: `2px solid ${C.line}`, fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            <span>Recipe</span><span>Made by</span><span>Date made</span><span style={{ textAlign: "right" }}>Qty</span><span style={{ textAlign: "right" }}>Time taken</span>
+          </div>
+          {list.map((r, i) => (
+            <div key={r.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr", minWidth: 560, gap: 10, padding: "12px 18px", borderTop: i ? `1px solid ${C.line}` : "none", fontSize: 14, alignItems: "center" }}>
+              <b>{r.recipe}</b>
+              <span>{r.by || "—"}</span>
+              <span style={{ color: C.inkSoft }}>{r.when || (r.at ? new Date(r.at).toLocaleString("en-GB") : "—")}</span>
+              <span className="display" style={{ textAlign: "right", fontWeight: 700 }}>{r.qty}{r.unit ? " " + r.unit : ""}</span>
+              <span className="display" style={{ textAlign: "right", fontWeight: 700, color: C.rust }}>{fmtDur(r.totalSec)}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
