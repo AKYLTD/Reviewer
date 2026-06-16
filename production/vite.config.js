@@ -8,4 +8,15 @@ export default defineConfig({
   // The prototype uses inline styles only — no Tailwind/PostCSS. Pin an empty
   // PostCSS config so Vite doesn't walk up and load the parent repo's config.
   css: { postcss: {} },
+  build: {
+    // Flat, stable filenames (no content hash, no assets/ subfolder) so a
+    // re-deploy is just "overwrite app.js" — no folder juggling on the host.
+    rollupOptions: {
+      output: {
+        entryFileNames: "app.js",
+        chunkFileNames: "app-[name].js",
+        assetFileNames: "[name][extname]",
+      },
+    },
+  },
 });

@@ -9,13 +9,14 @@
   RewriteRule . /index.html [L]
 </IfModule>
 
-# Long-cache the hashed build assets (filenames change on each deploy).
 <IfModule mod_headers.c>
-  <FilesMatch "\.(js|css|woff2?|png|jpe?g|svg|gif|ico)$">
-    Header set Cache-Control "public, max-age=31536000, immutable"
-  </FilesMatch>
-  # Never cache the HTML shell, so new deploys are picked up immediately.
-  <FilesMatch "\.html$">
+  # app.js uses a stable name, and index.html is the shell — always revalidate
+  # so a re-deploy (overwriting app.js) is picked up immediately.
+  <FilesMatch "\.(html|js|css)$">
     Header set Cache-Control "no-cache"
+  </FilesMatch>
+  # Static media can be cached long.
+  <FilesMatch "\.(woff2?|png|jpe?g|svg|gif|ico)$">
+    Header set Cache-Control "public, max-age=31536000"
   </FilesMatch>
 </IfModule>

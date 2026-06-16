@@ -473,6 +473,20 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin }
   const [pinFor, setPinFor] = useState(null);
   const [pin, setPin] = useState("");
   const [err, setErr] = useState(false);
+  const [errKind, setErrKind] = useState("wrong"); // "wrong" | "server"
+  const [query, setQuery] = useState("");
+  const [listening, setListening] = useState(false);
+  // One-shot voice search: tap the mic, say a recipe, it fills the search box.
+  const startVoiceSearch = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { setListening(false); alert("Voice search isn't supported in this browser. You can still type to search."); return; }
+    const rec = new SR();
+    rec.lang = "en-GB"; rec.interimResults = false; rec.maxAlternatives = 1;
+    rec.onresult = (e) => setQuery(e.results[0][0].transcript.replace(/[.?!]+$/, "").trim());
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    try { rec.start(); setListening(true); } catch { setListening(false); }
+  };
   useEffect(() => {
     const h = (e) => {
       const t = e.detail;
@@ -508,9 +522,9 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin }
                 {[1,2,3,4,5,6,7,8,9].map((n) => <button key={n} onClick={() => { setErr(false); setPin((p) => (p + n).slice(0, 4)); }} style={padBtn}>{n}</button>)}
                 <button onClick={() => setPin("")} style={{ ...padBtn, fontSize: 15 }}>clear</button>
                 <button onClick={() => setPin((p) => (p + "0").slice(0, 4))} style={padBtn}>0</button>
-                <button onClick={async () => { try { const u = await verifyPin(pin); if (u && u.id === pinFor.id) onSignIn(u); else { setErr(true); setPin(""); } } catch { setErr(true); setPin(""); } }} style={{ ...padBtn, background: C.go, color: "#fff" }}>✓</button>
+                <button onClick={async () => { try { const u = await verifyPin(pin); if (u) { onSignIn(u); } else { setErrKind("wrong"); setErr(true); setPin(""); } } catch (e) { console.error("Sign-in failed", e); setErrKind("server"); setErr(true); setPin(""); } }} style={{ ...padBtn, background: C.go, color: "#fff" }}>✓</button>
               </div>
-              {err && <p style={{ color: C.rust, fontSize: 13, marginBottom: 0, marginTop: 12 }}>Wrong PIN — try again.</p>}
+              {err && <p style={{ color: C.rust, fontSize: 13, marginBottom: 0, marginTop: 12 }}>{errKind === "server" ? "Couldn't reach the server — check the connection and try again." : "Wrong PIN — try again."}</p>}
               <p style={{ color: C.inkSoft, fontSize: 12, marginTop: 12, marginBottom: 0, textAlign: "center" }}>Demo: Marco 1234 · Aylin 2222 · Tomas 3333 · Driver Sam 9999</p>
             </div>
           </Modal>
@@ -524,17 +538,34 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin }
       <Eyebrow>Production</Eyebrow>
       <h1 className="display" style={{ fontSize: 50, fontWeight: 800, margin: "0 0 4px" }}>What are we <span style={{ color: C.rust }}>making?</span></h1>
       <p style={{ fontSize: 18, color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Pick a recipe — start as many as you like and switch between them up top.</p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 18, marginTop: 20 }}>
-        {recipes.map((r) => (
-          <button key={r.id} onClick={() => onPick(r)} style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 22, padding: 0, overflow: "hidden", cursor: "pointer", color: C.ink, textAlign: "left" }}>
-            <div style={{ height: 150, background: r.hero ? `url(${r.hero}) center/cover` : `linear-gradient(135deg,${C.goldSoft},${C.rust})` }} />
-            <div style={{ padding: "16px 20px" }}>
-              <div className="display" style={{ fontSize: 25, fontWeight: 700 }}>{r.name}</div>
-              <div style={{ fontSize: 14, color: C.inkSoft, marginTop: 4 }}>{r.steps.length} steps · yields {r.yieldKg} {r.yieldUnit}</div>
-            </div>
-          </button>
-        ))}
+      <div style={{ display: "flex", gap: 10, marginTop: 18, alignItems: "stretch" }}>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search recipes — type or tap the mic"
+          style={{ flex: 1, background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "14px 18px", fontSize: 18, color: C.ink }} />
+        {query && <button onClick={() => setQuery("")} title="Clear" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "0 16px", fontSize: 18, color: C.inkSoft, cursor: "pointer" }}>✕</button>}
+        <button onClick={startVoiceSearch} title="Say a recipe"
+          style={{ background: listening ? C.rust : C.card, border: `1px solid ${listening ? C.rust : C.line}`, color: listening ? "#fff" : C.ink, borderRadius: 14, padding: "0 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span className="hide-sm">{listening ? "Listening…" : "Voice"}</span>
+        </button>
       </div>
+      {(() => {
+        const q = query.trim().toLowerCase();
+        const filtered = q ? recipes.filter((r) => r.name.toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q)) : recipes;
+        if (!filtered.length) return <div style={{ background: C.card, borderRadius: 16, padding: 22, color: C.inkSoft, border: `1px solid ${C.line}`, marginTop: 18 }}>No recipes match “{query}”.</div>;
+        return (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 18, marginTop: 18 }}>
+            {filtered.map((r) => (
+              <button key={r.id} onClick={() => onPick(r)} style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 22, padding: 0, overflow: "hidden", cursor: "pointer", color: C.ink, textAlign: "left" }}>
+                <div style={{ height: 150, background: r.hero ? `url(${r.hero}) center/cover` : `linear-gradient(135deg,${C.goldSoft},${C.rust})` }} />
+                <div style={{ padding: "16px 20px" }}>
+                  <div className="display" style={{ fontSize: 25, fontWeight: 700 }}>{r.name}</div>
+                  <div style={{ fontSize: 14, color: C.inkSoft, marginTop: 4 }}>{r.steps.length} steps · yields {r.yieldKg} {r.yieldUnit}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }
