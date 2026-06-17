@@ -163,6 +163,17 @@ export async function clearQueueForLocation(locationId) {
   if (error) throw error;
 }
 
+// Admin: wipe all live stock (store + central) and the delivery queue.
+export async function resetAllStock() {
+  if (!supabase) return;
+  const results = await Promise.all([
+    supabase.from("store_stock").delete().neq("location_id", "___none___"),
+    supabase.from("central_stock").delete().neq("recipe_id", "___none___"),
+    supabase.from("delivery_queue").delete().neq("id", "___none___"),
+  ]);
+  for (const r of results) if (r.error) throw r.error;
+}
+
 /* ---------- debounce for noisy admin edits (per-keystroke) ---------- */
 const timers = {};
 export function scheduleSync(key, fn, ms = 700) {

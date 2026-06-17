@@ -12,7 +12,7 @@ import {
 // them to/from the database and exposes the reads/writes the App needs.
 import {
   loadAll, upsertRows, deleteByIds, saveSingleton, verifyPin as dbVerifyPin,
-  persistProduction, persistCancellation, clearQueueForLocation, scheduleSync,
+  persistProduction, persistCancellation, clearQueueForLocation, resetAllStock, scheduleSync,
   ingToRow, recToRow, staffToRow, locToRow,
 } from "./lib/db.js";
 
@@ -41,7 +41,7 @@ const fmtDur = (sec) => {
 };
 const uid = (p = "id") => p + Math.random().toString(36).slice(2, 9);
 
-const UNITS = ["kg", "boxes", "units", "slices"];
+const UNITS = ["kg", "litres", "boxes", "units", "slices"];
 const ING_UNITS = ["g", "kg", "ml", "L", "unit", "tbsp", "tsp", "pinch", "handful", "bunch"]; // short ingredient units
 const DRIFT_THRESHOLD_SEC = 60; // alert admin if rolling avg drifts from set time by this much
 
@@ -335,6 +335,13 @@ function App() {
     else { setUser(null); setScreen("home"); }
   };
 
+  const resetStock = () => {
+    setStoreStock({}); setCentralStock({}); setDeliveryQueue({});
+    if (readyRef.current) resetAllStock().then(() => flash("Stock reset")).catch((e) => { console.error("Reset stock failed", e); flash("Stock reset on screen, but database write failed"); });
+  };
+
+  const [timerOpen, setTimerOpen] = useState(false);
+
   return (
     <div style={{ fontFamily: "'Nunito Sans',system-ui,sans-serif", background: C.cream, minHeight: "100vh", color: C.ink }}>
       <style>{`
@@ -377,6 +384,7 @@ function App() {
         onHome={() => { if (productions.length && user?.role === "production") { setActiveId(productions[0].id); setScreen("run"); } else setScreen("home"); }}
         onAdmin={() => { if (productions.length) { flash("Finish the live production to open admin"); return; } if (user?.role === "admin") { setScreen("admin"); } else { setAdminPrompt(true); } }}
         onStock={() => setScreen("stock")}
+        onTimer={() => setTimerOpen(true)}
         onSignOut={requestSignOut}
         showAdmin showStock={!!user} />
 
@@ -419,16 +427,18 @@ function App() {
           <Admin ingredients={ingredients} setIngredients={setIngredientsP} recipes={recipes} setRecipes={setRecipesP}
             staff={staff} setStaff={setStaffP} cpu={cpu} setCpu={setCpuP} locations={locations} setLocations={setLocationsP}
             delivery={delivery} setDelivery={setDeliveryP} storeStock={storeStock} centralStock={centralStock}
-            deliveryQueue={deliveryQueue} runs={runs} cancellations={cancellations} alerts={alerts} setAlerts={setAlertsP} stores={stores} onClose={() => { if (user?.role === "admin") { setUser(null); } setScreen("home"); }} />
+            deliveryQueue={deliveryQueue} runs={runs} cancellations={cancellations} alerts={alerts} setAlerts={setAlertsP} stores={stores} onResetStock={resetStock} onClose={() => { if (user?.role === "admin") { setUser(null); } setScreen("home"); }} />
         )}
       </div>
+
+      <TimerTool open={timerOpen} onClose={() => setTimerOpen(false)} onAlarm={() => setTimerOpen(true)} />
 
       {toast && <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: C.ink, color: C.cream, padding: "13px 22px", borderRadius: 999, fontWeight: 600, fontSize: 16, boxShadow: "0 10px 30px rgba(0,0,0,.25)", zIndex: 50 }}>{toast}</div>}
     </div>
   );
 }
 
-function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin, onStock, onSignOut, showAdmin, showStock }) {
+function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin, onStock, onTimer, onSignOut, showAdmin, showStock }) {
   return (
     <div className="topbar" style={{ background: C.cream, borderBottom: `1px solid ${C.line}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, position: "sticky", top: 0, zIndex: 40 }}>
       <div style={{ cursor: "pointer", display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }} onClick={onHome}>
@@ -440,6 +450,10 @@ function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin,
         style={{ background: voiceOn ? C.go : "transparent", border: `1.5px solid ${voiceOn ? C.go : C.line}`, color: voiceOn ? "#fff" : C.ink, borderRadius: 999, padding: "9px 14px", fontWeight: 600, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         <span style={{ width: 9, height: 9, borderRadius: 999, background: voiceOn ? "#9be8ad" : C.line }} /><span className="hide-sm">{voiceOn ? "Listening" : "Voice"}</span>
       </button>
+      <button onClick={onTimer} title="Kitchen timer" style={{ ...pillGhost, flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2 2" /><path d="M9 2h6" /><path d="M12 2v3" /></svg>
+        <span className="hide-sm">Timer</span>
+      </button>
       {showStock && <button onClick={onStock} style={{ ...pillGhost, flexShrink: 0, borderColor: C.go, color: C.go }}>Stock</button>}
       {showAdmin && user?.role !== "admin" && <button onClick={onAdmin} style={{ ...pillGhost, flexShrink: 0 }}>Admin</button>}
       {user && (
@@ -449,6 +463,124 @@ function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin,
           <button onClick={onSignOut} title="Sign out" style={{ background: "none", border: "none", color: C.inkSoft, cursor: "pointer", fontSize: 17 }}>⏻</button>
         </div>
       )}
+    </div>
+  );
+}
+
+/* Standalone kitchen timer — a tool, independent of any recipe. Stays mounted so
+   it keeps counting in the background; pops itself open and sounds a repeating
+   alarm when it reaches zero (alarm can be disabled/silenced). */
+function TimerTool({ open, onClose, onAlarm }) {
+  const [h, setH] = useState(0);
+  const [mn, setMn] = useState(5);
+  const [sc, setSc] = useState(0);
+  const [remaining, setRemaining] = useState(null); // seconds left, or null before start
+  const [running, setRunning] = useState(false);
+  const [alarming, setAlarming] = useState(false);
+  const [alarmEnabled, setAlarmEnabled] = useState(true);
+
+  // countdown tick
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => {
+      setRemaining((r) => {
+        if (r == null) return r;
+        if (r <= 1) { setRunning(false); if (alarmEnabled) { setAlarming(true); onAlarm?.(); } return 0; }
+        return r - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [running, alarmEnabled, onAlarm]);
+
+  // repeating alarm while ringing
+  useEffect(() => {
+    if (!alarming) return;
+    beep(); const id = setInterval(beep, 1300);
+    return () => clearInterval(id);
+  }, [alarming]);
+
+  const setTotal = h * 3600 + mn * 60 + sc;
+  const startResume = () => {
+    setAlarming(false);
+    if (remaining == null || remaining <= 0) { if (setTotal <= 0) return; setRemaining(setTotal); }
+    setRunning(true);
+  };
+  const pause = () => setRunning(false);
+  const reset = () => { setRunning(false); setAlarming(false); setRemaining(null); };
+  const stopAlarm = () => { setAlarming(false); setRemaining(null); };
+
+  const show = remaining == null ? setTotal : remaining;
+  const hh = Math.floor(show / 3600), mm = Math.floor((show % 3600) / 60), ss = show % 60;
+  const clock = (hh > 0 ? String(hh).padStart(2, "0") + ":" : "") + String(mm).padStart(2, "0") + ":" + String(ss).padStart(2, "0");
+  const numBtn = { background: C.card, border: `1px solid ${C.line}`, color: C.ink, borderRadius: 14, padding: "14px 0", fontSize: 22, fontWeight: 700, cursor: "pointer", width: 70 };
+  const bigBtn = (bg, fg) => ({ background: bg, color: fg, border: "none", borderRadius: 16, padding: "16px 30px", fontSize: 18, fontWeight: 700, cursor: "pointer" });
+  const stepper = (label, val, setVal, max) => (
+    <div style={{ textAlign: "center" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>{label}</div>
+      <button onClick={() => setVal((v) => (v + 1) % (max + 1))} style={numBtn}>▲</button>
+      <div className="display" style={{ fontSize: 40, fontWeight: 800, margin: "6px 0", color: C.rust }}>{String(val).padStart(2, "0")}</div>
+      <button onClick={() => setVal((v) => (v - 1 + (max + 1)) % (max + 1))} style={numBtn}>▼</button>
+    </div>
+  );
+
+  if (!open) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(58,42,30,.55)", zIndex: 80, display: "grid", placeItems: "center", padding: 16 }}>
+      <div className="scr" style={{ background: C.cream, borderRadius: 26, border: `1px solid ${C.line}`, width: "min(680px, 96vw)", maxHeight: "92vh", overflowY: "auto", padding: "26px 26px 30px", boxShadow: "0 30px 80px rgba(0,0,0,.35)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <h2 className="display" style={{ fontSize: 30, fontWeight: 800, margin: 0 }}>Timer</h2>
+          <div style={{ flex: 1 }} />
+          <button onClick={onClose} style={pillGhost}>Close</button>
+        </div>
+        <p style={{ color: C.inkSoft, marginTop: 0, fontSize: 15 }}>A standalone kitchen timer — not tied to any recipe.</p>
+
+        {alarming ? (
+          <div style={{ textAlign: "center", padding: "30px 10px" }}>
+            <div className="display" style={{ fontSize: "clamp(56px,16vw,110px)", fontWeight: 800, color: C.rust, animation: "ring .6s ease infinite" }}>00:00</div>
+            <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 22 }}>Time's up!</div>
+            <button onClick={stopAlarm} style={bigBtn(C.rust, "#fff")}>Stop alarm</button>
+          </div>
+        ) : remaining == null ? (
+          <>
+            <div style={{ display: "flex", gap: 16, justifyContent: "center", alignItems: "center", margin: "10px 0 24px" }}>
+              {stepper("Hours", h, setH, 23)}
+              <span className="display" style={{ fontSize: 40, fontWeight: 800, color: C.line }}>:</span>
+              {stepper("Minutes", mn, setMn, 59)}
+              <span className="display" style={{ fontSize: 40, fontWeight: 800, color: C.line }}>:</span>
+              {stepper("Seconds", sc, setSc, 59)}
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 22 }}>
+              {[["1m", 0, 1, 0], ["3m", 0, 3, 0], ["5m", 0, 5, 0], ["10m", 0, 10, 0], ["30m", 0, 30, 0], ["1h", 1, 0, 0]].map(([l, ph, pm, ps]) => (
+                <button key={l} onClick={() => { setH(ph); setMn(pm); setSc(ps); }} style={{ ...pillGhost }}>{l}</button>
+              ))}
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <button onClick={startResume} disabled={setTotal <= 0} style={{ ...bigBtn(setTotal > 0 ? C.go : C.line, "#fff"), opacity: setTotal > 0 ? 1 : 0.6 }}>Start</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ textAlign: "center", margin: "14px 0 26px" }}>
+              <div className="display" style={{ fontSize: "clamp(64px,18vw,130px)", fontWeight: 800, color: running ? C.ink : C.inkSoft, lineHeight: 1 }}>{clock}</div>
+              <div style={{ fontSize: 15, color: C.inkSoft, marginTop: 6 }}>{running ? "Counting down…" : "Paused"}</div>
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              {running
+                ? <button onClick={pause} style={bigBtn(C.gold, C.ink)}>Pause</button>
+                : <button onClick={startResume} style={bigBtn(C.go, "#fff")}>{remaining > 0 ? "Resume" : "Start"}</button>}
+              <button onClick={reset} style={bigBtn(C.card, C.ink)}>Reset</button>
+            </div>
+          </>
+        )}
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 26, paddingTop: 18, borderTop: `1px solid ${C.line}` }}>
+          <span style={{ fontSize: 14, color: C.inkSoft }}>Alarm sound</span>
+          <button onClick={() => { setAlarmEnabled((v) => !v); if (alarmEnabled) setAlarming(false); }}
+            style={{ background: alarmEnabled ? C.go : "transparent", border: `1.5px solid ${alarmEnabled ? C.go : C.line}`, color: alarmEnabled ? "#fff" : C.inkSoft, borderRadius: 999, padding: "8px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            {alarmEnabled ? "On" : "Off (disabled)"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1017,7 +1149,7 @@ function ProductionsLog({ runs }) {
 }
 
 /* ===================== ADMIN ===================== */
-function Admin({ ingredients, setIngredients, recipes, setRecipes, staff, setStaff, cpu, setCpu, locations, setLocations, delivery, setDelivery, storeStock, centralStock, deliveryQueue, runs, cancellations, alerts, setAlerts, stores, onClose }) {
+function Admin({ ingredients, setIngredients, recipes, setRecipes, staff, setStaff, cpu, setCpu, locations, setLocations, delivery, setDelivery, storeStock, centralStock, deliveryQueue, runs, cancellations, alerts, setAlerts, stores, onResetStock, onClose }) {
   const [tab, setTab] = useState("recipes");
   const tabs = [["recipes", "Recipes"], ["ingredients", "Ingredient costs"], ["staff", "Staff & wages"], ["locations", "Locations & delivery"], ["reports", "Reports"]];
   return (
@@ -1044,7 +1176,7 @@ function Admin({ ingredients, setIngredients, recipes, setRecipes, staff, setSta
       {tab === "ingredients" && <AdminIngredients ingredients={ingredients} setIngredients={setIngredients} />}
       {tab === "staff" && <AdminStaff staff={staff} setStaff={setStaff} />}
       {tab === "locations" && <AdminLocations cpu={cpu} setCpu={setCpu} locations={locations} setLocations={setLocations} delivery={delivery} setDelivery={setDelivery} />}
-      {tab === "reports" && <AdminReports runs={runs} recipes={recipes} cancellations={cancellations} storeStock={storeStock} centralStock={centralStock} deliveryQueue={deliveryQueue} stores={stores} />}
+      {tab === "reports" && <AdminReports runs={runs} recipes={recipes} cancellations={cancellations} storeStock={storeStock} centralStock={centralStock} deliveryQueue={deliveryQueue} stores={stores} onResetStock={onResetStock} />}
     </div>
   );
 }
@@ -1052,7 +1184,11 @@ function Admin({ ingredients, setIngredients, recipes, setRecipes, staff, setSta
 function AdminIngredients({ ingredients, setIngredients }) {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [paste, setPaste] = useState("White bread flour, 0.95\nFresh yeast, 4.20\nButter, 7.50");
+  const [query, setQuery] = useState("");
   const upd = (idx, patch) => setIngredients((p) => p.map((x, i) => i === idx ? { ...x, ...patch } : x));
+  // keep each ingredient's original index so edits/deletes stay correct when filtered
+  const q = query.trim().toLowerCase();
+  const shown = ingredients.map((ing, idx) => ({ ing, idx })).filter(({ ing }) => !q || ing.name.toLowerCase().includes(q));
   const applyPaste = () => {
     paste.split("\n").map((l) => l.trim()).filter(Boolean).forEach((line) => {
       const [name, costStr] = line.split(/[,\t]/).map((x) => x.trim()); const cost = parseFloat(costStr);
@@ -1066,6 +1202,7 @@ function AdminIngredients({ ingredients, setIngredients }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
         <button onClick={() => setPasteOpen((o) => !o)} style={{ ...adminBtn, background: C.go, color: "#fff", border: "none" }}>Upload cost list (paste Excel)</button>
         <button onClick={() => setIngredients((p) => [...p, { id: uid("ing"), name: "New ingredient", unit: "kg", cost: 0 }])} style={adminBtn}>+ Add ingredient</button>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search ingredients…" style={{ flex: 1, minWidth: 200, background: C.card, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 999, padding: "11px 18px", fontSize: 15 }} />
       </div>
       {pasteOpen && (
         <div style={{ background: C.card, borderRadius: 16, padding: 18, marginBottom: 16, border: `1px solid ${C.line}` }}>
@@ -1078,8 +1215,9 @@ function AdminIngredients({ ingredients, setIngredients }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 130px 40px", minWidth: 520, gap: 12, padding: "12px 18px", borderBottom: `2px solid ${C.line}`, fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 1 }}>
           <span>Ingredient</span><span>Unit</span><span>Cost</span><span />
         </div>
-        {ingredients.map((ing, idx) => (
-          <div key={ing.id} style={{ display: "grid", gridTemplateColumns: "1fr 90px 130px 40px", minWidth: 520, gap: 12, alignItems: "center", padding: "10px 18px", borderTop: idx ? `1px solid ${C.line}` : "none" }}>
+        {shown.length === 0 && <div style={{ padding: 18, color: C.inkSoft }}>No ingredients match “{query}”.</div>}
+        {shown.map(({ ing, idx }, row) => (
+          <div key={ing.id} style={{ display: "grid", gridTemplateColumns: "1fr 90px 130px 40px", minWidth: 520, gap: 12, alignItems: "center", padding: "10px 18px", borderTop: row ? `1px solid ${C.line}` : "none" }}>
             <input value={ing.name} onChange={(e) => upd(idx, { name: e.target.value })} style={cellInput} />
             <select value={ing.unit} onChange={(e) => upd(idx, { unit: e.target.value })} style={cellInput}>{ING_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ color: C.inkSoft }}>£</span><input type="number" step="0.01" value={ing.cost} onChange={(e) => upd(idx, { cost: parseFloat(e.target.value) || 0 })} style={cellInput} /><span style={{ color: C.inkSoft, fontSize: 12 }}>/{ing.unit}</span></div>
@@ -1118,8 +1256,10 @@ function AdminRecipes({ recipes, ingredients, setRecipes, setIngredients }) {
     }
   };
 
+  const upsertRecipe = (r) => setRecipes((rs) => rs.some((x) => x.id === r.id) ? rs.map((x) => x.id === r.id ? r : x) : [...rs, r]);
   if (editing) return <RecipeBuilder ingredients={ingredients} initial={editing === "new" ? null : editing}
-    onCancel={() => setEditing(null)} onSave={(r) => { setRecipes((rs) => editing === "new" ? [...rs, r] : rs.map((x) => x.id === r.id ? r : x)); setEditing(null); }} />;
+    onAutoSave={upsertRecipe}
+    onCancel={() => setEditing(null)} onSave={(r) => { upsertRecipe(r); setEditing(null); }} />;
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 14 }}>
@@ -1240,7 +1380,10 @@ function RecipeCard({ recipe, ingredients, onEdit, onDelete }) {
   );
 }
 
-function RecipeBuilder({ ingredients, initial, onCancel, onSave }) {
+function RecipeBuilder({ ingredients, initial, onCancel, onSave, onAutoSave }) {
+  const idRef = useRef(initial?.id || uid("r")); // stable id for the whole edit session (so autosave updates, not duplicates)
+  const [picker, setPicker] = useState(null); // { step, use } when choosing an ingredient
+  const [savedTick, setSavedTick] = useState(0);
   const [name, setName] = useState(initial?.name || "");
   const [yieldKg, setYieldKg] = useState(initial?.yieldKg ?? 10);
   const [yieldUnit, setYieldUnit] = useState(initial?.yieldUnit || "kg");
@@ -1262,13 +1405,13 @@ function RecipeBuilder({ ingredients, initial, onCancel, onSave }) {
   };
 
   const setStep = (i, patch) => setSteps((a) => a.map((x, idx) => idx === i ? { ...x, ...patch } : x));
-  const addUse = (i) => setStep(i, { use: [...steps[i].use, { ingId: ingredients[0]?.id, qty: 1 }] });
+  const addUse = (i, ingId) => setStep(i, { use: [...steps[i].use, { ingId, qty: 1 }] });
   const setUse = (i, j, patch) => setStep(i, { use: steps[i].use.map((u, idx) => idx === j ? { ...u, ...patch } : u) });
   const delUse = (i, j) => setStep(i, { use: steps[i].use.filter((_, idx) => idx !== j) });
 
-  const save = () => {
+  const buildClean = () => {
     const clean = {
-      id: initial?.id || uid("r"),
+      id: idRef.current,
       name: name.trim() || "Untitled recipe",
       yieldKg: parseFloat(yieldKg) || 1, yieldUnit, hero, dept2, category, allergens, dietary,
       expectedSec: expectedMin > 0 ? Math.round(expectedMin * 60) : (initial?.expectedSec || 0),
@@ -1286,14 +1429,28 @@ function RecipeBuilder({ ingredients, initial, onCancel, onSave }) {
     };
     if (!clean.steps.length) clean.steps = [{ text: "Step 1", image: null, use: [], isTimed: false, timerSec: 0, estSec: 60 }];
     if (!clean.expectedSec) clean.expectedSec = clean.steps.reduce((a, s) => a + (s.isTimed ? s.timerSec : (s.estSec || 0)), 0);
-    onSave(clean);
+    return clean;
   };
+  const save = () => onSave(buildClean());
+
+  // Autosave: persist changes in the background (debounced) so edits aren't lost.
+  // Skips the initial render, and won't create a blank brand-new recipe.
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
+    if (!onAutoSave) return;
+    const hasContent = name.trim() || steps.some((s) => s.text.trim());
+    if (!initial && !hasContent) return;
+    const t = setTimeout(() => { onAutoSave(buildClean()); setSavedTick((n) => n + 1); }, 900);
+    return () => clearTimeout(t);
+  }, [name, yieldKg, yieldUnit, expectedMin, hero, dept2, category, allergens, dietary, steps]);
 
   return (
     <div className="scr">
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
         <h2 className="display" style={{ fontSize: 30, fontWeight: 800, margin: 0 }}>{initial ? "Edit recipe" : "New recipe"}</h2><div style={{ flex: 1 }} />
-        <button onClick={onCancel} style={pillGhost}>Cancel</button>
+        {onAutoSave && savedTick > 0 && <span style={{ fontSize: 13, color: C.go, fontWeight: 700 }}>✓ Saved</span>}
+        <button onClick={onCancel} style={pillGhost}>{onAutoSave ? "Done" : "Cancel"}</button>
         <button onClick={save} style={{ ...adminBtn, background: C.go, color: "#fff", border: "none", fontSize: 15, padding: "11px 20px" }}>Save recipe</button>
       </div>
 
@@ -1360,19 +1517,53 @@ function RecipeBuilder({ ingredients, initial, onCancel, onSave }) {
               <div style={{ fontSize: 11, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Ingredients for this step</div>
               {s.use.map((u, j) => (
                 <div key={j} style={{ display: "grid", gridTemplateColumns: "1fr 70px 38px 28px", gap: 8, marginBottom: 8, alignItems: "center" }}>
-                  <select value={u.ingId} onChange={(e) => setUse(i, j, { ingId: e.target.value })} style={cellInput}>{ingredients.map((ing) => <option key={ing.id} value={ing.id}>{ing.name}</option>)}</select>
+                  <button onClick={() => setPicker({ step: i, use: j })} style={{ ...cellInput, textAlign: "left", cursor: "pointer", background: C.cream, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m[u.ingId]?.name || "Choose ingredient…"}</button>
                   <input type="number" step="0.01" value={u.qty} onChange={(e) => setUse(i, j, { qty: e.target.value })} style={cellInput} />
                   <span style={{ fontSize: 13, color: C.inkSoft, fontWeight: 600 }}>{m[u.ingId]?.unit || ""}</span>
                   <button onClick={() => delUse(i, j)} style={{ background: "none", border: "none", color: C.rust, cursor: "pointer", fontSize: 15 }}>✕</button>
                 </div>
               ))}
-              <button onClick={() => addUse(i)} style={{ ...adminBtn, fontSize: 13, padding: "7px 12px" }}>+ Add ingredient</button>
+              <button onClick={() => setPicker({ step: i, use: null })} style={{ ...adminBtn, fontSize: 13, padding: "7px 12px" }}>+ Add ingredient</button>
             </div>
           </div>
         </div>
       ))}
       <button onClick={() => setSteps((a) => [...a, { text: "", image: null, use: [], timerMin: 0 }])} style={{ ...adminBtn, fontSize: 14 }}>+ Add step</button>
+
+      {picker && (
+        <IngredientPicker ingredients={ingredients} onClose={() => setPicker(null)}
+          onPick={(ingId) => { if (picker.use == null) addUse(picker.step, ingId); else setUse(picker.step, picker.use, { ingId }); setPicker(null); }} />
+      )}
     </div>
+  );
+}
+
+/* Searchable, alphabetical ingredient picker (used when adding/changing a step's
+   ingredient). */
+function IngredientPicker({ ingredients, onPick, onClose }) {
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const list = ingredients
+    .filter((i) => !q || i.name.toLowerCase().includes(q))
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return (
+    <Modal onClose={onClose}>
+      <div style={{ width: "min(460px, 92vw)" }}>
+        <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 10 }}>Choose an ingredient</div>
+        <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search ingredients…"
+          style={{ width: "100%", background: C.cream, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 16px", fontSize: 16, marginBottom: 12 }} />
+        <div style={{ maxHeight: "50vh", overflowY: "auto", border: `1px solid ${C.line}`, borderRadius: 12 }}>
+          {list.length === 0 ? <div style={{ padding: 16, color: C.inkSoft }}>No ingredients match “{query}”.</div>
+            : list.map((ing, i) => (
+              <button key={ing.id} onClick={() => onPick(ing.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", textAlign: "left", background: "transparent", border: "none", borderTop: i ? `1px solid ${C.line}` : "none", padding: "13px 16px", fontSize: 16, color: C.ink, cursor: "pointer" }}>
+                <span>{ing.name}</span>
+                <span style={{ fontSize: 13, color: C.inkSoft }}>{ing.unit}{ing.cost > 0 ? ` · ${fmtMoney(ing.cost)}` : ""}</span>
+              </button>
+            ))}
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -1459,7 +1650,7 @@ function AdminLocations({ cpu, setCpu, locations, setLocations, delivery, setDel
   );
 }
 
-function AdminReports({ runs, recipes, cancellations, storeStock, centralStock, deliveryQueue, stores }) {
+function AdminReports({ runs, recipes, cancellations, storeStock, centralStock, deliveryQueue, stores, onResetStock }) {
   const [view, setView] = useState("runs");
   const recipesById = Object.fromEntries((recipes || []).map((r) => [r.id, r]));
   const totalQty = runs.reduce((a, r) => a + r.qty, 0), totalLabour = runs.reduce((a, r) => a + r.labour, 0);
@@ -1565,6 +1756,12 @@ function AdminReports({ runs, recipes, cancellations, storeStock, centralStock, 
       )}
       {view === "stock" && (
         <div>
+          {onResetStock && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#F6E0D6", border: `1px solid ${C.rust}`, borderRadius: 14, padding: "12px 16px", marginBottom: 16, flexWrap: "wrap" }}>
+              <span style={{ flex: 1, fontSize: 14, minWidth: 200 }}>Reset clears <b>all</b> live stock (every shop + CPU) and the delivery queue. Production history and the leaderboard are kept. This can't be undone.</span>
+              <button onClick={() => { if (window.confirm("Reset ALL stock to zero and clear the delivery queue? This can't be undone.")) onResetStock(); }} style={{ ...adminBtn, background: C.rust, color: "#fff", border: "none" }}>Reset all stock</button>
+            </div>
+          )}
           <Section title="Store stock (delivered)">
             {stores.map((s) => <div key={s} style={rowCard}><b>{s}</b><div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>{storeStock[s] && Object.keys(storeStock[s]).length ? Object.entries(storeStock[s]).map(([r, q]) => <span key={r}>{r}: <b>{q.toFixed(1)}</b></span>) : <span style={{ color: C.inkSoft }}>empty</span>}</div></div>)}
           </Section>
