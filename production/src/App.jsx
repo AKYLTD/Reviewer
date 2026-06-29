@@ -43,7 +43,7 @@ const fmtDur = (sec) => {
 const uid = (p = "id") => p + Math.random().toString(36).slice(2, 9);
 
 const UNITS = ["kg", "litres", "boxes", "units", "slices"];
-const ING_UNITS = ["g", "kg", "ml", "L", "unit", "tbsp", "tsp", "pinch", "handful", "bunch"]; // short ingredient units
+const ING_UNITS = ["g", "kg", "ml", "L", "unit", "slice", "slices", "piece", "portion", "spoon", "scoop", "tbsp", "tsp", "pinch", "handful", "bunch", "leaf", "clove", "drizzle", "to taste"]; // ingredient + service measurements
 const DRIFT_THRESHOLD_SEC = 60; // alert admin if rolling avg drifts from set time by this much
 
 const C = {
@@ -416,7 +416,7 @@ function App() {
       `}</style>
 
       {screen === "run" && active ? (
-        <RunRecipe key={active.id} production={active} ingredients={ingredients}
+        <RunRecipe key={active.id} production={active} ingredients={ingredients} recipes={recipes}
           onStep={(patch) => updateProduction(active.id, patch)}
           onComplete={() => finishProduction(active)} onCancel={() => cancelProduction(active)}
           onBack={() => setScreen("home")} />
@@ -457,7 +457,7 @@ function App() {
             onPick={(r) => { if ((r.dept2 || "Production") === "Service") { setViewing(r); setScreen("view"); } else { setFinishing({ _pickQty: r }); setScreen("qty"); } }} />
         )}
         {screen === "view" && viewing && (
-          <RecipeView recipe={viewing} ingredients={ingredients} onBack={() => { setViewing(null); setScreen(user ? "home" : "home"); }} />
+          <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onBack={() => { setViewing(null); setScreen("home"); }} />
         )}
         {screen === "sbook" && (
           <SBook recipes={recipes} ingredients={ingredients} onView={(r) => { setViewing(r); setScreen("view"); }} onBack={() => setScreen(user?.role === "driver" ? "driver" : "home")} />
@@ -816,7 +816,10 @@ function Quantity({ recipe, ingredients, onBack, onStart }) {
   );
 }
 
-function RunRecipe({ production, ingredients, onStep, onComplete, onCancel, onBack }) {
+function RunRecipe({ production, ingredients, recipes = [], onStep, onComplete, onCancel, onBack }) {
+  const rcById = Object.fromEntries(recipes.map((r) => [r.id, r]));
+  const cName = (u) => u.recipeId ? (rcById[u.recipeId]?.name || "Recipe") : ingMap(ingredients)[u.ingId]?.name;
+  const cUnit = (u) => u.recipeId ? (u.unit || "units") : ingMap(ingredients)[u.ingId]?.unit;
   const { recipe, targetQty, stepIndex } = production;
   const factor = targetQty / recipe.yieldKg;
   const m = ingMap(ingredients);
@@ -901,10 +904,10 @@ function RunRecipe({ production, ingredients, onStep, onComplete, onCancel, onBa
         {/* ingredients — the flexible middle; only THIS scrolls if truly necessary on tiny screens */}
         {used.length > 0 && (
           <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "grid", gap: manyIng ? "clamp(4px,0.8vh,7px)" : "clamp(6px,1vh,10px)", alignContent: "center", maxWidth: 640, width: "100%", marginLeft: "auto", marginRight: "auto" }}>
-            {used.map((u) => (
-              <div key={u.ingId} style={{ background: C.cream, borderRadius: 12, padding: manyIng ? "clamp(6px,1vh,9px) clamp(12px,2.5vw,18px)" : "clamp(9px,1.5vh,14px) clamp(14px,3vw,22px)", border: `1.5px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <span className="display" style={{ fontSize: manyIng ? "clamp(15px, 3vw, 22px)" : "clamp(17px, 3.6vw, 28px)", fontWeight: 700, color: C.ink, textAlign: "left", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{m[u.ingId]?.name}</span>
-                <span className="display" style={{ fontSize: manyIng ? "clamp(16px, 3.2vw, 24px)" : "clamp(19px, 4vw, 32px)", fontWeight: 700, color: C.rust, whiteSpace: "nowrap" }}>{(u.qty * factor).toFixed(2)}<span style={{ fontSize: "0.55em" }}> {m[u.ingId]?.unit}</span></span>
+            {used.map((u, ui) => (
+              <div key={u.ingId || u.recipeId || ui} style={{ background: C.cream, borderRadius: 12, padding: manyIng ? "clamp(6px,1vh,9px) clamp(12px,2.5vw,18px)" : "clamp(9px,1.5vh,14px) clamp(14px,3vw,22px)", border: `1.5px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <span className="display" style={{ fontSize: manyIng ? "clamp(15px, 3vw, 22px)" : "clamp(17px, 3.6vw, 28px)", fontWeight: 700, color: C.ink, textAlign: "left", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{u.recipeId ? "▸ " : ""}{cName(u)}</span>
+                <span className="display" style={{ fontSize: manyIng ? "clamp(16px, 3.2vw, 24px)" : "clamp(19px, 4vw, 32px)", fontWeight: 700, color: C.rust, whiteSpace: "nowrap" }}>{(u.qty * factor).toFixed(2)}<span style={{ fontSize: "0.55em" }}> {cUnit(u)}</span></span>
               </div>
             ))}
           </div>
@@ -1146,9 +1149,17 @@ function SBook({ recipes, ingredients, onView, onBack }) {
 }
 
 /* SERVICE recipe — one-page read-only reference. No production flow. */
-function RecipeView({ recipe, ingredients, onBack }) {
+function RecipeView({ recipe, ingredients, recipes = [], onBack }) {
   const m = ingMap(ingredients);
-  const items = recipeItems(recipe);
+  const recById = Object.fromEntries(recipes.map((r) => [r.id, r]));
+  // component-aware ingredient list (handles produced recipes used as components)
+  const agg = {};
+  (recipe.steps || []).forEach((s) => (s.use || []).forEach((u) => {
+    const key = u.recipeId ? "r:" + u.recipeId : "i:" + u.ingId;
+    if (!agg[key]) agg[key] = { key, qty: 0, name: u.recipeId ? (recById[u.recipeId]?.name || "Recipe") : (m[u.ingId]?.name || ""), unit: u.recipeId ? (u.unit || "units") : (m[u.ingId]?.unit || ""), isRecipe: !!u.recipeId };
+    agg[key].qty += Number(u.qty) || 0;
+  }));
+  const items = Object.values(agg);
   return (
     <div className="scr" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -1172,9 +1183,9 @@ function RecipeView({ recipe, ingredients, onBack }) {
           <div style={{ fontSize: 12, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 }}>Ingredients</div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody>
             {items.map((it) => (
-              <tr key={it.ingId} style={{ borderBottom: `1px solid ${C.line}` }}>
-                <td style={{ padding: "7px 0", fontWeight: 400, fontSize: "clamp(13px, 2.4vw, 15px)" }}>{m[it.ingId]?.name}</td>
-                <td className="display" style={{ padding: "7px 0", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap", fontSize: "clamp(13px, 2.4vw, 15px)" }}>{it.qty} {m[it.ingId]?.unit}</td>
+              <tr key={it.key} style={{ borderBottom: `1px solid ${C.line}` }}>
+                <td style={{ padding: "7px 0", fontWeight: it.isRecipe ? 700 : 400, color: it.isRecipe ? C.rust : C.ink, fontSize: "clamp(13px, 2.4vw, 15px)" }}>{it.isRecipe ? "▸ " : ""}{it.name}</td>
+                <td className="display" style={{ padding: "7px 0", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap", fontSize: "clamp(13px, 2.4vw, 15px)" }}>{it.qty} {it.unit}</td>
               </tr>
             ))}
           </tbody></table>
@@ -1471,7 +1482,7 @@ function AdminRecipes({ recipes, ingredients, setRecipes, setIngredients }) {
   };
 
   const upsertRecipe = (r) => setRecipes((rs) => rs.some((x) => x.id === r.id) ? rs.map((x) => x.id === r.id ? r : x) : [...rs, r]);
-  if (editing) return <RecipeBuilder ingredients={ingredients} initial={editing === "new" ? null : editing}
+  if (editing) return <RecipeBuilder ingredients={ingredients} recipes={recipes} initial={editing === "new" ? null : editing}
     onAutoSave={upsertRecipe}
     onCancel={() => setEditing(null)} onSave={(r) => { upsertRecipe(r); setEditing(null); }} />;
   return (
@@ -1594,9 +1605,13 @@ function RecipeCard({ recipe, ingredients, onEdit, onDelete }) {
   );
 }
 
-function RecipeBuilder({ ingredients, initial, onCancel, onSave, onAutoSave }) {
+function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, onAutoSave }) {
   const idRef = useRef(initial?.id || uid("r")); // stable id for the whole edit session (so autosave updates, not duplicates)
-  const [picker, setPicker] = useState(null); // { step, use } when choosing an ingredient
+  const recById = Object.fromEntries(recipes.map((r) => [r.id, r]));
+  // A step item can be a raw ingredient OR a produced recipe used as a component.
+  const compName = (u, mm) => u.recipeId ? (recById[u.recipeId]?.name || "Recipe") : (mm[u.ingId]?.name || "Choose…");
+  const compUnit = (u, mm) => u.recipeId ? (u.unit || recById[u.recipeId]?.yieldUnit || "units") : (mm[u.ingId]?.unit || "");
+  const [picker, setPicker] = useState(null); // { step, use } when choosing an ingredient/component
   const [savedTick, setSavedTick] = useState(0);
   const [name, setName] = useState(initial?.name || "");
   const [yieldKg, setYieldKg] = useState(initial?.yieldKg ?? 10);
@@ -1619,7 +1634,7 @@ function RecipeBuilder({ ingredients, initial, onCancel, onSave, onAutoSave }) {
   };
 
   const setStep = (i, patch) => setSteps((a) => a.map((x, idx) => idx === i ? { ...x, ...patch } : x));
-  const addUse = (i, ingId) => setStep(i, { use: [...steps[i].use, { ingId, qty: 1 }] });
+  const addUse = (i, pick) => setStep(i, { use: [...steps[i].use, pick.recipeId ? { recipeId: pick.recipeId, qty: 1, unit: pick.unit || "units" } : { ingId: pick.ingId, qty: 1 }] });
   const setUse = (i, j, patch) => setStep(i, { use: steps[i].use.map((u, idx) => idx === j ? { ...u, ...patch } : u) });
   const delUse = (i, j) => setStep(i, { use: steps[i].use.filter((_, idx) => idx !== j) });
 
@@ -1634,7 +1649,7 @@ function RecipeBuilder({ ingredients, initial, onCancel, onSave, onAutoSave }) {
         const timed = !!s.isTimed;
         return {
           text: s.text.trim(), image: s.image || null,
-          use: s.use.filter((u) => u.ingId && u.qty > 0).map((u) => ({ ingId: u.ingId, qty: parseFloat(u.qty) || 0 })),
+          use: s.use.filter((u) => (u.ingId || u.recipeId) && u.qty > 0).map((u) => u.recipeId ? { recipeId: u.recipeId, qty: parseFloat(u.qty) || 0, unit: u.unit || "units" } : { ingId: u.ingId, qty: parseFloat(u.qty) || 0 }),
           isTimed: timed,
           timerSec: timed ? (s.timerMin > 0 ? Math.round(s.timerMin * 60) : waitStepSec(s.text)) : 0,
           estSec: est,
@@ -1668,15 +1683,23 @@ function RecipeBuilder({ ingredients, initial, onCancel, onSave, onAutoSave }) {
         <button onClick={save} style={{ ...adminBtn, background: C.go, color: "#fff", border: "none", fontSize: 15, padding: "11px 20px" }}>Save recipe</button>
       </div>
 
+      {/* Production vs Service — prominent, editable any time */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 1 }}>This recipe is for</span>
+        <div style={{ display: "inline-flex", background: C.card, border: `1px solid ${C.line}`, borderRadius: 999, padding: 4 }}>
+          {["Production", "Service"].map((d) => (
+            <button key={d} onClick={() => setDept2(d)} style={{ background: dept2 === d ? C.rust : "transparent", color: dept2 === d ? "#fff" : C.ink, border: "none", borderRadius: 999, padding: "9px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{d}</button>
+          ))}
+        </div>
+        <span style={{ fontSize: 13, color: C.inkSoft }}>{dept2 === "Service" ? "Shown in the S.Book (reference only)." : "Made on the bake floor; appears in production & stock."}</span>
+      </div>
+
       {/* hero + name + yield */}
       <div className="builder-head" style={{ marginBottom: 18 }}>
         <ImageDrop label="Hero image" image={hero} onImage={setHero} height={150} />
         <div style={{ display: "grid", gap: 14 }}>
           <Field label="Recipe name"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sesame Bagels" style={bigInput} /></Field>
-          <div className="row4">
-            <Field label="Department">
-              <select value={dept2} onChange={(e) => setDept2(e.target.value)} style={bigInput}><option>Production</option><option>Service</option></select>
-            </Field>
+          <div className="row3">
             <Field label="Category">
               <input list="cat-suggestions" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Sandwich, Cake…" style={bigInput} />
               <datalist id="cat-suggestions">{ALL_CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
@@ -1731,14 +1754,16 @@ function RecipeBuilder({ ingredients, initial, onCancel, onSave, onAutoSave }) {
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Ingredients for this step</div>
               {s.use.map((u, j) => (
-                <div key={j} style={{ display: "grid", gridTemplateColumns: "1fr 70px 38px 28px", gap: 8, marginBottom: 8, alignItems: "center" }}>
-                  <button onClick={() => setPicker({ step: i, use: j })} style={{ ...cellInput, textAlign: "left", cursor: "pointer", background: C.cream, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m[u.ingId]?.name || "Choose ingredient…"}</button>
+                <div key={j} style={{ display: "grid", gridTemplateColumns: "1fr 70px 50px 28px", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                  <button onClick={() => setPicker({ step: i, use: j })} style={{ ...cellInput, textAlign: "left", cursor: "pointer", background: u.recipeId ? "#F2E7CF" : C.cream, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.recipeId ? "▸ " : ""}{compName(u, m)}</button>
                   <input type="number" step="0.01" value={u.qty} onChange={(e) => setUse(i, j, { qty: e.target.value })} style={cellInput} />
-                  <span style={{ fontSize: 13, color: C.inkSoft, fontWeight: 600 }}>{m[u.ingId]?.unit || ""}</span>
+                  {u.recipeId
+                    ? <select value={u.unit || "units"} onChange={(e) => setUse(i, j, { unit: e.target.value })} style={{ ...cellInput, padding: "8px 4px", fontSize: 12 }}>{ING_UNITS.map((un) => <option key={un} value={un}>{un}</option>)}</select>
+                    : <span style={{ fontSize: 13, color: C.inkSoft, fontWeight: 600 }}>{compUnit(u, m)}</span>}
                   <button onClick={() => delUse(i, j)} style={{ background: "none", border: "none", color: C.rust, cursor: "pointer", fontSize: 15 }}>✕</button>
                 </div>
               ))}
-              <button onClick={() => setPicker({ step: i, use: null })} style={{ ...adminBtn, fontSize: 13, padding: "7px 12px" }}>+ Add ingredient</button>
+              <button onClick={() => setPicker({ step: i, use: null })} style={{ ...adminBtn, fontSize: 13, padding: "7px 12px" }}>+ Add ingredient / recipe</button>
             </div>
           </div>
         </div>
@@ -1746,36 +1771,42 @@ function RecipeBuilder({ ingredients, initial, onCancel, onSave, onAutoSave }) {
       <button onClick={() => setSteps((a) => [...a, { text: "", image: null, use: [], timerMin: 0 }])} style={{ ...adminBtn, fontSize: 14 }}>+ Add step</button>
 
       {picker && (
-        <IngredientPicker ingredients={ingredients} onClose={() => setPicker(null)}
-          onPick={(ingId) => { if (picker.use == null) addUse(picker.step, ingId); else setUse(picker.step, picker.use, { ingId }); setPicker(null); }} />
+        <IngredientPicker ingredients={ingredients} recipes={recipes} onClose={() => setPicker(null)}
+          onPick={(pick) => { if (picker.use == null) addUse(picker.step, pick); else setUse(picker.step, picker.use, pick.recipeId ? { ingId: undefined, recipeId: pick.recipeId, unit: pick.unit || "units" } : { ingId: pick.ingId, recipeId: undefined }); setPicker(null); }} />
       )}
     </div>
   );
 }
 
-/* Searchable, alphabetical ingredient picker (used when adding/changing a step's
-   ingredient). */
-function IngredientPicker({ ingredients, onPick, onClose }) {
+/* Searchable picker — choose a raw ingredient OR a produced recipe to use as a
+   component (e.g. Egg Mayo inside a sandwich). */
+function IngredientPicker({ ingredients, recipes = [], onPick, onClose }) {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
-  const list = ingredients
-    .filter((i) => !q || i.name.toLowerCase().includes(q))
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const ingList = ingredients.filter((i) => !q || i.name.toLowerCase().includes(q)).slice().sort((a, b) => a.name.localeCompare(b.name));
+  const recList = recipes.filter((r) => (r.dept2 || "Production") === "Production").filter((r) => !q || r.name.toLowerCase().includes(q)).slice().sort((a, b) => a.name.localeCompare(b.name));
+  const rowBtn = (extra) => ({ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", textAlign: "left", background: "transparent", border: "none", padding: "13px 16px", fontSize: 16, color: C.ink, cursor: "pointer", ...extra });
+  const hdr = { padding: "8px 16px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, color: C.inkSoft, background: C.cardSoft };
   return (
     <Modal onClose={onClose}>
       <div style={{ width: "min(460px, 92vw)" }}>
-        <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 10 }}>Choose an ingredient</div>
-        <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search ingredients…"
+        <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 10 }}>Add ingredient or recipe</div>
+        <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search…"
           style={{ width: "100%", background: C.cream, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 16px", fontSize: 16, marginBottom: 12 }} />
-        <div style={{ maxHeight: "50vh", overflowY: "auto", border: `1px solid ${C.line}`, borderRadius: 12 }}>
-          {list.length === 0 ? <div style={{ padding: 16, color: C.inkSoft }}>No ingredients match “{query}”.</div>
-            : list.map((ing, i) => (
-              <button key={ing.id} onClick={() => onPick(ing.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", textAlign: "left", background: "transparent", border: "none", borderTop: i ? `1px solid ${C.line}` : "none", padding: "13px 16px", fontSize: 16, color: C.ink, cursor: "pointer" }}>
-                <span>{ing.name}</span>
-                <span style={{ fontSize: 13, color: C.inkSoft }}>{ing.unit}{ing.cost > 0 ? ` · ${fmtMoney(ing.cost)}` : ""}</span>
-              </button>
-            ))}
+        <div style={{ maxHeight: "52vh", overflowY: "auto", border: `1px solid ${C.line}`, borderRadius: 12 }}>
+          {recList.length > 0 && <div style={hdr}>Production recipes (use as a component)</div>}
+          {recList.map((r) => (
+            <button key={r.id} onClick={() => onPick({ recipeId: r.id, unit: "units" })} style={rowBtn({ borderTop: `1px solid ${C.line}` })}>
+              <span>▸ {r.name}</span><span style={{ fontSize: 13, color: C.rust, fontWeight: 700 }}>recipe</span>
+            </button>
+          ))}
+          {ingList.length > 0 && <div style={hdr}>Ingredients</div>}
+          {ingList.map((ing) => (
+            <button key={ing.id} onClick={() => onPick({ ingId: ing.id })} style={rowBtn({ borderTop: `1px solid ${C.line}` })}>
+              <span>{ing.name}</span><span style={{ fontSize: 13, color: C.inkSoft }}>{ing.unit}{ing.cost > 0 ? ` · ${fmtMoney(ing.cost)}` : ""}</span>
+            </button>
+          ))}
+          {ingList.length === 0 && recList.length === 0 && <div style={{ padding: 16, color: C.inkSoft }}>Nothing matches “{query}”.</div>}
         </div>
       </div>
     </Modal>

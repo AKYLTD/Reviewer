@@ -205,7 +205,11 @@ export function queueUpsert(table, rows) {
   if (!supabase || !rows.length) return;
   const m = (pending[table] ||= new Map());
   for (const r of rows) m.set(r.id, r);
-  scheduleFlush(table, 700);
+  stashPending(table, m);          // durable IMMEDIATELY — survives a refresh/close before flush
+  scheduleFlush(table, 600);
+}
+function stashPending(table, m) {
+  try { if (m.size) localStorage.setItem("ronis_pending_" + table, JSON.stringify([...m.values()])); else localStorage.removeItem("ronis_pending_" + table); } catch {}
 }
 function scheduleFlush(table, ms) {
   clearTimeout(flushTimers[table]);
@@ -218,10 +222,10 @@ async function flushTable(table) {
   try {
     await upsertRows(table, rows);
     for (const r of rows) if (m.get(r.id) === r) m.delete(r.id);     // keep any newer edits queued
-    if (!m.size) { try { localStorage.removeItem("ronis_pending_" + table); } catch {} }
+    stashPending(table, m);
   } catch (e) {
     console.error(`sync ${table} failed`, e);
-    try { localStorage.setItem("ronis_pending_" + table, JSON.stringify(rows)); } catch {}
+    stashPending(table, m);
     if (syncErrorHandler) syncErrorHandler(table, e);
     scheduleFlush(table, 3000); // keep the rows queued and retry
   }
