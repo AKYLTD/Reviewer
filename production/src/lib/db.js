@@ -115,8 +115,16 @@ export async function loadAll() {
    avoids losing a delete when rapid edits coalesce. */
 export async function upsertRows(table, rows) {
   if (!supabase || !rows.length) return;
-  const { error } = await supabase.from(table).upsert(rows);
-  if (error) throw error;
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const { error } = await supabase.from(table).upsert(rows);
+      if (!error) return;
+      lastErr = error;
+    } catch (e) { lastErr = e; }
+    await new Promise((r) => setTimeout(r, 400 * (attempt + 1))); // backoff before retry
+  }
+  throw lastErr || new Error("upsert failed");
 }
 export async function deleteByIds(table, ids) {
   if (!supabase || !ids.length) return;

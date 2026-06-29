@@ -211,7 +211,7 @@ function App() {
   const [voiceOn, setVoiceOn] = useState(false);
   const [toast, setToast] = useState(null);
   const [adminPrompt, setAdminPrompt] = useState(false);
-  const flash = (m) => { setToast(m); setTimeout(() => setToast(null), 1700); };
+  const flash = (m, ms = 1700) => { setToast(m); setTimeout(() => setToast(null), ms); };
   const handleVoice = useCallback((t) => { flash(`“${t}”`); window.dispatchEvent(new CustomEvent("voicecmd", { detail: t })); }, []);
   const { supported: voiceSupported } = useVoice(handleVoice, voiceOn);
 
@@ -229,8 +229,17 @@ function App() {
     // 1. instant paint: hydrate from the last-known cache so the page isn't blank
     let hadCache = false;
     try { const c = localStorage.getItem("ronis_cache_v1"); if (c) { applyData(JSON.parse(c)); hadCache = true; } } catch {}
-    // 2. authoritative: fetch fresh, update the screen, and refresh the cache
+    // 2. recover: replay any writes that failed on a previous visit (offline / error)
+    //    so unsaved recipes/ingredients/staff/locations are never lost.
     (async () => {
+      let recovered = 0;
+      for (const t of ["recipes", "ingredients", "staff", "locations"]) {
+        try {
+          const pend = localStorage.getItem("ronis_pending_" + t);
+          if (pend) { await upsertRows(t, JSON.parse(pend)); localStorage.removeItem("ronis_pending_" + t); recovered++; }
+        } catch (e) { console.error("recover " + t + " failed", e); }
+      }
+      if (recovered) flash("Recovered unsaved changes ✓");
       try {
         const data = await loadAll();
         if (data && !cancelled) { applyData(data); try { localStorage.setItem("ronis_cache_v1", JSON.stringify(data)); } catch {} }
@@ -252,14 +261,23 @@ function App() {
     if (readyRef.current) {
       const nextIds = new Set(next.map((x) => x.id));
       const removed = prev.filter((x) => !nextIds.has(x.id)).map((x) => x.id);
-      if (removed.length) deleteByIds(table, removed).catch((e) => console.error(`delete ${table} failed`, e));
-      scheduleSync(table, () => upsertRows(table, next.map(toRow)));
+      // SAFETY: only delete a small, deliberate removal (a ✕ click). A large drop is
+      // almost always a glitch/stale state — never let it wipe rows from the database.
+      if (removed.length && removed.length <= 3) deleteByIds(table, removed).catch((e) => { console.error(`delete ${table} failed`, e); flash("Couldn't delete from the database"); });
+      else if (removed.length > 3) console.warn(`Skipped auto-delete of ${removed.length} ${table} rows (safety guard)`);
+      // Persist the change. If it fails: stash the full collection locally so it can
+      // be replayed on the next load, and SHOW the user (never lose data silently).
+      scheduleSync(table, () => upsertRows(table, next.map(toRow)).catch((e) => {
+        console.error(`save ${table} failed`, e);
+        try { localStorage.setItem("ronis_pending_" + table, JSON.stringify(next.map(toRow))); } catch {}
+        flash(`⚠️ NOT saved — ${e.message || e}`, 7000);
+      }));
     }
     return next;
   });
   const persistOne = (setState, table, toRow) => (updater) => setState((prev) => {
     const next = typeof updater === "function" ? updater(prev) : updater;
-    if (readyRef.current) scheduleSync(table, () => saveSingleton(table, toRow(next)));
+    if (readyRef.current) scheduleSync(table, () => saveSingleton(table, toRow(next)).catch((e) => { console.error(`save ${table} failed`, e); flash(`⚠️ NOT saved — ${e.message || e}`, 7000); }));
     return next;
   });
   const setIngredientsP = persistColl(setIngredients, "ingredients", ingToRow);
