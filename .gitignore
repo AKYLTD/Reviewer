@@ -10,3 +10,6 @@ dist
 .vercel
 .turbo
 coverage
+
+# local backup artifacts
+production/backup/

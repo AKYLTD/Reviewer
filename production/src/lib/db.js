@@ -24,9 +24,9 @@ export const recToRow = (r) => ({
   yield_kg: r.yieldKg ?? 10, yield_unit: r.yieldUnit || "kg", expected_sec: r.expectedSec ?? 0, steps: r.steps || [],
 });
 
-export const staffFromRow = (r) => ({ id: r.id, name: r.name, wage: Number(r.wage) || 0, role: r.role });
+export const staffFromRow = (r) => ({ id: r.id, name: r.name, wage: Number(r.wage) || 0, role: r.role, perms: Array.isArray(r.perms) ? r.perms : (r.role === "driver" ? [] : ["production"]) });
 export const staffToRow = (s) => {
-  const row = { id: s.id, name: s.name, wage: Number(s.wage) || 0, role: s.role || "production" };
+  const row = { id: s.id, name: s.name, wage: Number(s.wage) || 0, role: s.role || "production", perms: Array.isArray(s.perms) ? s.perms : (s.role === "driver" ? [] : ["production"]) };
   if (s.pin) row.pin = s.pin; // pin is write-only; only set it when an actual value was entered
   return row;
 };
@@ -42,10 +42,17 @@ const alertFromRow = (r) => ({ id: r.id, recipe: r.recipe, from: r.from_sec, to:
 export async function loadAll() {
   if (!supabase) return null;
   const sel = (t, opts) => supabase.from(t).select("*", opts);
+  // Resilient staff load: prefer the perms column, but fall back gracefully if the
+  // permissions migration hasn't been run yet (so deploy order can't break sign-in).
+  const staffSel = (async () => {
+    let r = await supabase.from("staff").select("id,name,wage,role,perms").neq("role", "admin");
+    if (r.error) r = await supabase.from("staff").select("id,name,wage,role").neq("role", "admin");
+    return r;
+  })();
   const [ing, rec, stf, loc, cpuR, del, runs, cancels, alerts, store, central, queue] = await Promise.all([
     sel("ingredients"),
     sel("recipes"),
-    supabase.from("staff").select("id,name,wage,role").neq("role", "admin"),
+    staffSel,
     sel("locations"),
     sel("cpu"),
     sel("delivery_settings"),

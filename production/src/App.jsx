@@ -341,6 +341,10 @@ function App() {
   };
 
   const [timerOpen, setTimerOpen] = useState(false);
+  const [viewing, setViewing] = useState(null);      // service recipe being read (RecipeView)
+  const [sbookPrompt, setSbookPrompt] = useState(false); // PIN gate to open S.Book
+  const [produceGate, setProduceGate] = useState(null);  // recipe pending PIN gate to produce
+  const hasServiceRecipes = recipes.some((r) => (r.dept2 || "Production") === "Service");
 
   return (
     <div style={{ fontFamily: "'Nunito Sans',system-ui,sans-serif", background: C.cream, minHeight: "100vh", color: C.ink }}>
@@ -376,6 +380,8 @@ function App() {
           .card-cols > div:first-child{border-right:none !important;border-bottom:1px solid ${C.line}}
           .step-cols{grid-template-columns:1fr !important}
           .recipe-hero-side{display:none !important}
+          .rv-cols{grid-template-columns:1fr !important}
+          .rv-head{grid-template-columns:1fr !important}
         }
       `}</style>
 
@@ -385,11 +391,20 @@ function App() {
         onAdmin={() => { if (productions.length) { flash("Finish the live production to open admin"); return; } if (user?.role === "admin") { setScreen("admin"); } else { setAdminPrompt(true); } }}
         onStock={() => setScreen("stock")}
         onTimer={() => setTimerOpen(true)}
+        onSBook={() => { if (hasPerm(user, "sbook")) { setScreen("sbook"); } else { setSbookPrompt(true); } }}
         onSignOut={requestSignOut}
-        showAdmin showStock={!!user} />
+        showAdmin showStock={!!user} showSBook={hasServiceRecipes} />
 
       {adminPrompt && (
         <AdminPinGate onClose={() => setAdminPrompt(false)} onOk={() => { setAdminPrompt(false); setUser(ADMIN_USER); setScreen("admin"); }} />
+      )}
+      {sbookPrompt && (
+        <StaffPinGate perm="sbook" title="Service Book" subtitle="Enter your PIN to open the service recipe book"
+          onClose={() => setSbookPrompt(false)} onOk={(person) => { setSbookPrompt(false); setUser(person); setScreen("sbook"); }} />
+      )}
+      {produceGate && (
+        <StaffPinGate perm="production" title={`Produce ${produceGate.name}`} subtitle="Enter your PIN to start this production"
+          onClose={() => setProduceGate(null)} onOk={(person) => { const r = produceGate; setProduceGate(null); setUser(person); setFinishing({ _pickQty: r }); setScreen("qty"); }} />
       )}
 
       {user?.role === "production" && productions.length > 0 && screen !== "admin" && (
@@ -400,8 +415,15 @@ function App() {
         {screen === "home" && (
           <Home user={user} staff={staff} recipes={recipes} ingredients={ingredients} verifyPin={dbVerifyPin}
             storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} runs={runs}
+            onOpenStock={() => setScreen("stock")}
             onSignIn={(u) => { setUser(u); setScreen(u.role === "driver" ? "driver" : u.role === "admin" ? "admin" : "home"); }}
-            onPick={(r) => { setFinishing({ _pickQty: r }); setScreen("qty"); }} />
+            onPick={(r) => { if ((r.dept2 || "Production") === "Service") { setViewing(r); setScreen("view"); } else { setFinishing({ _pickQty: r }); setScreen("qty"); } }} />
+        )}
+        {screen === "view" && viewing && (
+          <RecipeView recipe={viewing} ingredients={ingredients} onBack={() => { setViewing(null); setScreen(user ? "home" : "home"); }} />
+        )}
+        {screen === "sbook" && (
+          <SBook recipes={recipes} ingredients={ingredients} onView={(r) => { setViewing(r); setScreen("view"); }} onBack={() => setScreen(user?.role === "driver" ? "driver" : "home")} />
         )}
         {screen === "qty" && finishing?._pickQty && (
           <Quantity recipe={finishing._pickQty} ingredients={ingredients}
@@ -421,7 +443,9 @@ function App() {
             onCollected={(store) => { setDeliveryQueue((p) => ({ ...p, [store]: [] })); flash(`${store} collected`); const li = locId(store); if (readyRef.current && li) clearQueueForLocation(li).catch((e) => console.error("Clear queue failed", e)); }} />
         )}
         {screen === "stock" && (
-          <LiveStock recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} runs={runs} onBack={() => setScreen(user?.role === "driver" ? "driver" : "home")} />
+          <LiveStock recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} runs={runs}
+            onProduce={(recipe) => { if (!recipe) return; if (hasPerm(user, "production")) { setFinishing({ _pickQty: recipe }); setScreen("qty"); } else { setProduceGate(recipe); } }}
+            onBack={() => setScreen(user?.role === "driver" ? "driver" : "home")} />
         )}
         {screen === "admin" && (
           <Admin ingredients={ingredients} setIngredients={setIngredientsP} recipes={recipes} setRecipes={setRecipesP}
@@ -438,7 +462,7 @@ function App() {
   );
 }
 
-function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin, onStock, onTimer, onSignOut, showAdmin, showStock }) {
+function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin, onStock, onTimer, onSBook, onSignOut, showAdmin, showStock, showSBook }) {
   return (
     <div className="topbar" style={{ background: C.cream, borderBottom: `1px solid ${C.line}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, position: "sticky", top: 0, zIndex: 40 }}>
       <div style={{ cursor: "pointer", display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }} onClick={onHome}>
@@ -454,6 +478,7 @@ function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin,
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2 2" /><path d="M9 2h6" /><path d="M12 2v3" /></svg>
         <span className="hide-sm">Timer</span>
       </button>
+      {showSBook && <button onClick={onSBook} style={{ ...pillGhost, flexShrink: 0, borderColor: C.gold, color: C.rustDeep }}>S.Book</button>}
       {showStock && <button onClick={onStock} style={{ ...pillGhost, flexShrink: 0, borderColor: C.go, color: C.go }}>Stock</button>}
       {showAdmin && user?.role !== "admin" && <button onClick={onAdmin} style={{ ...pillGhost, flexShrink: 0 }}>Admin</button>}
       {user && (
@@ -610,7 +635,7 @@ function Eyebrow({ children }) {
   return <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}><span style={{ width: 30, height: 2, background: C.rust }} /><span style={{ color: C.rust, fontWeight: 700, letterSpacing: 3, fontSize: 12, textTransform: "uppercase" }}>{children}</span></div>;
 }
 
-function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, storeStock = {}, centralStock = {}, cpu, stores = [], runs = [] }) {
+function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, storeStock = {}, centralStock = {}, cpu, stores = [], runs = [], onOpenStock }) {
   const [pinFor, setPinFor] = useState(null);
   const [pin, setPin] = useState("");
   const [err, setErr] = useState(false);
@@ -653,9 +678,9 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
           ))}
         </div>
 
-        {/* "What we have" + leaderboard, visible to everyone on the sign-in page */}
-        <div style={{ marginTop: 34, borderTop: `1px solid ${C.line}`, paddingTop: 22 }}>
-          <LiveStock embedded recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} runs={runs} />
+        {/* Compact live-stock summary, visible to everyone on the sign-in page */}
+        <div style={{ marginTop: 30 }}>
+          <StockPanel recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} onOpenStock={onOpenStock} />
         </div>
 
         {pinFor && (
@@ -685,7 +710,10 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
       <Eyebrow>Production</Eyebrow>
       <h1 className="display" style={{ fontSize: 50, fontWeight: 800, margin: "0 0 4px" }}>What are we <span style={{ color: C.rust }}>making?</span></h1>
       <p style={{ fontSize: 18, color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Pick a recipe — start as many as you like and switch between them up top.</p>
-      <div style={{ display: "flex", gap: 10, marginTop: 18, alignItems: "stretch" }}>
+      <div style={{ marginTop: 18 }}>
+        <StockPanel recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} onOpenStock={onOpenStock} />
+      </div>
+      <div style={{ display: "flex", gap: 10, marginTop: 4, alignItems: "stretch" }}>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search recipes — type or tap the mic"
           style={{ flex: 1, background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "14px 18px", fontSize: 18, color: C.ink }} />
         {query && <button onClick={() => setQuery("")} title="Clear" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "0 16px", fontSize: 18, color: C.inkSoft, cursor: "pointer" }}>✕</button>}
@@ -697,7 +725,9 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
       </div>
       {(() => {
         const q = query.trim().toLowerCase();
-        const filtered = q ? recipes.filter((r) => r.name.toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q)) : recipes;
+        // Production recipes only — service recipes live in the S.Book
+        const prod = recipes.filter((r) => (r.dept2 || "Production") === "Production");
+        const filtered = q ? prod.filter((r) => r.name.toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q)) : prod;
         if (!filtered.length) return <div style={{ background: C.card, borderRadius: 16, padding: 22, color: C.inkSoft, border: `1px solid ${C.line}`, marginTop: 18 }}>No recipes match “{query}”.</div>;
         return (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 18, marginTop: 18 }}>
@@ -786,85 +816,87 @@ function RunRecipe({ production, ingredients, onStep, onComplete, onCancel }) {
   }, [next]);
 
   const used = step.use || [];
+  const manyIng = used.length > 5; // shrink harder when there are lots of ingredients
 
   return (
-    <div className="scr">
-      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-        {recipe.steps.map((_, k) => <div key={k} style={{ flex: 1, height: 8, borderRadius: 999, background: k < stepIndex ? C.go : k === stepIndex ? C.rust : C.line }} />)}
+    <div className="runscr" style={{ height: "calc(100dvh - 196px)", minHeight: 400, display: "flex", flexDirection: "column", gap: "clamp(6px, 1.2vh, 12px)", overflow: "hidden" }}>
+      {/* progress */}
+      <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+        {recipe.steps.map((_, k) => <div key={k} style={{ flex: 1, height: 6, borderRadius: 999, background: k < stepIndex ? C.go : k === stepIndex ? C.rust : C.line }} />)}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 16, color: C.inkSoft, fontWeight: 600 }}>{recipe.name} · {targetQty} {recipe.yieldUnit}</div>
-        <div style={{ fontSize: 16, fontWeight: 700 }}>Step {stepIndex + 1} / {recipe.steps.length}</div>
-      </div>
-      {recipe.allergens && recipe.allergens.length > 0 && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-          {recipe.allergens.map((a) => <span key={a} style={{ background: "#F6E0D6", color: C.rustDeep, borderRadius: 999, padding: "3px 12px", fontSize: 13, fontWeight: 700 }}>{a}</span>)}
-        </div>
-      )}
 
-      {/* live elapsed timers — visible to staff */}
-      <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-        <div style={{ flex: 1, background: C.ink, color: C.cream, borderRadius: 16, padding: "12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", opacity: .8 }}>Your time</span>
-          <span className="display" style={{ fontSize: "clamp(24px, 4.5vw, 32px)", fontWeight: 800 }}>{fmtClock(totalElapsed)}</span>
-        </div>
-        {recipe.expectedSec ? (
-          <div style={{ flex: 1, background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 16, padding: "12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: C.inkSoft }}>Target</span>
-            <span className="display" style={{ fontSize: "clamp(24px, 4.5vw, 32px)", fontWeight: 800, color: totalElapsed > recipe.expectedSec ? C.rust : C.go }}>{fmtClock(recipe.expectedSec)}</span>
+      {/* header line: name/qty + step count + total timer, compact on one row */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", flexShrink: 0 }}>
+        <div style={{ fontSize: "clamp(13px, 2.2vw, 16px)", color: C.inkSoft, fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{recipe.name} · {targetQty} {recipe.yieldUnit}</div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+          <div style={{ background: C.ink, color: C.cream, borderRadius: 999, padding: "4px 12px", display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", opacity: .8 }}>time</span>
+            <span className="display" style={{ fontSize: "clamp(15px, 2.6vw, 20px)", fontWeight: 800 }}>{fmtClock(totalElapsed)}</span>
           </div>
-        ) : null}
+          <div style={{ fontSize: "clamp(13px, 2.2vw, 16px)", fontWeight: 700, whiteSpace: "nowrap" }}>{stepIndex + 1}/{recipe.steps.length}</div>
+        </div>
       </div>
 
-      <div style={{ position: "relative", background: C.card, borderRadius: 24, padding: "clamp(20px, 4vw, 32px)", marginTop: 14, textAlign: "center", border: `1px solid ${C.line}` }}>
-        {/* per-step: elapsed + recommended target (suggestion only) top-right */}
-        <div style={{ position: "absolute", top: 14, right: 14, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "5px 12px" }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: C.inkSoft }}>step</span>
-            <span className="display" style={{ fontSize: 18, fontWeight: 800, color: C.rust }}>{fmtClock(stepElapsed)}</span>
+      {/* step card — flexes to fill remaining height; content force-fit, page never scrolls */}
+      <div style={{ position: "relative", flex: 1, minHeight: 0, background: C.card, borderRadius: 20, padding: "clamp(12px, 2.5vh, 26px) clamp(14px, 3vw, 30px)", textAlign: "center", border: `1px solid ${C.line}`, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* corner badges: step elapsed + target recommendation (guide only) */}
+        <div style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", zIndex: 2 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "3px 9px" }}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: .5, textTransform: "uppercase", color: C.inkSoft }}>step</span>
+            <span className="display" style={{ fontSize: "clamp(13px, 2.2vw, 16px)", fontWeight: 800, color: C.rust }}>{fmtClock(stepElapsed)}</span>
           </div>
           {(step.estSec || step.timerSec) > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 999, padding: "5px 12px" }} title="Recommended time — a guide, not a countdown">
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: C.inkSoft }}>target</span>
-              <span className="display" style={{ fontSize: 18, fontWeight: 800, color: C.go }}>~{fmtClock(step.isTimed && step.timerSec ? step.timerSec : (step.estSec || 0))}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 999, padding: "3px 9px" }} title="Recommended time — a guide, not a countdown">
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: .5, textTransform: "uppercase", color: C.inkSoft }}>target</span>
+              <span className="display" style={{ fontSize: "clamp(13px, 2.2vw, 16px)", fontWeight: 800, color: C.go }}>~{fmtClock(step.isTimed && step.timerSec ? step.timerSec : (step.estSec || 0))}</span>
             </div>
           )}
         </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.gold, letterSpacing: 2 }}>STEP {String(stepIndex + 1).padStart(2, "0")}</div>
-        {step.image && <div style={{ height: "clamp(160px, 30vw, 240px)", borderRadius: 18, margin: "14px auto", maxWidth: 520, background: `url(${step.image}) center/cover` }} />}
-        <div className="display" style={{ fontSize: "clamp(26px, 5vw, 40px)", fontWeight: 500, lineHeight: 1.18, color: C.inkSoft, marginTop: 10 }}>{step.text}</div>
 
+        <div style={{ fontSize: "clamp(10px, 1.6vw, 13px)", fontWeight: 700, color: C.gold, letterSpacing: 2, flexShrink: 0, textAlign: "left" }}>STEP {String(stepIndex + 1).padStart(2, "0")}</div>
+
+        {/* image: only when present AND not crowded by many ingredients; shrinks with viewport */}
+        {step.image && !manyIng && (
+          <div style={{ flexShrink: 0, height: "clamp(70px, 16vh, 170px)", borderRadius: 14, margin: "clamp(6px,1.2vh,12px) auto", width: "min(420px, 100%)", background: `url(${step.image}) center/cover` }} />
+        )}
+
+        {/* step text — scales down on small screens */}
+        <div className="display" style={{ fontSize: manyIng ? "clamp(16px, 3vw, 26px)" : "clamp(18px, 3.4vw, 34px)", fontWeight: 500, lineHeight: 1.15, color: C.inkSoft, margin: "clamp(4px,1vh,10px) 0", flexShrink: 0 }}>{step.text}</div>
+
+        {/* ingredients — the flexible middle; only THIS scrolls if truly necessary on tiny screens */}
         {used.length > 0 && (
-          <div style={{ marginTop: 20, display: "grid", gap: 10, maxWidth: 620, marginLeft: "auto", marginRight: "auto" }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "grid", gap: manyIng ? "clamp(4px,0.8vh,7px)" : "clamp(6px,1vh,10px)", alignContent: "center", maxWidth: 640, width: "100%", marginLeft: "auto", marginRight: "auto" }}>
             {used.map((u) => (
-              <div key={u.ingId} style={{ background: C.cream, borderRadius: 14, padding: "clamp(12px, 3vw, 16px) clamp(16px, 4vw, 24px)", border: `1.5px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <span className="display" style={{ fontSize: "clamp(18px, 4vw, 30px)", fontWeight: 700, color: C.ink, textAlign: "left" }}>{m[u.ingId]?.name}</span>
-                <span className="display" style={{ fontSize: "clamp(20px, 4.5vw, 34px)", fontWeight: 700, color: C.rust, whiteSpace: "nowrap" }}>{(u.qty * factor).toFixed(2)}<span style={{ fontSize: "0.55em" }}> {m[u.ingId]?.unit}</span></span>
+              <div key={u.ingId} style={{ background: C.cream, borderRadius: 12, padding: manyIng ? "clamp(6px,1vh,9px) clamp(12px,2.5vw,18px)" : "clamp(9px,1.5vh,14px) clamp(14px,3vw,22px)", border: `1.5px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <span className="display" style={{ fontSize: manyIng ? "clamp(15px, 3vw, 22px)" : "clamp(17px, 3.6vw, 28px)", fontWeight: 700, color: C.ink, textAlign: "left", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{m[u.ingId]?.name}</span>
+                <span className="display" style={{ fontSize: manyIng ? "clamp(16px, 3.2vw, 24px)" : "clamp(19px, 4vw, 32px)", fontWeight: 700, color: C.rust, whiteSpace: "nowrap" }}>{(u.qty * factor).toFixed(2)}<span style={{ fontSize: "0.55em" }}> {m[u.ingId]?.unit}</span></span>
               </div>
             ))}
           </div>
         )}
+        {used.length === 0 && <div style={{ flex: 1, minHeight: 0 }} />}
 
+        {/* timed countdown — only for genuine wait steps; sits at the bottom of the card */}
         {step.isTimed && step.timerSec > 0 && (
-          <div style={{ marginTop: 22 }}>
-            <div className="display" style={{ fontSize: "clamp(48px, 11vw, 68px)", fontWeight: 800, color: remaining === 0 ? C.go : running ? C.rust : C.ink, animation: running ? "ring 1.2s infinite" : "none" }}>{fmtClock(remaining)}</div>
+          <div style={{ flexShrink: 0, marginTop: "clamp(4px,1vh,8px)" }}>
+            <div className="display" style={{ fontSize: "clamp(34px, 8vh, 60px)", fontWeight: 800, lineHeight: 1, color: remaining === 0 ? C.go : running ? C.rust : C.ink, animation: running ? "ring 1.2s infinite" : "none" }}>{fmtClock(remaining)}</div>
             {!running && remaining === step.timerSec && (
-              <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
                 <BigButton tone="go" onClick={() => setRunning(true)} voiceHint="start count">START COUNT</BigButton>
-                <button onClick={next} style={{ background: "transparent", border: `1.5px solid ${C.inkSoft}`, color: C.inkSoft, borderRadius: 14, padding: "16px 18px", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>skip ›</button>
+                <button onClick={next} style={{ background: "transparent", border: `1.5px solid ${C.inkSoft}`, color: C.inkSoft, borderRadius: 12, padding: "12px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>skip ›</button>
               </div>
             )}
-            {running && <div style={{ color: C.inkSoft, marginTop: 6 }}>Counting… you'll be alerted when it's done.</div>}
-            {!running && remaining < step.timerSec && <div style={{ color: remaining === 0 ? C.go : C.gold, fontWeight: 700, marginTop: 6 }}>{remaining === 0 ? "Time's up" : "Paused"}</div>}
+            {running && <div style={{ color: C.inkSoft, marginTop: 4, fontSize: 13 }}>Counting… you'll be alerted when done.</div>}
+            {!running && remaining < step.timerSec && <div style={{ color: remaining === 0 ? C.go : C.gold, fontWeight: 700, marginTop: 4, fontSize: 14 }}>{remaining === 0 ? "Time's up" : "Paused"}</div>}
           </div>
         )}
       </div>
 
-      <div style={{ marginTop: 20, display: "grid", gap: 14 }}>
-        <BigButton full tone="go" onClick={next} voiceHint="done">{stepIndex + 1 < recipe.steps.length ? "STEP DONE → NEXT" : "FINISH PRODUCTION"}</BigButton>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => setShowStop(true)} style={{ background: "transparent", border: `1.5px solid ${C.rust}`, color: C.rust, borderRadius: 16, padding: "14px 26px", fontWeight: 700, fontSize: 17, cursor: "pointer" }}>STOP</button>
-          <GestureBar onThumbsUp={next} label="Thumbs up = step done" />
+      {/* action bar pinned at bottom — fixed height, never overlaps */}
+      <div style={{ display: "flex", gap: 10, alignItems: "stretch", flexShrink: 0 }}>
+        <button onClick={() => setShowStop(true)} style={{ background: "transparent", border: `1.5px solid ${C.rust}`, color: C.rust, borderRadius: 14, padding: "0 clamp(16px,4vw,26px)", fontWeight: 700, fontSize: "clamp(14px,2.4vw,17px)", cursor: "pointer", whiteSpace: "nowrap" }}>STOP</button>
+        <div style={{ flex: 1, display: "flex" }}>
+          <BigButton full tone="go" onClick={next} voiceHint="done">{stepIndex + 1 < recipe.steps.length ? "STEP DONE → NEXT" : "FINISH PRODUCTION"}</BigButton>
         </div>
       </div>
 
@@ -986,20 +1018,153 @@ function DriverView({ deliveryQueue, stores, onCollected }) {
 }
 
 /* ===================== LIVE PRODUCTION STOCK (all users) ===================== */
-function LiveStock({ recipes, storeStock, centralStock, cpu, stores, runs = [], embedded = false, onBack }) {
+/* Compact live-stock summary for the home/sign-in page (Production recipes only),
+   with a link to the full Stock page. */
+function StockPanel({ recipes, storeStock, centralStock, cpu, stores, onOpenStock }) {
+  const cpuName = cpu?.name || "CPU";
+  const cols = [...stores, cpuName];
+  const prodNames = new Set(recipes.filter((r) => (r.dept2 || "Production") === "Production").map((r) => r.name));
+  const rowsMap = {};
+  stores.forEach((s) => Object.entries(storeStock[s] || {}).forEach(([r, q]) => { if (prodNames.has(r)) (rowsMap[r] ||= {})[s] = q; }));
+  Object.entries(centralStock || {}).forEach(([r, q]) => { if (prodNames.has(r)) (rowsMap[r] ||= {})[cpuName] = q; });
+  let rows = Object.entries(rowsMap).map(([recipe, byLoc]) => ({ recipe, byLoc, total: cols.reduce((a, c) => a + (byLoc[c] || 0), 0) }));
+  rows.sort((a, b) => b.total - a.total || a.recipe.localeCompare(b.recipe));
+  const top = rows.slice(0, 6);
+  return (
+    <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.line}`, overflow: "hidden", marginBottom: 26 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 20px", borderBottom: `1px solid ${C.line}`, background: C.cardSoft, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 9, height: 9, borderRadius: 999, background: C.go }} />
+          <span className="display" style={{ fontWeight: 800, fontSize: 18 }}>Live stock</span>
+        </div>
+        <button onClick={onOpenStock} style={{ ...pillGhost, borderColor: C.go, color: C.go, padding: "8px 16px" }}>Full stock & leaderboard →</button>
+      </div>
+      {rows.length === 0 ? (
+        <div style={{ padding: 20, color: C.inkSoft, fontSize: 14 }}>No stock yet. Quantities appear here once productions are completed and allocated.</div>
+      ) : (
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <div style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 110 + cols.length * 110, gap: 10, padding: "10px 20px", fontSize: 11, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `1px solid ${C.line}` }}>
+            <span>Recipe</span>
+            {cols.map((c) => <span key={c} style={{ textAlign: "right" }}>{c}</span>)}
+            <span style={{ textAlign: "right" }}>Total</span>
+          </div>
+          {top.map((r, idx) => (
+            <div key={r.recipe} style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 110 + cols.length * 110, gap: 10, padding: "10px 20px", borderTop: idx ? `1px solid ${C.line}` : "none", fontSize: 14, alignItems: "center" }}>
+              <b style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.recipe}</b>
+              {cols.map((c) => { const v = r.byLoc[c] || 0; return <span key={c} className="display" style={{ textAlign: "right", fontWeight: 700, color: v > 0 ? C.ink : C.line }}>{v ? v.toFixed(1) : "—"}</span>; })}
+              <span className="display" style={{ textAlign: "right", fontWeight: 800, color: C.rust }}>{r.total.toFixed(1)}</span>
+            </div>
+          ))}
+          {rows.length > top.length && (
+            <button onClick={onOpenStock} style={{ width: "100%", background: "transparent", border: "none", borderTop: `1px solid ${C.line}`, color: C.inkSoft, padding: "11px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>+ {rows.length - top.length} more · view all</button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* SERVICE BOOK — permission-gated list of service recipes (reference only). */
+function SBook({ recipes, ingredients, onView, onBack }) {
+  const [q, setQ] = useState("");
+  const service = recipes.filter((r) => (r.dept2 || "Production") === "Service");
+  const query = q.trim().toLowerCase();
+  const list = service.filter((r) => !query || r.name.toLowerCase().includes(query) || (r.category || "").toLowerCase().includes(query));
+  return (
+    <div className="scr">
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
+        <button onClick={onBack} style={pillGhost}>← Back</button>
+        <div style={{ flex: 1 }} />
+      </div>
+      <Eyebrow>Service book</Eyebrow>
+      <h1 className="display" style={{ fontSize: "clamp(32px, 6vw, 44px)", fontWeight: 800, margin: "0 0 4px" }}>The <span style={{ color: C.rust }}>book</span></h1>
+      <p style={{ fontSize: 17, color: C.inkSoft, marginTop: 0 }}>Service recipes for reference. Tap one to read it — no production, just the recipe.</p>
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the book…" style={{ width: "100%", maxWidth: 360, background: C.card, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 999, padding: "11px 18px", fontSize: 15, margin: "8px 0 18px" }} />
+      {list.length === 0 ? (
+        <div style={{ background: C.card, borderRadius: 14, padding: 22, color: C.inkSoft, border: `1px solid ${C.line}` }}>{query ? `No service recipes match “${q}”.` : "No service recipes yet. Mark recipes as ‘Service’ (Department) in admin to add them here."}</div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 14 }}>
+          {list.map((r) => (
+            <button key={r.id} onClick={() => onView(r)} style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 20, padding: 0, overflow: "hidden", cursor: "pointer", color: C.ink, textAlign: "left" }}>
+              <div style={{ height: 120, background: r.hero ? `url(${r.hero}) center/cover` : `linear-gradient(135deg,${C.goldSoft},${C.gold})` }} />
+              <div style={{ padding: "12px 16px" }}>
+                <div className="display" style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.15 }}>{r.name}</div>
+                <div style={{ fontSize: 13, color: C.inkSoft, marginTop: 3 }}>{r.category || "Service"}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* SERVICE recipe — one-page read-only reference. No production flow. */
+function RecipeView({ recipe, ingredients, onBack }) {
+  const m = ingMap(ingredients);
+  const items = recipeItems(recipe);
+  return (
+    <div className="scr" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <button onClick={onBack} style={pillGhost}>← Back</button>
+        <div style={{ flex: 1 }} />
+        <span style={{ background: C.gold, color: C.ink, borderRadius: 999, padding: "5px 14px", fontSize: 13, fontWeight: 700 }}>Reference</span>
+      </div>
+      <div className="rv-head" style={{ display: "grid", gridTemplateColumns: recipe.hero ? "minmax(120px, 200px) 1fr" : "1fr", gap: 16, alignItems: "center" }}>
+        {recipe.hero && <div style={{ height: "clamp(110px, 22vw, 180px)", borderRadius: 18, background: `url(${recipe.hero}) center/cover` }} />}
+        <div>
+          <h1 className="display" style={{ fontSize: "clamp(26px, 5vw, 40px)", fontWeight: 800, margin: "0 0 6px", lineHeight: 1.1 }}>{recipe.name}</h1>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {recipe.category && <span style={{ background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{recipe.category}</span>}
+            {(recipe.dietary || []).map((d) => <span key={d} style={{ background: "#E2EFE0", color: C.go, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{d}</span>)}
+            {(recipe.allergens || []).map((a) => <span key={a} style={{ background: "#F6E0D6", color: C.rustDeep, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{a}</span>)}
+          </div>
+        </div>
+      </div>
+      <div className="rv-cols" style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.8fr) minmax(0, 1.2fr)", gap: 14, alignItems: "start" }}>
+        <div style={{ background: C.card, borderRadius: 18, padding: "16px 20px", border: `1px solid ${C.line}` }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 }}>Ingredients</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody>
+            {items.map((it) => (
+              <tr key={it.ingId} style={{ borderBottom: `1px solid ${C.line}` }}>
+                <td style={{ padding: "7px 0", fontWeight: 400, fontSize: "clamp(13px, 2.4vw, 15px)" }}>{m[it.ingId]?.name}</td>
+                <td className="display" style={{ padding: "7px 0", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap", fontSize: "clamp(13px, 2.4vw, 15px)" }}>{it.qty} {m[it.ingId]?.unit}</td>
+              </tr>
+            ))}
+          </tbody></table>
+        </div>
+        <div style={{ background: C.card, borderRadius: 18, padding: "16px 20px", border: `1px solid ${C.line}` }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 }}>Method</div>
+          <ol style={{ margin: 0, paddingLeft: 22, display: "grid", gap: 8 }}>
+            {recipe.steps.map((s, k) => <li key={k} style={{ fontSize: "clamp(13px, 2.4vw, 15px)", lineHeight: 1.4 }}>{s.text}</li>)}
+          </ol>
+          {recipe.notes && <div style={{ marginTop: 12, padding: "10px 12px", background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 10, fontSize: 13, color: C.inkSoft }}><b style={{ color: C.ink }}>Notes:</b> {recipe.notes}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LiveStock({ recipes, storeStock, centralStock, cpu, stores, runs = [], embedded = false, onProduce, onBack }) {
   const [query, setQuery] = useState("");
   // build a unified table: every recipe that has stock anywhere, qty per location + CPU
   const cpuName = cpu?.name || "CPU";
   const cols = [...stores, cpuName];
+  // only PRODUCTION recipes appear in stock — service recipes are reference only
+  const prodNames = new Set(recipes.filter((r) => (r.dept2 || "Production") === "Production").map((r) => r.name));
+  const recipeByName = Object.fromEntries(recipes.map((r) => [r.name, r]));
   const rowsMap = {};
-  stores.forEach((s) => Object.entries(storeStock[s] || {}).forEach(([r, q]) => { (rowsMap[r] ||= {})[s] = q; }));
-  Object.entries(centralStock || {}).forEach(([r, q]) => { (rowsMap[r] ||= {})[cpuName] = q; });
+  stores.forEach((s) => Object.entries(storeStock[s] || {}).forEach(([r, q]) => { if (prodNames.has(r)) (rowsMap[r] ||= {})[s] = q; }));
+  Object.entries(centralStock || {}).forEach(([r, q]) => { if (prodNames.has(r)) (rowsMap[r] ||= {})[cpuName] = q; });
   let rows = Object.entries(rowsMap).map(([recipe, byLoc]) => ({ recipe, byLoc, total: cols.reduce((a, c) => a + (byLoc[c] || 0), 0) }));
   const q = query.trim().toLowerCase();
   if (q) rows = rows.filter((r) => r.recipe.toLowerCase().includes(q));
   rows.sort((a, b) => a.recipe.localeCompare(b.recipe));
 
   const colTotal = (c) => rows.reduce((a, r) => a + (r.byLoc[c] || 0), 0);
+  const canProduce = !!onProduce;
+  const gcols = `1.6fr repeat(${cols.length}, 1fr) 0.9fr${canProduce ? " 110px" : ""}`;
+  const minW = 120 + cols.length * 120 + (canProduce ? 110 : 0);
 
   return (
     <div className="scr">
@@ -1011,7 +1176,7 @@ function LiveStock({ recipes, storeStock, centralStock, cpu, stores, runs = [], 
       )}
       <Eyebrow>{embedded ? "On the shelves" : "Live stock"}</Eyebrow>
       <h1 className="display" style={{ fontSize: embedded ? "clamp(28px,5vw,38px)" : "clamp(32px, 6vw, 44px)", fontWeight: 800, margin: "0 0 4px" }}>What we <span style={{ color: C.rust }}>have</span></h1>
-      <p style={{ fontSize: 16, color: C.inkSoft, marginTop: 0 }}>Live quantities of each recipe at every shop and the CPU. Production adds to this; sales (via Square, later) will subtract.</p>
+      <p style={{ fontSize: 16, color: C.inkSoft, marginTop: 0 }}>Live quantities at every shop and the CPU.{canProduce ? " Tap Produce to make more." : ""} Production adds to this; sales (via Square, later) will subtract.</p>
 
       <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search a recipe…" style={{ width: "100%", maxWidth: 360, background: C.card, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 999, padding: "11px 18px", fontSize: 15, marginBottom: 16 }} />
 
@@ -1021,26 +1186,29 @@ function LiveStock({ recipes, storeStock, centralStock, cpu, stores, runs = [], 
         </div>
       ) : (
         <div style={{ background: C.card, borderRadius: 16, overflowX: "auto", WebkitOverflowScrolling: "touch", border: `1px solid ${C.line}` }}>
-          <div style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 120 + cols.length * 120, gap: 10, padding: "14px 18px", borderBottom: `2px solid ${C.line}`, fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <div style={{ display: "grid", gridTemplateColumns: gcols, minWidth: minW, gap: 10, padding: "14px 18px", borderBottom: `2px solid ${C.line}`, fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5 }}>
             <span>Recipe</span>
             {cols.map((c) => <span key={c} style={{ textAlign: "right" }}>{c}</span>)}
             <span style={{ textAlign: "right" }}>Total</span>
+            {canProduce && <span />}
           </div>
           {rows.map((r, idx) => (
-            <div key={r.recipe} style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 120 + cols.length * 120, gap: 10, padding: "13px 18px", borderTop: idx ? `1px solid ${C.line}` : "none", fontSize: 15, alignItems: "center" }}>
+            <div key={r.recipe} style={{ display: "grid", gridTemplateColumns: gcols, minWidth: minW, gap: 10, padding: "11px 18px", borderTop: idx ? `1px solid ${C.line}` : "none", fontSize: 15, alignItems: "center" }}>
               <b>{r.recipe}</b>
               {cols.map((c) => {
                 const v = r.byLoc[c] || 0;
                 return <span key={c} className="display" style={{ textAlign: "right", fontWeight: 700, color: v > 0 ? C.ink : C.line }}>{v ? v.toFixed(1) : "—"}</span>;
               })}
               <span className="display" style={{ textAlign: "right", fontWeight: 800, color: C.rust }}>{r.total.toFixed(1)}</span>
+              {canProduce && <button onClick={() => onProduce(recipeByName[r.recipe])} style={{ background: C.rust, color: "#fff", border: "none", borderRadius: 999, padding: "8px 0", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Produce</button>}
             </div>
           ))}
           {/* totals row */}
-          <div style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 120 + cols.length * 120, gap: 10, padding: "13px 18px", borderTop: `2px solid ${C.line}`, fontSize: 14, alignItems: "center", background: C.cardSoft }}>
+          <div style={{ display: "grid", gridTemplateColumns: gcols, minWidth: minW, gap: 10, padding: "13px 18px", borderTop: `2px solid ${C.line}`, fontSize: 14, alignItems: "center", background: C.cardSoft }}>
             <b style={{ textTransform: "uppercase", letterSpacing: 0.5, fontSize: 12, color: C.inkSoft }}>All recipes</b>
             {cols.map((c) => <span key={c} className="display" style={{ textAlign: "right", fontWeight: 800 }}>{colTotal(c).toFixed(1)}</span>)}
             <span className="display" style={{ textAlign: "right", fontWeight: 800, color: C.rust }}>{rows.reduce((a, r) => a + r.total, 0).toFixed(1)}</span>
+            {canProduce && <span />}
           </div>
         </div>
       )}
@@ -1584,24 +1752,44 @@ function Field({ label, children }) { return <label style={{ display: "block" }}
 
 function AdminStaff({ staff, setStaff }) {
   const upd = (idx, patch) => setStaff((p) => p.map((x, i) => i === idx ? { ...x, ...patch } : x));
+  const togglePerm = (idx, perm) => setStaff((p) => p.map((x, i) => {
+    if (i !== idx) return x;
+    const cur = x.perms || (x.role === "driver" ? [] : ["production"]);
+    return { ...x, perms: cur.includes(perm) ? cur.filter((q) => q !== perm) : [...cur, perm] };
+  }));
+  const PermChip = ({ on, onClick, children }) => (
+    <button onClick={onClick} style={{ background: on ? C.go : "transparent", color: on ? "#fff" : C.inkSoft, border: `1.5px solid ${on ? C.go : C.line}`, borderRadius: 999, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>{on ? "✓ " : ""}{children}</button>
+  );
   return (
     <div>
       <div style={{ background: C.card, borderRadius: 16, overflowX: "auto", border: `1px solid ${C.line}` }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px 140px 40px", minWidth: 620, gap: 12, padding: "12px 18px", borderBottom: `2px solid ${C.line}`, fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 1 }}>
-          <span>Name</span><span>Role</span><span>PIN</span><span>Hourly wage</span><span />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 110px 90px 130px 180px 40px", minWidth: 760, gap: 12, padding: "12px 18px", borderBottom: `2px solid ${C.line}`, fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 1 }}>
+          <span>Name</span><span>Role</span><span>PIN</span><span>Hourly wage</span><span>Access</span><span />
         </div>
-        {staff.map((s, idx) => (
-          <div key={s.id} style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px 140px 40px", minWidth: 620, gap: 12, alignItems: "center", padding: "10px 18px", borderTop: idx ? `1px solid ${C.line}` : "none" }}>
-            <input value={s.name} onChange={(e) => upd(idx, { name: e.target.value })} style={cellInput} />
-            <select value={s.role} onChange={(e) => upd(idx, { role: e.target.value })} style={cellInput}><option value="production">production</option><option value="driver">driver</option></select>
-            <input value={s.pin || ""} placeholder="set PIN" onChange={(e) => upd(idx, { pin: e.target.value.slice(0, 4) })} style={cellInput} />
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ color: C.inkSoft }}>£</span><input type="number" step="0.10" value={s.wage} onChange={(e) => upd(idx, { wage: parseFloat(e.target.value) || 0 })} style={cellInput} /><span style={{ color: C.inkSoft, fontSize: 13 }}>/hr</span></div>
-            <button onClick={() => setStaff((p) => p.filter((_, i) => i !== idx))} style={{ background: "none", border: "none", color: C.rust, cursor: "pointer", fontSize: 18 }}>✕</button>
-          </div>
-        ))}
+        {staff.map((s, idx) => {
+          const perms = s.perms || (s.role === "driver" ? [] : ["production"]);
+          const isDriver = s.role === "driver";
+          return (
+            <div key={s.id} style={{ display: "grid", gridTemplateColumns: "1fr 110px 90px 130px 180px 40px", minWidth: 760, gap: 12, alignItems: "center", padding: "10px 18px", borderTop: idx ? `1px solid ${C.line}` : "none" }}>
+              <input value={s.name} onChange={(e) => upd(idx, { name: e.target.value })} style={cellInput} />
+              <select value={s.role} onChange={(e) => upd(idx, { role: e.target.value })} style={cellInput}><option value="production">production</option><option value="driver">driver</option></select>
+              <input value={s.pin || ""} placeholder="set PIN" onChange={(e) => upd(idx, { pin: e.target.value.slice(0, 4) })} style={cellInput} />
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ color: C.inkSoft }}>£</span><input type="number" step="0.10" value={s.wage} onChange={(e) => upd(idx, { wage: parseFloat(e.target.value) || 0 })} style={cellInput} /></div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {isDriver ? <span style={{ fontSize: 12, color: C.inkSoft }}>delivery only</span> : (
+                  <>
+                    <PermChip on={perms.includes("production")} onClick={() => togglePerm(idx, "production")}>Production</PermChip>
+                    <PermChip on={perms.includes("sbook")} onClick={() => togglePerm(idx, "sbook")}>S.Book</PermChip>
+                  </>
+                )}
+              </div>
+              <button onClick={() => setStaff((p) => p.filter((_, i) => i !== idx))} style={{ background: "none", border: "none", color: C.rust, cursor: "pointer", fontSize: 18 }}>✕</button>
+            </div>
+          );
+        })}
       </div>
-      <button onClick={() => setStaff((p) => [...p, { id: uid("u"), name: "New person", pin: "0000", wage: 12, role: "production" }])} style={{ ...adminBtn, marginTop: 12 }}>+ Add staff</button>
-      <div style={{ color: C.inkSoft, fontSize: 13, marginTop: 10 }}>Wages cost each production run and are never shown on the floor.</div>
+      <button onClick={() => setStaff((p) => [...p, { id: uid("u"), name: "New person", pin: "0000", wage: 12, role: "production", perms: ["production"] }])} style={{ ...adminBtn, marginTop: 12 }}>+ Add staff</button>
+      <div style={{ color: C.inkSoft, fontSize: 13, marginTop: 10 }}>Access controls what each person can open: <b>Production</b> (the bake floor) and <b>S.Book</b> (the service recipe book). Tick one or both. Wages cost each production run and are never shown on the floor.</div>
     </div>
   );
 }
@@ -1814,6 +2002,44 @@ function AdminPinGate({ onClose, onOk }) {
         <button onClick={() => submit(pin)} style={{ ...padBtn, background: C.go, color: "#fff" }}>✓</button>
       </div>
       {err && <p style={{ color: C.rust, fontSize: 13, marginBottom: 0 }}>Wrong PIN — try again.</p>}
+    </Modal>
+  );
+}
+
+/* Does this (already signed-in) user have a permission lane? Admin = all. */
+function hasPerm(user, perm) {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  const p = user.perms || (user.role === "driver" ? [] : ["production"]);
+  return p.includes(perm);
+}
+
+/* Permission gate: enter a PIN to identify yourself and prove you have `perm`.
+   Verified server-side via verify_pin (PINs are never read in the browser). */
+function StaffPinGate({ perm, title, subtitle, onClose, onOk }) {
+  const [pin, setPin] = useState("");
+  const [err, setErr] = useState("");
+  const submit = async (p) => {
+    try {
+      const person = await dbVerifyPin(p);
+      if (!person) { setErr("PIN not recognised."); setPin(""); return; }
+      const allowed = person.role === "admin" || (person.perms || (person.role === "driver" ? [] : ["production"])).includes(perm);
+      if (!allowed) { setErr(`${person.name} doesn't have ${perm === "sbook" ? "Service Book" : "Production"} access.`); setPin(""); return; }
+      onOk(person);
+    } catch (e) { console.error("verify_pin failed", e); setErr("Couldn't reach the server — try again."); setPin(""); }
+  };
+  return (
+    <Modal onClose={onClose}>
+      <div className="display" style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{title}</div>
+      <p style={{ color: C.inkSoft, marginTop: 0, fontSize: 14 }}>{subtitle}</p>
+      <div style={{ fontSize: 32, letterSpacing: 12, textAlign: "center", minHeight: 40, color: err ? C.rust : C.ink }}>{pin.replace(/./g, "•")}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 12 }}>
+        {[1,2,3,4,5,6,7,8,9].map((n) => <button key={n} onClick={() => { setErr(""); setPin((p) => (p + n).slice(0, 4)); }} style={padBtn}>{n}</button>)}
+        <button onClick={() => setPin("")} style={{ ...padBtn, fontSize: 15 }}>clear</button>
+        <button onClick={() => setPin((p) => (p + "0").slice(0, 4))} style={padBtn}>0</button>
+        <button onClick={() => submit(pin)} style={{ ...padBtn, background: C.go, color: "#fff" }}>✓</button>
+      </div>
+      {err && <p style={{ color: C.rust, fontSize: 13, marginBottom: 0 }}>{err}</p>}
     </Modal>
   );
 }
