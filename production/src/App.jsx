@@ -138,6 +138,10 @@ function deductSold(storeStock, location, recipeName, qtySold) {
 
 const ALLERGENS = ["Celery","Gluten","Crustaceans","Eggs","Fish","Lupin","Milk","Molluscs","Mustard","Peanuts","Sesame","Soya","Sulphur Dioxide","Nuts"];
 const CATEGORIES = ["Biscuit","Cake","Pastry","Dough","Filling","Traybake"];
+// Service-side categories (for the S.Book). Categories are free-text, so any can be
+// typed in the builder; these are just the quick suggestions.
+const SERVICE_CATEGORIES = ["Sandwich","Salad","Breakfast","Hot food","Soup","Quiche","Bagel","Pastry","Cake","Drink","Other"];
+const ALL_CATEGORIES = Array.from(new Set([...CATEGORIES, ...SERVICE_CATEGORIES]));
 const DIETARY = ["Vegetarian","Vegan","Meaty","Non-Dairy"];
 
 
@@ -213,20 +217,25 @@ function App() {
 
   const active = productions.find((p) => p.id === activeId) || null;
 
-  // ---- load all state from Supabase once on mount ----
+  // ---- load all state: instant from cache, then fresh from Supabase ----
+  const applyData = (data) => {
+    setStaff(data.staff); setIngredients(data.ingredients); setRecipes(data.recipes);
+    setCpu(data.cpu); setLocations(data.locations); setDelivery(data.delivery);
+    setStoreStock(data.storeStock); setCentralStock(data.centralStock); setDeliveryQueue(data.deliveryQueue);
+    setRuns(data.runs); setCancellations(data.cancellations); setAlerts(data.alerts);
+  };
   useEffect(() => {
     let cancelled = false;
+    // 1. instant paint: hydrate from the last-known cache so the page isn't blank
+    let hadCache = false;
+    try { const c = localStorage.getItem("ronis_cache_v1"); if (c) { applyData(JSON.parse(c)); hadCache = true; } } catch {}
+    // 2. authoritative: fetch fresh, update the screen, and refresh the cache
     (async () => {
       try {
         const data = await loadAll();
-        if (data && !cancelled) {
-          setStaff(data.staff); setIngredients(data.ingredients); setRecipes(data.recipes);
-          setCpu(data.cpu); setLocations(data.locations); setDelivery(data.delivery);
-          setStoreStock(data.storeStock); setCentralStock(data.centralStock); setDeliveryQueue(data.deliveryQueue);
-          setRuns(data.runs); setCancellations(data.cancellations); setAlerts(data.alerts);
-        }
+        if (data && !cancelled) { applyData(data); try { localStorage.setItem("ronis_cache_v1", JSON.stringify(data)); } catch {} }
       } catch (e) {
-        console.error("Load failed", e); flash("Couldn't load data from the database");
+        console.error("Load failed", e); if (!hadCache) flash("Couldn't load data from the database");
       } finally {
         if (!cancelled) { readyRef.current = true; setReady(true); }
       }
@@ -269,7 +278,9 @@ function App() {
   };
   const updateProduction = (id, patch) => setProductions((ps) => ps.map((p) => p.id === id ? { ...p, ...patch } : p));
   const removeProduction = (id) => setProductions((ps) => ps.filter((p) => p.id !== id));
-  const finishProduction = (p) => { setFinishing(p); setScreen("distribute"); };
+  // Stop the clock the moment we reach the delivery stage; that elapsed time is
+  // what labour cost is based on.
+  const finishProduction = (p) => { setFinishing({ ...p, finishedAt: Date.now() }); setScreen("distribute"); };
 
   const commitDistribution = (alloc, notForDelivery) => {
     const p = finishing;
@@ -282,7 +293,8 @@ function App() {
     setDeliveryQueue((prev) => { const next = { ...prev }; allocIds.forEach(({ store, qty, qid }) => { next[store] = [...(next[store] || []), { id: qid, recipe: rName, qty, unit: yUnit, by: p.startedBy?.name, when: whenLabel }]; }); return next; });
     if (notForDelivery > 0) setCentralStock((prev) => ({ ...prev, [rName]: (prev[rName] || 0) + notForDelivery }));
 
-    const totalSec = p.durations.reduce((a, b) => a + b, 0);
+    // total time the production took (clock stopped at the delivery stage)
+    const totalSec = p.finishedAt && p.startedAt ? Math.max(0, Math.round((p.finishedAt - p.startedAt) / 1000)) : p.durations.reduce((a, b) => a + b, 0);
     const labour = (totalSec / 3600) * (p.startedBy?.wage || 0);
     const ingCost = recipeCost(p.recipe, ingredients) * (p.targetQty / p.recipe.yieldKg);
     const deliv = alloc.reduce((sum, { store }) => sum + deliveryCost(locations.find((l) => l.name === store), delivery), 0);
@@ -385,6 +397,13 @@ function App() {
         }
       `}</style>
 
+      {screen === "run" && active ? (
+        <RunRecipe key={active.id} production={active} ingredients={ingredients}
+          onStep={(patch) => updateProduction(active.id, patch)}
+          onComplete={() => finishProduction(active)} onCancel={() => cancelProduction(active)}
+          onBack={() => setScreen("home")} />
+      ) : (
+      <>
       <TopBar user={user} voiceOn={voiceOn} voiceSupported={voiceSupported}
         onToggleVoice={() => setVoiceOn((v) => !v)}
         onHome={() => { if (productions.length && user?.role === "production") { setActiveId(productions[0].id); setScreen("run"); } else setScreen("home"); }}
@@ -430,11 +449,6 @@ function App() {
             onBack={() => { setFinishing(null); setScreen("home"); }}
             onStart={(qty) => { const r = finishing._pickQty; setFinishing(null); startProduction(r, qty); }} />
         )}
-        {screen === "run" && active && (
-          <RunRecipe key={active.id} production={active} ingredients={ingredients}
-            onStep={(patch) => updateProduction(active.id, patch)}
-            onComplete={() => finishProduction(active)} onCancel={() => cancelProduction(active)} />
-        )}
         {screen === "distribute" && finishing && !finishing._pickQty && (
           <Distribute production={finishing} stores={stores} locations={locations} delivery={delivery} onConfirm={commitDistribution} />
         )}
@@ -454,6 +468,8 @@ function App() {
             deliveryQueue={deliveryQueue} runs={runs} cancellations={cancellations} alerts={alerts} setAlerts={setAlertsP} stores={stores} onResetStock={resetStock} onClose={() => { if (user?.role === "admin") { setUser(null); } setScreen("home"); }} />
         )}
       </div>
+      </>
+      )}
 
       <TimerTool open={timerOpen} onClose={() => setTimerOpen(false)} onAlarm={() => setTimerOpen(true)} />
 
@@ -782,7 +798,7 @@ function Quantity({ recipe, ingredients, onBack, onStart }) {
   );
 }
 
-function RunRecipe({ production, ingredients, onStep, onComplete, onCancel }) {
+function RunRecipe({ production, ingredients, onStep, onComplete, onCancel, onBack }) {
   const { recipe, targetQty, stepIndex } = production;
   const factor = targetQty / recipe.yieldKg;
   const m = ingMap(ingredients);
@@ -819,22 +835,23 @@ function RunRecipe({ production, ingredients, onStep, onComplete, onCancel }) {
   const manyIng = used.length > 5; // shrink harder when there are lots of ingredients
 
   return (
-    <div className="runscr" style={{ height: "calc(100dvh - 196px)", minHeight: 400, display: "flex", flexDirection: "column", gap: "clamp(6px, 1.2vh, 12px)", overflow: "hidden" }}>
-      {/* progress */}
-      <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-        {recipe.steps.map((_, k) => <div key={k} style={{ flex: 1, height: 6, borderRadius: 999, background: k < stepIndex ? C.go : k === stepIndex ? C.rust : C.line }} />)}
+    <div className="runscr" style={{ height: "100dvh", display: "flex", flexDirection: "column", gap: "clamp(6px, 1.2vh, 12px)", overflow: "hidden", padding: "clamp(8px,1.6vh,16px) clamp(10px,2.5vw,22px)" }}>
+      {/* full-screen top bar: back · LIVE · recipe name · time · step count */}
+      <div style={{ display: "flex", alignItems: "center", gap: "clamp(6px,1.5vw,12px)", flexShrink: 0 }}>
+        <button onClick={onBack} title="Back to recipes (production keeps running)" style={{ background: C.card, border: `1px solid ${C.line}`, color: C.ink, borderRadius: 12, padding: "clamp(7px,1.4vh,11px) clamp(11px,2vw,15px)", fontWeight: 800, fontSize: "clamp(15px,2.6vw,19px)", cursor: "pointer", flexShrink: 0 }}>←</button>
+        <span style={{ background: C.rust, color: "#fff", borderRadius: 999, padding: "5px 12px", fontWeight: 800, fontSize: "clamp(10px,1.8vw,12px)", letterSpacing: 1, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}><span style={{ width: 8, height: 8, borderRadius: 999, background: "#fff", animation: "ring 1.2s infinite" }} />LIVE</span>
+        <span className="display" style={{ fontSize: "clamp(16px,3vw,26px)", fontWeight: 800, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{recipe.name} · {targetQty} {recipe.yieldUnit}</span>
+        <div style={{ flex: 1 }} />
+        <div style={{ background: C.ink, color: C.cream, borderRadius: 999, padding: "5px 13px", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", opacity: .8 }}>time</span>
+          <span className="display" style={{ fontSize: "clamp(16px, 2.8vw, 22px)", fontWeight: 800 }}>{fmtClock(totalElapsed)}</span>
+        </div>
+        <div style={{ fontSize: "clamp(14px, 2.4vw, 18px)", fontWeight: 800, whiteSpace: "nowrap", flexShrink: 0 }}>{stepIndex + 1}/{recipe.steps.length}</div>
       </div>
 
-      {/* header line: name/qty + step count + total timer, compact on one row */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", flexShrink: 0 }}>
-        <div style={{ fontSize: "clamp(13px, 2.2vw, 16px)", color: C.inkSoft, fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{recipe.name} · {targetQty} {recipe.yieldUnit}</div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-          <div style={{ background: C.ink, color: C.cream, borderRadius: 999, padding: "4px 12px", display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", opacity: .8 }}>time</span>
-            <span className="display" style={{ fontSize: "clamp(15px, 2.6vw, 20px)", fontWeight: 800 }}>{fmtClock(totalElapsed)}</span>
-          </div>
-          <div style={{ fontSize: "clamp(13px, 2.2vw, 16px)", fontWeight: 700, whiteSpace: "nowrap" }}>{stepIndex + 1}/{recipe.steps.length}</div>
-        </div>
+      {/* progress */}
+      <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+        {recipe.steps.map((_, k) => <div key={k} style={{ flex: 1, height: 7, borderRadius: 999, background: k < stepIndex ? C.go : k === stepIndex ? C.rust : C.line }} />)}
       </div>
 
       {/* step card — flexes to fill remaining height; content force-fit, page never scrolls */}
@@ -860,8 +877,8 @@ function RunRecipe({ production, ingredients, onStep, onComplete, onCancel }) {
           <div style={{ flexShrink: 0, height: "clamp(70px, 16vh, 170px)", borderRadius: 14, margin: "clamp(6px,1.2vh,12px) auto", width: "min(420px, 100%)", background: `url(${step.image}) center/cover` }} />
         )}
 
-        {/* step text — scales down on small screens */}
-        <div className="display" style={{ fontSize: manyIng ? "clamp(16px, 3vw, 26px)" : "clamp(18px, 3.4vw, 34px)", fontWeight: 500, lineHeight: 1.15, color: C.inkSoft, margin: "clamp(4px,1vh,10px) 0", flexShrink: 0 }}>{step.text}</div>
+        {/* step text — big, bold, high-contrast: readable from a couple of steps away */}
+        <div className="display" style={{ fontSize: manyIng ? "clamp(20px, 3.8vw, 34px)" : "clamp(24px, 4.6vw, 46px)", fontWeight: 700, lineHeight: 1.12, color: C.ink, margin: "clamp(4px,1vh,10px) 0", flexShrink: 0 }}>{step.text}</div>
 
         {/* ingredients — the flexible middle; only THIS scrolls if truly necessary on tiny screens */}
         {used.length > 0 && (
@@ -1067,9 +1084,13 @@ function StockPanel({ recipes, storeStock, centralStock, cpu, stores, onOpenStoc
 /* SERVICE BOOK — permission-gated list of service recipes (reference only). */
 function SBook({ recipes, ingredients, onView, onBack }) {
   const [q, setQ] = useState("");
+  const [cat, setCat] = useState("All");
   const service = recipes.filter((r) => (r.dept2 || "Production") === "Service");
+  const cats = ["All", ...Array.from(new Set(service.map((r) => r.category).filter(Boolean))).sort()];
   const query = q.trim().toLowerCase();
-  const list = service.filter((r) => !query || r.name.toLowerCase().includes(query) || (r.category || "").toLowerCase().includes(query));
+  const list = service
+    .filter((r) => cat === "All" || (r.category || "") === cat)
+    .filter((r) => !query || r.name.toLowerCase().includes(query) || (r.category || "").toLowerCase().includes(query));
   return (
     <div className="scr">
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
@@ -1079,7 +1100,14 @@ function SBook({ recipes, ingredients, onView, onBack }) {
       <Eyebrow>Service book</Eyebrow>
       <h1 className="display" style={{ fontSize: "clamp(32px, 6vw, 44px)", fontWeight: 800, margin: "0 0 4px" }}>The <span style={{ color: C.rust }}>book</span></h1>
       <p style={{ fontSize: 17, color: C.inkSoft, marginTop: 0 }}>Service recipes for reference. Tap one to read it — no production, just the recipe.</p>
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the book…" style={{ width: "100%", maxWidth: 360, background: C.card, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 999, padding: "11px 18px", fontSize: 15, margin: "8px 0 18px" }} />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the book…" style={{ width: "100%", maxWidth: 360, background: C.card, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 999, padding: "11px 18px", fontSize: 15, margin: "8px 0 12px", display: "block" }} />
+      {cats.length > 1 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+          {cats.map((c) => (
+            <button key={c} onClick={() => setCat(c)} style={{ background: cat === c ? C.rust : C.card, color: cat === c ? "#fff" : C.ink, border: `1.5px solid ${cat === c ? C.rust : C.line}`, borderRadius: 999, padding: "8px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{c}</button>
+          ))}
+        </div>
+      )}
       {list.length === 0 ? (
         <div style={{ background: C.card, borderRadius: 14, padding: 22, color: C.inkSoft, border: `1px solid ${C.line}` }}>{query ? `No service recipes match “${q}”.` : "No service recipes yet. Mark recipes as ‘Service’ (Department) in admin to add them here."}</div>
       ) : (
@@ -1632,7 +1660,8 @@ function RecipeBuilder({ ingredients, initial, onCancel, onSave, onAutoSave }) {
               <select value={dept2} onChange={(e) => setDept2(e.target.value)} style={bigInput}><option>Production</option><option>Service</option></select>
             </Field>
             <Field label="Category">
-              <select value={category} onChange={(e) => setCategory(e.target.value)} style={bigInput}><option value="">—</option>{CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+              <input list="cat-suggestions" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Sandwich, Cake…" style={bigInput} />
+              <datalist id="cat-suggestions">{ALL_CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
             </Field>
             <Field label="Yield unit">
               <select value={yieldUnit} onChange={(e) => setYieldUnit(e.target.value)} style={bigInput}>{UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
@@ -1838,9 +1867,19 @@ function AdminLocations({ cpu, setCpu, locations, setLocations, delivery, setDel
   );
 }
 
-function AdminReports({ runs, recipes, cancellations, storeStock, centralStock, deliveryQueue, stores, onResetStock }) {
+function AdminReports({ runs: allRuns, recipes, cancellations, storeStock, centralStock, deliveryQueue, stores, onResetStock }) {
   const [view, setView] = useState("runs");
+  const [range, setRange] = useState("all"); // all | today | 7 | 30
   const recipesById = Object.fromEntries((recipes || []).map((r) => [r.id, r]));
+
+  // date filter (newest data first) — applies to all run-based figures
+  const now = Date.now();
+  const cutoff = range === "today" ? new Date().setHours(0, 0, 0, 0) : range === "7" ? now - 7 * 864e5 : range === "30" ? now - 30 * 864e5 : 0;
+  const runs = (allRuns || [])
+    .filter((r) => { const t = r.at ? Date.parse(r.at) : 0; return cutoff ? t >= cutoff : true; })
+    .slice()
+    .sort((a, b) => (Date.parse(b.at || 0) || 0) - (Date.parse(a.at || 0) || 0));
+
   const totalQty = runs.reduce((a, r) => a + r.qty, 0), totalLabour = runs.reduce((a, r) => a + r.labour, 0);
   const totalIng = runs.reduce((a, r) => a + r.ingCost, 0), totalDeliv = runs.reduce((a, r) => a + (r.deliv || 0), 0), totalCost = runs.reduce((a, r) => a + r.total, 0);
   const totalSec = runs.reduce((a, r) => a + r.totalSec, 0);
@@ -1853,6 +1892,7 @@ function AdminReports({ runs, recipes, cancellations, storeStock, centralStock, 
   runs.forEach((r) => { (byPerson[r.by] ||= { name: r.by, runs: 0, qty: 0, sec: 0, labour: 0 }); const g = byPerson[r.by]; g.runs++; g.qty += r.qty; g.sec += r.totalSec; g.labour += r.labour; });
 
   const views = [["runs", "All runs"], ["recipe", "By recipe"], ["person", "By person"], ["cancelled", "Cancelled"], ["stock", "Stock & delivery"]];
+  const rangeSel = { background: C.card, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
 
   return (
     <div>
@@ -1866,8 +1906,16 @@ function AdminReports({ runs, recipes, cancellations, storeStock, centralStock, 
         <Stat label="Total cost" value={fmtMoney(totalCost)} />
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         {views.map(([id, l]) => <button key={id} onClick={() => setView(id)} style={{ background: view === id ? C.ink : C.card, color: view === id ? "#fff" : C.ink, border: `1px solid ${view === id ? C.ink : C.line}`, borderRadius: 999, padding: "8px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>{l}</button>)}
+        <div style={{ flex: 1 }} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 1 }}>Date</span>
+        <select value={range} onChange={(e) => setRange(e.target.value)} style={rangeSel}>
+          <option value="all">All time</option>
+          <option value="today">Today</option>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+        </select>
       </div>
 
       {view === "runs" && (
