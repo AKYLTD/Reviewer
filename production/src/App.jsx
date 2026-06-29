@@ -12,7 +12,8 @@ import {
 // them to/from the database and exposes the reads/writes the App needs.
 import {
   loadAll, upsertRows, deleteByIds, saveSingleton, verifyPin as dbVerifyPin,
-  persistProduction, persistCancellation, clearQueueForLocation, resetAllStock, scheduleSync,
+  persistProduction, persistCancellation, clearQueueForLocation, resetAllStock,
+  scheduleSync, queueUpsert, setSyncErrorHandler,
   ingToRow, recToRow, staffToRow, locToRow,
 } from "./lib/db.js";
 
@@ -225,6 +226,8 @@ function App() {
     setRuns(data.runs); setCancellations(data.cancellations); setAlerts(data.alerts);
   };
   useEffect(() => {
+    // surface any background save failure to the user (with the real error)
+    setSyncErrorHandler((table, e) => flash(`⚠️ Couldn't save ${table} — ${e.message || e}. Retrying…`, 7000));
     let cancelled = false;
     // 1. instant paint: hydrate from the last-known cache so the page isn't blank
     let hadCache = false;
@@ -259,19 +262,16 @@ function App() {
   const persistColl = (setState, table, toRow) => (updater) => setState((prev) => {
     const next = typeof updater === "function" ? updater(prev) : updater;
     if (readyRef.current) {
+      const prevById = Object.fromEntries(prev.map((x) => [x.id, x]));
       const nextIds = new Set(next.map((x) => x.id));
-      const removed = prev.filter((x) => !nextIds.has(x.id)).map((x) => x.id);
+      // Only send rows that are NEW or actually CHANGED — never the whole collection.
+      const changed = next.filter((x) => { const p = prevById[x.id]; return !p || JSON.stringify(toRow(p)) !== JSON.stringify(toRow(x)); }).map(toRow);
+      if (changed.length) queueUpsert(table, changed);
       // SAFETY: only delete a small, deliberate removal (a ✕ click). A large drop is
       // almost always a glitch/stale state — never let it wipe rows from the database.
+      const removed = prev.filter((x) => !nextIds.has(x.id)).map((x) => x.id);
       if (removed.length && removed.length <= 3) deleteByIds(table, removed).catch((e) => { console.error(`delete ${table} failed`, e); flash("Couldn't delete from the database"); });
       else if (removed.length > 3) console.warn(`Skipped auto-delete of ${removed.length} ${table} rows (safety guard)`);
-      // Persist the change. If it fails: stash the full collection locally so it can
-      // be replayed on the next load, and SHOW the user (never lose data silently).
-      scheduleSync(table, () => upsertRows(table, next.map(toRow)).catch((e) => {
-        console.error(`save ${table} failed`, e);
-        try { localStorage.setItem("ronis_pending_" + table, JSON.stringify(next.map(toRow))); } catch {}
-        flash(`⚠️ NOT saved — ${e.message || e}`, 7000);
-      }));
     }
     return next;
   });

@@ -189,9 +189,47 @@ export async function resetAllStock() {
   for (const r of results) if (r.error) throw r.error;
 }
 
-/* ---------- debounce for noisy admin edits (per-keystroke) ---------- */
-const timers = {};
+/* ============================================================================
+   Robust write queue.
+   - Only the CHANGED rows are sent (never the whole collection), so one bad/blocked
+     row can't take down everyone else, and we don't re-update untouched rows.
+   - Changes accumulate per table and flush on a debounce, so rapid edits aren't lost.
+   - On failure: stash to localStorage (replayed next load) and notify, then retry.
+   ============================================================================ */
+const pending = {};   // table -> Map(id -> row)
+const flushTimers = {};
+let syncErrorHandler = null;
+export function setSyncErrorHandler(fn) { syncErrorHandler = fn; }
+
+export function queueUpsert(table, rows) {
+  if (!supabase || !rows.length) return;
+  const m = (pending[table] ||= new Map());
+  for (const r of rows) m.set(r.id, r);
+  scheduleFlush(table, 700);
+}
+function scheduleFlush(table, ms) {
+  clearTimeout(flushTimers[table]);
+  flushTimers[table] = setTimeout(() => flushTable(table), ms);
+}
+async function flushTable(table) {
+  const m = pending[table];
+  if (!m || !m.size) return;
+  const rows = [...m.values()];
+  try {
+    await upsertRows(table, rows);
+    for (const r of rows) if (m.get(r.id) === r) m.delete(r.id);     // keep any newer edits queued
+    if (!m.size) { try { localStorage.removeItem("ronis_pending_" + table); } catch {} }
+  } catch (e) {
+    console.error(`sync ${table} failed`, e);
+    try { localStorage.setItem("ronis_pending_" + table, JSON.stringify(rows)); } catch {}
+    if (syncErrorHandler) syncErrorHandler(table, e);
+    scheduleFlush(table, 3000); // keep the rows queued and retry
+  }
+}
+
+// Debounced save for singletons (cpu / delivery settings).
+const singletonTimers = {};
 export function scheduleSync(key, fn, ms = 700) {
-  clearTimeout(timers[key]);
-  timers[key] = setTimeout(() => { Promise.resolve(fn()).catch((e) => console.error(`sync ${key} failed`, e)); }, ms);
+  clearTimeout(singletonTimers[key]);
+  singletonTimers[key] = setTimeout(() => { Promise.resolve(fn()).catch((e) => console.error(`sync ${key} failed`, e)); }, ms);
 }
