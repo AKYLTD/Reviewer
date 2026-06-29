@@ -196,7 +196,9 @@ function App() {
   // is never written back over the database.
   const readyRef = useRef(false);
 
-  const stores = locations.map((l) => l.name);
+  // Single-site mode: we bake & sell in the same place — no shops to deliver to.
+  const singleSite = !!cpu?.singleSite;
+  const stores = singleSite ? [] : locations.map((l) => l.name);
 
   const [productions, setProductions] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -258,7 +260,7 @@ function App() {
   // ---- persistence-aware setters for admin-managed data ----
   // Same call signature as React setters; they also sync the change to Supabase
   // (debounced, so per-keystroke edits coalesce into one write).
-  const alertToRow = (a) => ({ id: a.id, recipe: a.recipe, from_sec: a.from, to_sec: a.to, dir: a.dir, diff: a.diff, runs: a.runs, when_label: a.when });
+  const alertToRow = (a) => ({ id: a.id, kind: a.kind || "time", message: a.message || null, recipe: a.recipe, from_sec: a.from, to_sec: a.to, dir: a.dir, diff: a.diff, runs: a.runs, when_label: a.when });
   const persistColl = (setState, table, toRow) => (updater) => setState((prev) => {
     const next = typeof updater === "function" ? updater(prev) : updater;
     if (readyRef.current) {
@@ -285,7 +287,7 @@ function App() {
   const setStaffP = persistColl(setStaff, "staff", staffToRow);
   const setLocationsP = persistColl(setLocations, "locations", locToRow);
   const setAlertsP = persistColl(setAlerts, "alerts", alertToRow);
-  const setCpuP = persistOne(setCpu, "cpu", (c) => ({ name: c.name, address: c.address || "" }));
+  const setCpuP = persistOne(setCpu, "cpu", (c) => ({ name: c.name, address: c.address || "", single_site: !!c.singleSite }));
   const setDeliveryP = persistOne(setDelivery, "delivery_settings", (d) => ({ per_mile: Number(d.perMile) || 0, per_hour: Number(d.perHour) || 0 }));
 
   const locId = (name) => locations.find((l) => l.name === name)?.id;
@@ -298,10 +300,11 @@ function App() {
   const removeProduction = (id) => setProductions((ps) => ps.filter((p) => p.id !== id));
   // Stop the clock the moment we reach the delivery stage; that elapsed time is
   // what labour cost is based on.
-  const finishProduction = (p) => { setFinishing({ ...p, finishedAt: Date.now() }); setScreen("distribute"); };
+  const finishProduction = (p) => { setFinishing({ ...p, finishedAt: Date.now() }); setScreen("yield"); };
 
-  const commitDistribution = (alloc, notForDelivery) => {
-    const p = finishing;
+  const commitDistribution = (alloc, notForDelivery, prod) => {
+    const p = prod || finishing;
+    const producedQty = p.actualQty ?? p.targetQty;
     const whenLabel = new Date().toLocaleString("en-GB");
     const rName = p.recipe.name, rId = p.recipe.id, yUnit = p.recipe.yieldUnit;
     // deterministic queue-item ids so the in-memory state and the DB rows match
@@ -316,7 +319,7 @@ function App() {
     const labour = (totalSec / 3600) * (p.startedBy?.wage || 0);
     const ingCost = recipeCost(p.recipe, ingredients) * (p.targetQty / p.recipe.yieldKg);
     const deliv = alloc.reduce((sum, { store }) => sum + deliveryCost(locations.find((l) => l.name === store), delivery), 0);
-    const thisRun = { id: uid("run"), recipeId: rId, recipe: rName, qty: p.targetQty, unit: yUnit, by: p.startedBy?.name, totalSec, labour, ingCost, deliv, total: labour + ingCost + deliv, when: whenLabel, at: new Date().toISOString() };
+    const thisRun = { id: uid("run"), recipeId: rId, recipe: rName, qty: producedQty, unit: yUnit, by: p.startedBy?.name, totalSec, labour, ingCost, deliv, total: labour + ingCost + deliv, when: whenLabel, at: new Date().toISOString() };
 
     // rolling average of actual time for this recipe vs the set expected time
     const updated = [thisRun, ...runs];
@@ -360,6 +363,32 @@ function App() {
       .catch((e) => { console.error("Persist cancellation failed", e); flash("Database write failed"); });
   };
 
+  // End-of-production yield check. Learn the real yield when close (≤5%), or flag
+  // the admin when it's off by more.
+  const confirmYield = (actual) => {
+    const p = finishing;
+    const target = p.targetQty;
+    const recipe = p.recipe;
+    if (target > 0 && actual > 0 && actual !== target) {
+      const diffPct = Math.abs(actual - target) / target;
+      if (diffPct <= 0.05) {
+        const newBase = +(actual * recipe.yieldKg / target).toFixed(2);
+        setRecipesP((rs) => rs.map((r) => r.id === recipe.id ? { ...r, yieldKg: newBase } : r));
+        flash(`Yield auto-adjusted: ${recipe.name} → ${newBase} ${recipe.yieldUnit}`, 3500);
+      } else {
+        const pct = Math.round(diffPct * 100);
+        const dir = actual > target ? "higher" : "lower";
+        const al = { id: uid("al"), kind: "yield", recipe: recipe.name, message: `Yield ${dir} by ${pct}%: aimed ${target}, made ${actual} ${recipe.yieldUnit}. Recipe yield left unchanged — please review.`, when: new Date().toLocaleString("en-GB") };
+        setAlertsP((prev) => [al, ...prev.filter((a) => !(a.kind === "yield" && a.recipe === recipe.name))]);
+        flash(`Yield off by ${pct}% — flagged for admin review`, 4000);
+      }
+    }
+    const fin = { ...p, actualQty: actual };
+    setFinishing(fin);
+    if (singleSite || stores.length === 0) { commitDistribution([], actual, fin); } // produce for itself → own stock
+    else { setScreen("distribute"); }
+  };
+
   const requestSignOut = () => {
     if (productions.length > 0) { setActiveId(productions[0].id); setScreen("run"); flash("Finish or stop the live production first"); }
     else { setUser(null); setScreen("home"); }
@@ -374,7 +403,11 @@ function App() {
   const [viewing, setViewing] = useState(null);      // service recipe being read (RecipeView)
   const [sbookPrompt, setSbookPrompt] = useState(false); // PIN gate to open S.Book
   const [produceGate, setProduceGate] = useState(null);  // recipe pending PIN gate to produce
+  const [yieldPopup, setYieldPopup] = useState(false);   // admin login pop-up for yield warnings
   const hasServiceRecipes = recipes.some((r) => (r.dept2 || "Production") === "Service");
+  const yieldAlerts = alerts.filter((a) => a.kind === "yield");
+  // pop the yield warnings when an admin signs in
+  useEffect(() => { if (user?.role === "admin" && alerts.some((a) => a.kind === "yield")) setYieldPopup(true); }, [user]);
 
   return (
     <div style={{ fontFamily: "'Nunito Sans',system-ui,sans-serif", background: C.cream, minHeight: "100vh", color: C.ink }}>
@@ -443,6 +476,21 @@ function App() {
         <StaffPinGate perm="production" title={`Produce ${produceGate.name}`} subtitle="Enter your PIN to start this production"
           onClose={() => setProduceGate(null)} onOk={(person) => { const r = produceGate; setProduceGate(null); setUser(person); setFinishing({ _pickQty: r }); setScreen("qty"); }} />
       )}
+      {yieldPopup && yieldAlerts.length > 0 && (
+        <Modal onClose={() => setYieldPopup(false)}>
+          <div className="display" style={{ fontSize: 24, fontWeight: 800, marginBottom: 4, color: C.rust }}>⚠ Yield warnings</div>
+          <p style={{ color: C.inkSoft, marginTop: 0, fontSize: 14 }}>Productions came out more than 5% off their set yield. The recipe yields were left unchanged — please review them.</p>
+          <div style={{ display: "grid", gap: 10, marginTop: 12, maxHeight: "50vh", overflowY: "auto" }}>
+            {yieldAlerts.map((a) => (
+              <div key={a.id} style={{ background: "#F6E0D6", border: `1px solid ${C.rust}`, borderRadius: 12, padding: "12px 14px", display: "flex", gap: 10, alignItems: "center" }}>
+                <span style={{ flex: 1, fontSize: 14 }}><b>{a.recipe}</b> — {a.message} <span style={{ color: C.inkSoft }}>({a.when})</span></span>
+                <button onClick={() => setAlertsP((al) => al.filter((x) => x.id !== a.id))} style={{ ...pillGhost, padding: "6px 12px", fontSize: 13 }}>Resolve</button>
+              </div>
+            ))}
+          </div>
+          <BigButton full tone="go" onClick={() => setYieldPopup(false)}>Got it</BigButton>
+        </Modal>
+      )}
 
       {user?.role === "production" && productions.length > 0 && screen !== "admin" && (
         <Switcher productions={productions} activeId={activeId} onSwitch={(id) => { setActiveId(id); setScreen("run"); }} onNew={() => setScreen("home")} />
@@ -466,6 +514,9 @@ function App() {
           <Quantity recipe={finishing._pickQty} ingredients={ingredients}
             onBack={() => { setFinishing(null); setScreen("home"); }}
             onStart={(qty) => { const r = finishing._pickQty; setFinishing(null); startProduction(r, qty); }} />
+        )}
+        {screen === "yield" && finishing && !finishing._pickQty && (
+          <YieldCheck production={finishing} onConfirm={confirmYield} />
         )}
         {screen === "distribute" && finishing && !finishing._pickQty && (
           <Distribute production={finishing} stores={stores} locations={locations} delivery={delivery} onConfirm={commitDistribution} />
@@ -953,8 +1004,32 @@ function RunRecipe({ production, ingredients, recipes = [], onStep, onComplete, 
   );
 }
 
-function Distribute({ production, stores, locations, delivery, onConfirm }) {
+/* End-of-production yield check — confirm how much was actually made. */
+function YieldCheck({ production, onConfirm }) {
   const { recipe, targetQty } = production;
+  const unit = recipe.yieldUnit;
+  const [actual, setActual] = useState(targetQty);
+  return (
+    <div className="scr" style={{ maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
+      <Eyebrow>Yield check</Eyebrow>
+      <h1 className="display" style={{ fontSize: "clamp(28px,6vw,42px)", fontWeight: 800, margin: "0 0 6px" }}>Did you make <span style={{ color: C.rust }}>{targetQty} {unit}</span>?</h1>
+      <p style={{ fontSize: 17, color: C.inkSoft, marginTop: 0 }}>Confirm what you actually got — this keeps the recipe's yield accurate. (Within 5% adjusts automatically; bigger gaps are flagged for admin.)</p>
+      <div style={{ display: "flex", alignItems: "center", gap: 20, justifyContent: "center", margin: "22px 0", flexWrap: "wrap" }}>
+        <button onClick={() => setActual((a) => Math.max(0, +(a - 1).toFixed(1)))} style={stepBtn}>−</button>
+        <div><div className="display" style={{ fontSize: 84, fontWeight: 800, lineHeight: 1, color: C.rust }}>{actual}</div><div style={{ fontSize: 18, color: C.inkSoft, fontWeight: 600 }}>{unit}</div></div>
+        <button onClick={() => setActual((a) => +(a + 1).toFixed(1))} style={stepBtn}>+</button>
+      </div>
+      <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>
+        {actual !== targetQty && <button onClick={() => setActual(targetQty)} style={pillGhost}>Reset to {targetQty}</button>}
+      </div>
+      <BigButton full tone="go" onClick={() => onConfirm(+actual)}>{actual === targetQty ? "Yes — that's right" : `Confirm ${actual} ${unit}`}</BigButton>
+    </div>
+  );
+}
+
+function Distribute({ production, stores, locations, delivery, onConfirm }) {
+  const { recipe } = production;
+  const targetQty = production.actualQty ?? production.targetQty; // what was actually made
   const [alloc, setAlloc] = useState(stores.map((s) => ({ store: s, qty: 0 })));
   const [central, setCentral] = useState(0);
   const assigned = alloc.reduce((a, b) => a + b.qty, 0) + central;
@@ -1388,7 +1463,13 @@ function Admin({ ingredients, setIngredients, recipes, setRecipes, staff, setSta
       </div>
       {alerts && alerts.length > 0 && (
         <div style={{ marginBottom: 18 }}>
-          {alerts.map((a) => (
+          {alerts.map((a) => a.kind === "yield" ? (
+            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#F6E0D6", border: `1px solid ${C.rust}`, borderRadius: 14, padding: "12px 16px", marginBottom: 8 }}>
+              <span style={{ fontWeight: 800, color: C.rust }}>⚠</span>
+              <span style={{ flex: 1, fontSize: 14 }}><b>{a.recipe}</b> — {a.message}</span>
+              <button onClick={() => setAlerts((al) => al.filter((x) => x.id !== a.id))} style={{ background: "none", border: "none", color: C.inkSoft, cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+          ) : (
             <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, background: a.dir === "up" ? "#F6E0D6" : "#E2EFE0", border: `1px solid ${a.dir === "up" ? C.rust : C.go}`, borderRadius: 14, padding: "12px 16px", marginBottom: 8 }}>
               <span style={{ fontWeight: 800, color: a.dir === "up" ? C.rust : C.go }}>{a.dir === "up" ? "▲" : "▼"}</span>
               <span style={{ flex: 1, fontSize: 14 }}>Production time for <b>{a.recipe}</b> went <b>{a.dir}</b> by <b>{fmtClock(a.diff)}</b> over {a.runs} runs. Expected time updated {fmtClock(a.from)} → <b>{fmtClock(a.to)}</b>.</span>
@@ -1885,6 +1966,23 @@ function AdminLocations({ cpu, setCpu, locations, setLocations, delivery, setDel
         </div>
       </div>
 
+      {/* single-site toggle */}
+      <div style={{ background: C.card, borderRadius: 18, padding: 20, border: `1px solid ${C.line}`, marginBottom: 16, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ fontSize: 16, fontWeight: 800 }}>Single site — bake &amp; sell here</div>
+          <div style={{ fontSize: 13, color: C.inkSoft, marginTop: 2 }}>No deliveries and no shops: production goes straight into your own stock. Turn this off if you deliver to other shops.</div>
+        </div>
+        <button onClick={() => setCpu({ ...cpu, singleSite: !cpu.singleSite })}
+          style={{ background: cpu.singleSite ? C.go : "transparent", color: cpu.singleSite ? "#fff" : C.inkSoft, border: `1.5px solid ${cpu.singleSite ? C.go : C.line}`, borderRadius: 999, padding: "10px 22px", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
+          {cpu.singleSite ? "✓ Single site ON" : "Single site OFF"}
+        </button>
+      </div>
+
+      {cpu.singleSite ? (
+        <div style={{ background: C.cardSoft, borderRadius: 18, padding: 20, border: `1px dashed ${C.gold}`, color: C.inkSoft }}>
+          Single-site mode is on — shops and delivery rates are hidden, and everything you produce goes into your own stock. Turn it off above to manage shops and deliveries.
+        </div>
+      ) : (<>
       {/* delivery rates */}
       <div style={{ background: C.card, borderRadius: 18, padding: 20, border: `1px solid ${C.line}`, marginBottom: 16 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 }}>Delivery rates</div>
@@ -1912,6 +2010,7 @@ function AdminLocations({ cpu, setCpu, locations, setLocations, delivery, setDel
         ))}
       </div>
       <button onClick={() => setLocations((p) => [...p, { id: uid("loc"), name: "New store", address: "", distanceMi: 0, driveMin: 0 }])} style={{ ...adminBtn, marginTop: 12 }}>+ Add location</button>
+      </>)}
     </div>
   );
 }

@@ -36,7 +36,7 @@ export const locToRow = (l) => ({ id: l.id, name: l.name, address: l.address || 
 
 const runFromRow = (r) => ({ id: r.id, recipeId: r.recipe_id, recipe: r.recipe, qty: Number(r.qty), unit: r.unit, by: r.by_name, totalSec: r.total_sec, labour: Number(r.labour), ingCost: Number(r.ing_cost), deliv: Number(r.deliv), total: Number(r.total), when: r.when_label, at: r.created_at });
 const cancelFromRow = (r) => ({ id: r.id, recipe: r.recipe, qty: Number(r.qty), unit: r.unit, by: r.by_name, stoppedAtStep: r.stopped_at_step, totalSteps: r.total_steps, when: r.when_label });
-const alertFromRow = (r) => ({ id: r.id, recipe: r.recipe, from: r.from_sec, to: r.to_sec, dir: r.dir, diff: r.diff, runs: r.runs, when: r.when_label });
+const alertFromRow = (r) => ({ id: r.id, kind: r.kind || "time", message: r.message || null, recipe: r.recipe, from: r.from_sec, to: r.to_sec, dir: r.dir, diff: r.diff, runs: r.runs, when: r.when_label });
 
 /* ---------- initial load ---------- */
 export async function loadAll() {
@@ -90,7 +90,7 @@ export async function loadAll() {
     (deliveryQueue[ln] ||= []).push({ id: row.id, recipe: row.recipe, qty: Number(row.qty), unit: row.unit, by: row.by_name, when: row.when_label });
   }
 
-  const cpu = cpuR.data?.[0] ? { name: cpuR.data[0].name, address: cpuR.data[0].address || "" } : { name: "", address: "" };
+  const cpu = cpuR.data?.[0] ? { name: cpuR.data[0].name, address: cpuR.data[0].address || "", singleSite: !!cpuR.data[0].single_site } : { name: "", address: "", singleSite: false };
   const delivery = del.data?.[0] ? { perMile: Number(del.data[0].per_mile), perHour: Number(del.data[0].per_hour) } : { perMile: 0, perHour: 0 };
 
   return {
