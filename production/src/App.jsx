@@ -11,7 +11,7 @@ import {
 // Persistence layer (Supabase). The UI keeps its in-memory shapes; db.js maps
 // them to/from the database and exposes the reads/writes the App needs.
 import {
-  loadAll, upsertRows, deleteByIds, saveSingleton, verifyPin as dbVerifyPin,
+  loadAll, loadStaff, upsertRows, deleteByIds, saveSingleton, verifyPin as dbVerifyPin,
   persistProduction, persistCancellation, clearQueueForLocation, resetAllStock,
   scheduleSync, queueUpsert, setSyncErrorHandler,
   ingToRow, recToRow, staffToRow, locToRow,
@@ -234,6 +234,8 @@ function App() {
     // 1. instant paint: hydrate from the last-known cache so the page isn't blank
     let hadCache = false;
     try { const c = localStorage.getItem("ronis_cache_v1"); if (c) { applyData(JSON.parse(c)); hadCache = true; } } catch {}
+    // 1b. fast staff fetch so the sign-in names show right away (not after the full load)
+    loadStaff().then((s) => { if (s && !cancelled) setStaff(s); }).catch(() => {});
     // 2. recover: replay any writes that failed on a previous visit (offline / error)
     //    so unsaved recipes/ingredients/staff/locations are never lost.
     (async () => {
@@ -505,7 +507,7 @@ function App() {
             onPick={(r) => { if ((r.dept2 || "Production") === "Service") { setViewing(r); setScreen("view"); } else { setFinishing({ _pickQty: r }); setScreen("qty"); } }} />
         )}
         {screen === "view" && viewing && (
-          <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onBack={() => { setViewing(null); setScreen("home"); }} />
+          <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onNavigate={(r) => setViewing(r)} onBack={() => { setViewing(null); setScreen(user ? "home" : "home"); }} />
         )}
         {screen === "sbook" && (
           <SBook recipes={recipes} ingredients={ingredients} onView={(r) => { setViewing(r); setScreen("view"); }} onBack={() => setScreen(user?.role === "driver" ? "driver" : "home")} />
@@ -1015,14 +1017,18 @@ function YieldCheck({ production, onConfirm }) {
       <h1 className="display" style={{ fontSize: "clamp(28px,6vw,42px)", fontWeight: 800, margin: "0 0 6px" }}>Did you make <span style={{ color: C.rust }}>{targetQty} {unit}</span>?</h1>
       <p style={{ fontSize: 17, color: C.inkSoft, marginTop: 0 }}>Confirm what you actually got — this keeps the recipe's yield accurate. (Within 5% adjusts automatically; bigger gaps are flagged for admin.)</p>
       <div style={{ display: "flex", alignItems: "center", gap: 20, justifyContent: "center", margin: "22px 0", flexWrap: "wrap" }}>
-        <button onClick={() => setActual((a) => Math.max(0, +(a - 1).toFixed(1)))} style={stepBtn}>−</button>
-        <div><div className="display" style={{ fontSize: 84, fontWeight: 800, lineHeight: 1, color: C.rust }}>{actual}</div><div style={{ fontSize: 18, color: C.inkSoft, fontWeight: 600 }}>{unit}</div></div>
-        <button onClick={() => setActual((a) => +(a + 1).toFixed(1))} style={stepBtn}>+</button>
+        <button onClick={() => setActual((a) => Math.max(0, +((Number(a) || 0) - 1).toFixed(1)))} style={stepBtn}>−</button>
+        <div style={{ textAlign: "center" }}>
+          <input type="number" inputMode="decimal" value={actual} onChange={(e) => setActual(e.target.value)} onFocus={(e) => e.target.select()}
+            style={{ width: 180, textAlign: "center", border: `2px solid ${C.line}`, borderRadius: 16, background: C.card, color: C.rust, fontFamily: "'Quicksand',sans-serif", fontSize: 72, fontWeight: 800, lineHeight: 1, padding: "6px 0" }} />
+          <div style={{ fontSize: 18, color: C.inkSoft, fontWeight: 600 }}>{unit} — tap the number to type</div>
+        </div>
+        <button onClick={() => setActual((a) => +((Number(a) || 0) + 1).toFixed(1))} style={stepBtn}>+</button>
       </div>
       <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>
-        {actual !== targetQty && <button onClick={() => setActual(targetQty)} style={pillGhost}>Reset to {targetQty}</button>}
+        {(Number(actual) || 0) !== targetQty && <button onClick={() => setActual(targetQty)} style={pillGhost}>Reset to {targetQty}</button>}
       </div>
-      <BigButton full tone="go" onClick={() => onConfirm(+actual)}>{actual === targetQty ? "Yes — that's right" : `Confirm ${actual} ${unit}`}</BigButton>
+      <BigButton full tone="go" onClick={() => onConfirm(Number(actual) || 0)}>{(Number(actual) || 0) === targetQty ? "Yes — that's right" : `Confirm ${Number(actual) || 0} ${unit}`}</BigButton>
     </div>
   );
 }
@@ -1224,9 +1230,11 @@ function SBook({ recipes, ingredients, onView, onBack }) {
 }
 
 /* SERVICE recipe — one-page read-only reference. No production flow. */
-function RecipeView({ recipe, ingredients, recipes = [], onBack }) {
+function RecipeView({ recipe, ingredients, recipes = [], onBack, onNavigate }) {
   const m = ingMap(ingredients);
   const recById = Object.fromEntries(recipes.map((r) => [r.id, r]));
+  const [lightbox, setLightbox] = useState(null);
+  const touch = useRef(null);
   // component-aware ingredient list (handles produced recipes used as components)
   const agg = {};
   (recipe.steps || []).forEach((s) => (s.use || []).forEach((u) => {
@@ -1235,44 +1243,83 @@ function RecipeView({ recipe, ingredients, recipes = [], onBack }) {
     agg[key].qty += Number(u.qty) || 0;
   }));
   const items = Object.values(agg);
+
+  // gallery: hero first, then any process/final images (deduped)
+  const extra = [...(recipe.images?.process || []), ...(recipe.images?.final || [])].filter(Boolean);
+  const gallery = Array.from(new Set([recipe.hero, ...extra].filter(Boolean)));
+
+  // siblings for swipe/arrow navigation (service recipes, same order as the book)
+  const siblings = recipes.filter((r) => (r.dept2 || "Production") === "Service");
+  const idx = siblings.findIndex((r) => r.id === recipe.id);
+  const prev = idx > 0 ? siblings[idx - 1] : null;
+  const next = idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1] : null;
+  const onTouchStart = (e) => { touch.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (touch.current == null || !onNavigate) return;
+    const dx = e.changedTouches[0].clientX - touch.current; touch.current = null;
+    if (dx < -60 && next) onNavigate(next);
+    else if (dx > 60 && prev) onNavigate(prev);
+  };
+  const arrow = (dir) => ({ background: C.card, border: `1px solid ${C.line}`, color: C.ink, borderRadius: 999, width: 44, height: 44, fontSize: 20, fontWeight: 800, cursor: "pointer", flexShrink: 0, opacity: dir ? 1 : 0.3 });
+
   return (
-    <div className="scr" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="scr" style={{ display: "flex", flexDirection: "column", gap: 14 }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <button onClick={onBack} style={pillGhost}>← Back</button>
+        {onNavigate && <button disabled={!prev} onClick={() => prev && onNavigate(prev)} style={arrow(prev)} title="Previous">‹</button>}
+        {onNavigate && <button disabled={!next} onClick={() => next && onNavigate(next)} style={arrow(next)} title="Next">›</button>}
+        {siblings.length > 1 && <span style={{ fontSize: 13, color: C.inkSoft }}>{idx + 1} / {siblings.length} · swipe to flip</span>}
         <div style={{ flex: 1 }} />
         <span style={{ background: C.gold, color: C.ink, borderRadius: 999, padding: "5px 14px", fontSize: 13, fontWeight: 700 }}>Reference</span>
       </div>
-      <div className="rv-head" style={{ display: "grid", gridTemplateColumns: recipe.hero ? "minmax(120px, 200px) 1fr" : "1fr", gap: 16, alignItems: "center" }}>
-        {recipe.hero && <div style={{ height: "clamp(110px, 22vw, 180px)", borderRadius: 18, background: `url(${recipe.hero}) center/cover` }} />}
-        <div>
-          <h1 className="display" style={{ fontSize: "clamp(26px, 5vw, 40px)", fontWeight: 800, margin: "0 0 6px", lineHeight: 1.1 }}>{recipe.name}</h1>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {recipe.category && <span style={{ background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{recipe.category}</span>}
-            {(recipe.dietary || []).map((d) => <span key={d} style={{ background: "#E2EFE0", color: C.go, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{d}</span>)}
-            {(recipe.allergens || []).map((a) => <span key={a} style={{ background: "#F6E0D6", color: C.rustDeep, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{a}</span>)}
-          </div>
-        </div>
+
+      {/* BIG hero — readable from across the kitchen; tap to open full screen */}
+      {recipe.hero && (
+        <div onClick={() => setLightbox(recipe.hero)} style={{ height: "clamp(220px, 42vh, 480px)", borderRadius: 22, background: `url(${recipe.hero}) center/cover`, border: `1px solid ${C.line}`, cursor: "zoom-in" }} />
+      )}
+      <h1 className="display" style={{ fontSize: "clamp(28px, 5.5vw, 46px)", fontWeight: 800, margin: "2px 0 0", lineHeight: 1.05 }}>{recipe.name}</h1>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {recipe.category && <span style={{ background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{recipe.category}</span>}
+        {(recipe.dietary || []).map((d) => <span key={d} style={{ background: "#E2EFE0", color: C.go, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{d}</span>)}
+        {(recipe.allergens || []).map((a) => <span key={a} style={{ background: "#F6E0D6", color: C.rustDeep, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{a}</span>)}
       </div>
+
+      {/* secondary images — a touch smaller; tap to enlarge */}
+      {gallery.length > 1 && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {gallery.slice(1).map((src, i) => (
+            <div key={i} onClick={() => setLightbox(src)} style={{ width: "clamp(120px, 22vw, 180px)", height: "clamp(90px, 16vw, 130px)", borderRadius: 14, background: `url(${src}) center/cover`, border: `1px solid ${C.line}`, cursor: "zoom-in", flexShrink: 0 }} />
+          ))}
+        </div>
+      )}
+
       <div className="rv-cols" style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.8fr) minmax(0, 1.2fr)", gap: 14, alignItems: "start" }}>
         <div style={{ background: C.card, borderRadius: 18, padding: "16px 20px", border: `1px solid ${C.line}` }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 }}>Ingredients</div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody>
             {items.map((it) => (
               <tr key={it.key} style={{ borderBottom: `1px solid ${C.line}` }}>
-                <td style={{ padding: "7px 0", fontWeight: it.isRecipe ? 700 : 400, color: it.isRecipe ? C.rust : C.ink, fontSize: "clamp(13px, 2.4vw, 15px)" }}>{it.isRecipe ? "▸ " : ""}{it.name}</td>
-                <td className="display" style={{ padding: "7px 0", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap", fontSize: "clamp(13px, 2.4vw, 15px)" }}>{it.qty} {it.unit}</td>
+                <td style={{ padding: "8px 0", fontWeight: it.isRecipe ? 700 : 400, color: it.isRecipe ? C.rust : C.ink, fontSize: "clamp(14px, 2.6vw, 17px)" }}>{it.isRecipe ? "▸ " : ""}{it.name}</td>
+                <td className="display" style={{ padding: "8px 0", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap", fontSize: "clamp(14px, 2.6vw, 17px)" }}>{it.qty} {it.unit}</td>
               </tr>
             ))}
           </tbody></table>
         </div>
         <div style={{ background: C.card, borderRadius: 18, padding: "16px 20px", border: `1px solid ${C.line}` }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 }}>Method</div>
-          <ol style={{ margin: 0, paddingLeft: 22, display: "grid", gap: 8 }}>
-            {recipe.steps.map((s, k) => <li key={k} style={{ fontSize: "clamp(13px, 2.4vw, 15px)", lineHeight: 1.4 }}>{s.text}</li>)}
+          <ol style={{ margin: 0, paddingLeft: 22, display: "grid", gap: 10 }}>
+            {recipe.steps.map((s, k) => <li key={k} style={{ fontSize: "clamp(14px, 2.6vw, 17px)", lineHeight: 1.45 }}>{s.text}</li>)}
           </ol>
-          {recipe.notes && <div style={{ marginTop: 12, padding: "10px 12px", background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 10, fontSize: 13, color: C.inkSoft }}><b style={{ color: C.ink }}>Notes:</b> {recipe.notes}</div>}
+          {recipe.notes && <div style={{ marginTop: 12, padding: "10px 12px", background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 10, fontSize: 14, color: C.inkSoft }}><b style={{ color: C.ink }}>Notes:</b> {recipe.notes}</div>}
         </div>
       </div>
+
+      {lightbox && (
+        <div onClick={() => setLightbox(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.9)", zIndex: 90, display: "grid", placeItems: "center", padding: 16, cursor: "zoom-out" }}>
+          <img src={lightbox} alt={recipe.name} style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 12, objectFit: "contain" }} />
+          <button onClick={() => setLightbox(null)} style={{ position: "fixed", top: 18, right: 18, background: "rgba(255,255,255,.15)", color: "#fff", border: "none", borderRadius: 999, width: 44, height: 44, fontSize: 22, cursor: "pointer" }}>✕</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1616,7 +1663,7 @@ function AdminRecipes({ recipes, ingredients, setRecipes, setIngredients }) {
         return (
           <>
             <div style={{ color: C.inkSoft, fontSize: 13, marginBottom: 10 }}>{filtered.length} recipe{filtered.length > 1 ? "s" : ""}</div>
-            {filtered.map((r) => <RecipeCard key={r.id} recipe={r} ingredients={ingredients} onEdit={() => setEditing(r)} onDelete={() => setRecipes((rs) => rs.filter((x) => x.id !== r.id))} />)}
+            {filtered.map((r) => <RecipeCard key={r.id} recipe={r} ingredients={ingredients} recipes={recipes} onEdit={() => setEditing(r)} onDelete={() => setRecipes((rs) => rs.filter((x) => x.id !== r.id))} />)}
           </>
         );
       })()}
@@ -1624,9 +1671,19 @@ function AdminRecipes({ recipes, ingredients, setRecipes, setIngredients }) {
   );
 }
 
-function RecipeCard({ recipe, ingredients, onEdit, onDelete }) {
+function RecipeCard({ recipe, ingredients, recipes = [], onEdit, onDelete }) {
   const m = ingMap(ingredients);
-  const items = recipeItems(recipe);
+  const recById = Object.fromEntries(recipes.map((r) => [r.id, r]));
+  const cName = (u) => u.recipeId ? (recById[u.recipeId]?.name || "Recipe") : (m[u.ingId]?.name || "");
+  const cUnit = (u) => u.recipeId ? (u.unit || "units") : (m[u.ingId]?.unit || "");
+  // component-aware totals (ingredients + recipe components)
+  const agg = {};
+  (recipe.steps || []).forEach((s) => (s.use || []).forEach((u) => {
+    const key = u.recipeId ? "r:" + u.recipeId : "i:" + u.ingId;
+    if (!agg[key]) agg[key] = { key, qty: 0, name: cName(u), unit: cUnit(u), isRecipe: !!u.recipeId };
+    agg[key].qty += Number(u.qty) || 0;
+  }));
+  const items = Object.values(agg);
   return (
     <div style={{ background: C.card, borderRadius: 20, marginBottom: 18, border: `1px solid ${C.line}`, overflow: "hidden" }}>
       <div style={{ display: "flex" }}>
@@ -1656,9 +1713,9 @@ function RecipeCard({ recipe, ingredients, onEdit, onDelete }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <tbody>
               {items.map((it) => (
-                <tr key={it.ingId} style={{ borderBottom: `1px solid ${C.line}` }}>
-                  <td style={{ padding: "9px 0", fontWeight: 400 }}>{m[it.ingId]?.name}</td>
-                  <td className="display" style={{ padding: "9px 0", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap" }}>{it.qty} {m[it.ingId]?.unit}</td>
+                <tr key={it.key} style={{ borderBottom: `1px solid ${C.line}` }}>
+                  <td style={{ padding: "9px 0", fontWeight: it.isRecipe ? 700 : 400, color: it.isRecipe ? C.rust : C.ink }}>{it.isRecipe ? "▸ " : ""}{it.name}</td>
+                  <td className="display" style={{ padding: "9px 0", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap" }}>{it.qty} {it.unit}</td>
                 </tr>
               ))}
             </tbody>
@@ -1673,7 +1730,7 @@ function RecipeCard({ recipe, ingredients, onEdit, onDelete }) {
                 <div>
                   {s.image && <div style={{ height: 90, width: 140, borderRadius: 10, background: `url(${s.image}) center/cover`, marginBottom: 8 }} />}
                   <div style={{ fontWeight: 400, lineHeight: 1.45 }}>{s.text}</div>
-                  {s.use && s.use.length > 0 && <div style={{ fontSize: 13, color: C.inkSoft, marginTop: 4 }}>{s.use.map((u) => `${u.qty}${m[u.ingId]?.unit} ${m[u.ingId]?.name}`).join(" · ")}</div>}
+                  {s.use && s.use.length > 0 && <div style={{ fontSize: 13, color: C.inkSoft, marginTop: 4 }}>{s.use.map((u) => `${u.qty}${cUnit(u)} ${cName(u)}`).join(" · ")}</div>}
                 </div>
                 {s.isTimed && s.timerSec ? <span style={{ background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "4px 10px", fontSize: 12, fontWeight: 700, color: C.gold, whiteSpace: "nowrap" }}>⏲ {fmtClock(s.timerSec)}</span> : <span />}
               </div>
@@ -1700,6 +1757,7 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
   const [expectedMin, setExpectedMin] = useState(initial?.expectedSec ? Math.round(initial.expectedSec / 60) : 0);
   const [hero, setHero] = useState(initial?.hero || null);
   const [dept2, setDept2] = useState(initial?.dept2 || "Production");
+  const [asComponent, setAsComponent] = useState(initial?.asComponent || false);
   const [category, setCategory] = useState(initial?.category || "");
   const [allergens, setAllergens] = useState(initial?.allergens || []);
   const [dietary, setDietary] = useState(initial?.dietary || []);
@@ -1723,7 +1781,7 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
     const clean = {
       id: idRef.current,
       name: name.trim() || "Untitled recipe",
-      yieldKg: parseFloat(yieldKg) || 1, yieldUnit, hero, dept2, category, allergens, dietary,
+      yieldKg: parseFloat(yieldKg) || 1, yieldUnit, hero, dept2, category, allergens, dietary, asComponent,
       expectedSec: expectedMin > 0 ? Math.round(expectedMin * 60) : (initial?.expectedSec || 0),
       steps: steps.filter((s) => s.text.trim()).map((s) => {
         const est = estimateStepSec({ text: s.text, use: s.use }, ingredients);
@@ -1773,6 +1831,12 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
           ))}
         </div>
         <span style={{ fontSize: 13, color: C.inkSoft }}>{dept2 === "Service" ? "Shown in the S.Book (reference only)." : "Made on the bake floor; appears in production & stock."}</span>
+      </div>
+
+      {/* usable as a component in other recipes (e.g. Bagel inside a sandwich) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
+        <button onClick={() => setAsComponent((v) => !v)} style={{ background: asComponent ? C.go : "transparent", color: asComponent ? "#fff" : C.inkSoft, border: `1.5px solid ${asComponent ? C.go : C.line}`, borderRadius: 999, padding: "8px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{asComponent ? "✓ Usable as an ingredient" : "Use as an ingredient?"}</button>
+        <span style={{ fontSize: 13, color: C.inkSoft }}>Turn on for items used inside other recipes (e.g. Bagel, Egg Mayo). They appear in the ingredient picker.</span>
       </div>
 
       {/* hero + name + yield */}
@@ -1865,12 +1929,12 @@ function IngredientPicker({ ingredients, recipes = [], onPick, onClose }) {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const ingList = ingredients.filter((i) => !q || i.name.toLowerCase().includes(q)).slice().sort((a, b) => a.name.localeCompare(b.name));
-  const recList = recipes.filter((r) => (r.dept2 || "Production") === "Production").filter((r) => !q || r.name.toLowerCase().includes(q)).slice().sort((a, b) => a.name.localeCompare(b.name));
+  const recList = recipes.filter((r) => r.asComponent).filter((r) => !q || r.name.toLowerCase().includes(q)).slice().sort((a, b) => a.name.localeCompare(b.name));
   const rowBtn = (extra) => ({ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", textAlign: "left", background: "transparent", border: "none", padding: "13px 16px", fontSize: 16, color: C.ink, cursor: "pointer", ...extra });
   const hdr = { padding: "8px 16px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, color: C.inkSoft, background: C.cardSoft };
   return (
     <Modal onClose={onClose}>
-      <div style={{ width: "min(460px, 92vw)" }}>
+      <div style={{ width: "100%" }}>
         <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 10 }}>Add ingredient or recipe</div>
         <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search…"
           style={{ width: "100%", background: C.cream, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 16px", fontSize: 16, marginBottom: 12 }} />
@@ -2243,7 +2307,7 @@ function StaffPinGate({ perm, title, subtitle, onClose, onOk }) {
 function Modal({ children, onClose }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(58,42,30,.5)", display: "grid", placeItems: "center", zIndex: 60, padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 22, padding: 28, maxWidth: 460, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,.4)", border: `1px solid ${C.line}` }}>{children}</div>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 22, padding: 24, maxWidth: 460, width: "100%", maxHeight: "88vh", overflowY: "auto", boxSizing: "border-box", boxShadow: "0 20px 60px rgba(0,0,0,.4)", border: `1px solid ${C.line}` }}>{children}</div>
     </div>
   );
 }

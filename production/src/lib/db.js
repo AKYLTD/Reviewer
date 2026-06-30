@@ -16,12 +16,14 @@ export const recFromRow = (r) => ({
   dept2: r.dept2 || "Production", notes: r.notes || "", allergens: r.allergens || [],
   dietary: r.dietary || [], hero: r.hero || null, images: r.images || null,
   yieldKg: Number(r.yield_kg), yieldUnit: r.yield_unit, expectedSec: r.expected_sec, steps: r.steps || [],
+  asComponent: !!r.as_component,
 });
 export const recToRow = (r) => ({
   id: r.id, name: r.name, category: r.category || null, department: r.department || null,
   dept2: r.dept2 || "Production", notes: r.notes || "", allergens: r.allergens || [],
   dietary: r.dietary || [], hero: r.hero ?? null, images: r.images ?? null,
   yield_kg: r.yieldKg ?? 10, yield_unit: r.yieldUnit || "kg", expected_sec: r.expectedSec ?? 0, steps: r.steps || [],
+  as_component: !!r.asComponent,
 });
 
 export const staffFromRow = (r) => ({ id: r.id, name: r.name, wage: Number(r.wage) || 0, role: r.role, perms: Array.isArray(r.perms) ? r.perms : (r.role === "driver" ? [] : ["production"]) });
@@ -37,6 +39,16 @@ export const locToRow = (l) => ({ id: l.id, name: l.name, address: l.address || 
 const runFromRow = (r) => ({ id: r.id, recipeId: r.recipe_id, recipe: r.recipe, qty: Number(r.qty), unit: r.unit, by: r.by_name, totalSec: r.total_sec, labour: Number(r.labour), ingCost: Number(r.ing_cost), deliv: Number(r.deliv), total: Number(r.total), when: r.when_label, at: r.created_at });
 const cancelFromRow = (r) => ({ id: r.id, recipe: r.recipe, qty: Number(r.qty), unit: r.unit, by: r.by_name, stoppedAtStep: r.stopped_at_step, totalSteps: r.total_steps, when: r.when_label });
 const alertFromRow = (r) => ({ id: r.id, kind: r.kind || "time", message: r.message || null, recipe: r.recipe, from: r.from_sec, to: r.to_sec, dir: r.dir, diff: r.diff, runs: r.runs, when: r.when_label });
+
+/* Fast, tiny staff-only fetch so the sign-in names appear immediately, instead of
+   waiting for the full loadAll() (which fetches recipes/runs/stock in parallel). */
+export async function loadStaff() {
+  if (!supabase) return null;
+  let r = await supabase.from("staff").select("id,name,wage,role,perms").neq("role", "admin");
+  if (r.error) r = await supabase.from("staff").select("id,name,wage,role").neq("role", "admin");
+  if (r.error) throw r.error;
+  return (r.data || []).map(staffFromRow);
+}
 
 /* ---------- initial load ---------- */
 export async function loadAll() {
