@@ -463,12 +463,15 @@ function App() {
           .admin-title{font-size:26px !important}
           .topbar{padding:10px 12px !important;gap:8px !important}
         }
+        @media (max-width: 900px){
+          .rv-cols{grid-template-columns:1fr !important}
+          .recipeview{height:auto !important;overflow:visible !important}
+        }
         @media (max-width: 760px){
           .card-cols{grid-template-columns:1fr !important}
           .card-cols > div:first-child{border-right:none !important;border-bottom:1px solid ${C.line}}
           .step-cols{grid-template-columns:1fr !important}
           .recipe-hero-side{display:none !important}
-          .rv-cols{grid-template-columns:1fr !important}
           .rv-head{grid-template-columns:1fr !important}
         }
       `}</style>
@@ -521,6 +524,9 @@ function App() {
         <Switcher productions={productions} activeId={activeId} onSwitch={(id) => { setActiveId(id); setScreen("run"); }} onNew={() => setScreen("home")} />
       )}
 
+      {screen === "view" && viewing ? (
+        <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onNavigate={(r) => setViewing(r)} onBack={() => { setViewing(null); setScreen(hasServiceRecipes && user?.role !== "admin" ? "sbook" : backScreen); }} />
+      ) : (
       <div style={{ maxWidth: 1060, margin: "0 auto", padding: "26px 18px 80px" }}>
         {screen === "home" && (
           <Home user={user} staff={staff} recipes={recipes} ingredients={ingredients} verifyPin={dbVerifyPin}
@@ -528,9 +534,6 @@ function App() {
             onOpenStock={() => setScreen("stock")}
             onSignIn={(u) => { setUser(u); setScreen(u.role === "driver" ? "driver" : u.role === "admin" ? "admin" : "home"); }}
             onPick={(r) => { if ((r.dept2 || "Production") === "Service") { setViewing(r); setScreen("view"); } else { setFinishing({ _pickQty: r }); setScreen("qty"); } }} />
-        )}
-        {screen === "view" && viewing && (
-          <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onNavigate={(r) => setViewing(r)} onBack={() => { setViewing(null); setScreen(hasServiceRecipes && user?.role !== "admin" ? "sbook" : backScreen); }} />
         )}
         {screen === "sbook" && (
           <SBook recipes={recipes} ingredients={ingredients} onView={(r) => { setViewing(r); setScreen("view"); }} onBack={() => setScreen(backScreen)} />
@@ -562,6 +565,7 @@ function App() {
             deliveryQueue={deliveryQueue} runs={runs} cancellations={cancellations} alerts={alerts} setAlerts={setAlertsP} stores={stores} onResetStock={resetStock} onClose={() => { if (user?.role === "admin") { setUser(null); } setScreen("home"); }} />
         )}
       </div>
+      )}
       </>
       )}
 
@@ -1285,9 +1289,12 @@ function RecipeView({ recipe, ingredients, recipes = [], onBack, onNavigate }) {
   };
   const arrow = (dir) => ({ background: C.card, border: `1px solid ${C.line}`, color: C.ink, borderRadius: 999, width: 44, height: 44, fontSize: 20, fontWeight: 800, cursor: "pointer", flexShrink: 0, opacity: dir ? 1 : 0.3 });
 
+  const frame = { borderRadius: 16, border: `1px solid ${C.line}`, background: C.white, overflow: "hidden", cursor: "zoom-in" };
+  const coverImg = { width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" };
   return (
-    <div className="scr" style={{ display: "flex", flexDirection: "column", gap: 14 }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+    <div className="recipeview" style={{ height: "calc(100dvh - 58px)", display: "flex", flexDirection: "column", gap: 10, overflow: "hidden", padding: "10px clamp(12px,2.5vw,26px) 14px", boxSizing: "border-box" }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      {/* top bar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flexShrink: 0 }}>
         <button onClick={onBack} style={pillGhost}>← Back</button>
         {onNavigate && <button disabled={!prev} onClick={() => prev && onNavigate(prev)} style={arrow(prev)} title="Previous">‹</button>}
         {onNavigate && <button disabled={!next} onClick={() => next && onNavigate(next)} style={arrow(next)} title="Next">›</button>}
@@ -1296,60 +1303,55 @@ function RecipeView({ recipe, ingredients, recipes = [], onBack, onNavigate }) {
         <span style={{ background: C.gold, color: C.ink, borderRadius: 999, padding: "5px 14px", fontSize: 13, fontWeight: 700 }}>Reference</span>
       </div>
 
-      {/* BIG hero — WHOLE image (never cropped), tap to open full screen */}
-      {recipe.hero && (
-        <div onClick={() => setLightbox(recipe.hero)} style={{ borderRadius: 22, border: `1px solid ${C.line}`, background: C.white, cursor: "zoom-in", overflow: "hidden", display: "grid", placeItems: "center", padding: 8 }}>
-          <img src={recipe.hero} alt={recipe.name} style={{ width: "100%", maxHeight: "clamp(240px, 48vh, 540px)", objectFit: "contain", display: "block", borderRadius: 14 }} />
-        </div>
-      )}
-      <h1 className="display" style={{ fontSize: "clamp(30px, 6vw, 50px)", fontWeight: 800, margin: "4px 0 0", lineHeight: 1.03 }}>{recipe.name}</h1>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {recipe.category && <span style={{ background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "4px 12px", fontSize: 13, fontWeight: 600 }}>{recipe.category}</span>}
-        {(recipe.dietary || []).map((d) => <span key={d} style={{ background: "#E2EFE0", color: C.go, borderRadius: 999, padding: "4px 12px", fontSize: 13, fontWeight: 700 }}>{d}</span>)}
-        {(recipe.allergens || []).map((a) => <span key={a} style={{ background: "#F6E0D6", color: C.rustDeep, borderRadius: 999, padding: "4px 12px", fontSize: 13, fontWeight: 700 }}>{a}</span>)}
-      </div>
-
-      {/* extra photos — whole images, tap to enlarge */}
-      {gallery.length > 1 && (
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {gallery.slice(1).map((src, i) => (
-            <div key={i} onClick={() => setLightbox(src)} style={{ width: "clamp(110px, 20vw, 170px)", height: "clamp(90px, 15vw, 130px)", borderRadius: 14, background: C.white, border: `1px solid ${C.line}`, cursor: "zoom-in", flexShrink: 0, display: "grid", placeItems: "center", overflow: "hidden" }}>
-              <img src={src} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+      {/* two columns fill the rest of the screen — no page scroll */}
+      <div className="rv-cols" style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "1.05fr 1fr", gap: 16 }}>
+        {/* LEFT: hero (fills, cropped to fit) + title + tags + ingredients */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, minHeight: 0 }}>
+          {recipe.hero && (
+            <div onClick={() => setLightbox(recipe.hero)} style={{ ...frame, flex: "1 1 55%", minHeight: 130 }}>
+              <img src={recipe.hero} alt={recipe.name} style={coverImg} />
             </div>
-          ))}
+          )}
+          <div style={{ flexShrink: 0 }}>
+            <h1 className="display" style={{ fontSize: "clamp(24px, 4.4vw, 40px)", fontWeight: 800, margin: 0, lineHeight: 1.02 }}>{recipe.name}</h1>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+              {recipe.category && <span style={{ background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "3px 11px", fontSize: 12, fontWeight: 600 }}>{recipe.category}</span>}
+              {(recipe.dietary || []).map((d) => <span key={d} style={{ background: "#E2EFE0", color: C.go, borderRadius: 999, padding: "3px 11px", fontSize: 12, fontWeight: 700 }}>{d}</span>)}
+              {(recipe.allergens || []).map((a) => <span key={a} style={{ background: "#F6E0D6", color: C.rustDeep, borderRadius: 999, padding: "3px 11px", fontSize: 12, fontWeight: 700 }}>{a}</span>)}
+            </div>
+          </div>
+          <div style={{ flex: "0 1 auto", minHeight: 0, overflowY: "auto", background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, padding: "12px 18px" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>Ingredients</div>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody>
+              {items.map((it) => (
+                <tr key={it.key} style={{ borderBottom: `1px solid ${C.line}` }}>
+                  <td style={{ padding: "9px 0", fontWeight: it.isRecipe ? 700 : 500, color: it.isRecipe ? C.rust : C.ink, fontSize: "clamp(15px, 2.5vw, 19px)" }}>{it.isRecipe ? "▸ " : ""}{it.name}</td>
+                  <td className="display" style={{ padding: "9px 0", textAlign: "right", fontWeight: 800, whiteSpace: "nowrap", fontSize: "clamp(15px, 2.5vw, 19px)" }}>{it.qty} {it.unit}</td>
+                </tr>
+              ))}
+            </tbody></table>
+          </div>
         </div>
-      )}
 
-      <div className="rv-cols" style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.85fr) minmax(0, 1.15fr)", gap: 16, alignItems: "start" }}>
-        <div style={{ background: C.card, borderRadius: 18, padding: "18px 22px", border: `1px solid ${C.line}` }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 }}>Ingredients</div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody>
-            {items.map((it) => (
-              <tr key={it.key} style={{ borderBottom: `1px solid ${C.line}` }}>
-                <td style={{ padding: "11px 0", fontWeight: it.isRecipe ? 700 : 500, color: it.isRecipe ? C.rust : C.ink, fontSize: "clamp(16px, 2.8vw, 20px)" }}>{it.isRecipe ? "▸ " : ""}{it.name}</td>
-                <td className="display" style={{ padding: "11px 0", textAlign: "right", fontWeight: 800, whiteSpace: "nowrap", fontSize: "clamp(16px, 2.8vw, 20px)" }}>{it.qty} {it.unit}</td>
-              </tr>
-            ))}
-          </tbody></table>
-        </div>
-        <div style={{ background: C.card, borderRadius: 18, padding: "18px 22px", border: `1px solid ${C.line}` }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 14 }}>Method</div>
-          <div style={{ display: "grid", gap: 16 }}>
+        {/* RIGHT: method — the only part that scrolls if it's long */}
+        <div style={{ background: C.card, borderRadius: 18, border: `1px solid ${C.line}`, padding: "14px 20px", display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12, flexShrink: 0 }}>Method</div>
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "grid", gap: 16, alignContent: "start", paddingRight: 4 }}>
             {recipe.steps.map((s, k) => (
               <div key={k} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                <span className="display" style={{ fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 800, color: C.gold, lineHeight: 1.15, minWidth: 30, flexShrink: 0 }}>{k + 1}</span>
+                <span className="display" style={{ fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 800, color: C.gold, lineHeight: 1.15, minWidth: 28, flexShrink: 0 }}>{k + 1}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "clamp(16px, 2.9vw, 21px)", lineHeight: 1.5, color: C.ink }}>{s.text}</div>
+                  <div style={{ fontSize: "clamp(16px, 2.7vw, 21px)", lineHeight: 1.45, color: C.ink, fontWeight: 500 }}>{s.text}</div>
                   {s.image && (
-                    <div onClick={() => setLightbox(s.image)} style={{ marginTop: 10, width: "clamp(150px, 30vw, 240px)", height: "clamp(110px, 20vw, 160px)", borderRadius: 12, background: C.white, border: `1px solid ${C.line}`, cursor: "zoom-in", display: "grid", placeItems: "center", overflow: "hidden" }}>
-                      <img src={s.image} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                    <div onClick={() => setLightbox(s.image)} style={{ ...frame, marginTop: 10, width: "clamp(150px, 30vw, 240px)", height: "clamp(100px, 18vw, 150px)" }}>
+                      <img src={s.image} alt="" style={coverImg} />
                     </div>
                   )}
                 </div>
               </div>
             ))}
+            {recipe.notes && <div style={{ padding: "12px 14px", background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 10, fontSize: 15, color: C.inkSoft }}><b style={{ color: C.ink }}>Notes:</b> {recipe.notes}</div>}
           </div>
-          {recipe.notes && <div style={{ marginTop: 16, padding: "12px 14px", background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 10, fontSize: 15, color: C.inkSoft }}><b style={{ color: C.ink }}>Notes:</b> {recipe.notes}</div>}
         </div>
       </div>
 
