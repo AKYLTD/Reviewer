@@ -58,12 +58,19 @@ export async function loadStaff() {
    App streams the images in afterwards. Layered fallbacks keep this safe whether or
    not the optional `recipes_light` view has been created in the database. */
 const RECIPE_LIGHT_COLS = "id,name,category,department,dept2,notes,allergens,dietary,yield_kg,yield_unit,expected_sec,as_component,steps";
+let _lightView = "unknown"; // "unknown" | "yes" | "no" — remembered for the session
 async function selRecipesLight() {
-  // Skip the heavy hero + images columns — that removes the vast majority of the
-  // payload (those are the big base64 blobs). One reliable request; falls back to full
-  // rows only if the column list somehow fails.
+  // Best: a `recipes_light` view that strips ALL images (hero, images json AND per-step
+  // photos) so the first load is a few KB regardless of how big the stored photos are.
+  if (_lightView !== "no") {
+    const v = await supabase.from("recipes_light").select("*");
+    if (!v.error) { _lightView = "yes"; return v; }
+    _lightView = "no"; // view not created yet — don't try again this session
+  }
+  // Good: at least skip the two heavy dedicated image columns.
   const r = await supabase.from("recipes").select(RECIPE_LIGHT_COLS);
   if (!r.error) return r;
+  // Last resort: full rows.
   return await supabase.from("recipes").select("*");
 }
 
@@ -71,9 +78,9 @@ async function selRecipesLight() {
    this in small chunks after first paint so no single request is ever huge. */
 export async function loadRecipeMediaChunk(ids) {
   if (!supabase || !ids || !ids.length) return [];
-  // Only the hero + images json — the light load already carries steps (with their
-  // per-step photos), so there's no need to fetch those again.
-  const { data, error } = await supabase.from("recipes").select("id,hero,images").in("id", ids);
+  // Full image payload (hero + images json + steps with their per-step photos). The
+  // light load strips these; this brings them back a few recipes at a time.
+  const { data, error } = await supabase.from("recipes").select("id,hero,images,steps").in("id", ids);
   if (error) throw error;
   return data || [];
 }
