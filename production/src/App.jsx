@@ -524,7 +524,7 @@ function App() {
         <Switcher productions={productions} activeId={activeId} onSwitch={(id) => { setActiveId(id); setScreen("run"); }} onNew={() => setScreen("home")} />
       )}
 
-      <div style={{ maxWidth: screen === "view" ? 1160 : 1060, margin: "0 auto", padding: screen === "view" ? "18px 18px 40px" : "26px 18px 80px" }}>
+      <div style={{ maxWidth: screen === "view" ? 1160 : 1060, margin: "0 auto", padding: screen === "view" ? "18px 18px 40px" : "26px 18px 80px", ...((!user && screen === "home") ? { minHeight: "calc(100dvh - 66px)", display: "flex", flexDirection: "column", justifyContent: "center" } : {}) }}>
         {screen === "view" && viewing && (
           <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onNavigate={(r) => setViewing(r)} onBack={() => { setViewing(null); setScreen(hasServiceRecipes && user?.role !== "admin" ? "sbook" : backScreen); }} />
         )}
