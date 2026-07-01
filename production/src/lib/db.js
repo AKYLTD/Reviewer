@@ -51,6 +51,42 @@ export async function loadStaff() {
 }
 
 /* ---------- initial load ---------- */
+/* Recipes carry base64 images (hero + per-step photos + the images json) that can be
+   tens of MB in total. Loading them up-front is what made the app slow / time out.
+   We fetch a LIGHT version first (everything needed to render lists and run a
+   production, minus the heavy image blobs) so the app is usable instantly, then the
+   App streams the images in afterwards. Layered fallbacks keep this safe whether or
+   not the optional `recipes_light` view has been created in the database. */
+const RECIPE_LIGHT_COLS = "id,name,category,department,dept2,notes,allergens,dietary,yield_kg,yield_unit,expected_sec,as_component,steps";
+async function selRecipesLight() {
+  // Skip the heavy hero + images columns — that removes the vast majority of the
+  // payload (those are the big base64 blobs). One reliable request; falls back to full
+  // rows only if the column list somehow fails.
+  const r = await supabase.from("recipes").select(RECIPE_LIGHT_COLS);
+  if (!r.error) return r;
+  return await supabase.from("recipes").select("*");
+}
+
+/* Fetch the heavy image data for a handful of recipes at a time, by id. The App calls
+   this in small chunks after first paint so no single request is ever huge. */
+export async function loadRecipeMediaChunk(ids) {
+  if (!supabase || !ids || !ids.length) return [];
+  // Only the hero + images json — the light load already carries steps (with their
+  // per-step photos), so there's no need to fetch those again.
+  const { data, error } = await supabase.from("recipes").select("id,hero,images").in("id", ids);
+  if (error) throw error;
+  return data || [];
+}
+
+/* Targeted single-column update — used for things like the yield auto-adjust so we
+   never rewrite a whole recipe row (which could blank its images if the media for that
+   recipe hasn't streamed in yet). */
+export async function updateRecipeFields(id, patch) {
+  if (!supabase) return;
+  const { error } = await supabase.from("recipes").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
 export async function loadAll() {
   if (!supabase) return null;
   const sel = (t, opts) => supabase.from(t).select("*", opts);
@@ -63,7 +99,7 @@ export async function loadAll() {
   })();
   const [ing, rec, stf, loc, cpuR, del, runs, cancels, alerts, store, central, queue] = await Promise.all([
     sel("ingredients"),
-    sel("recipes"),
+    selRecipesLight(),
     staffSel,
     sel("locations"),
     sel("cpu"),

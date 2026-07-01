@@ -13,7 +13,7 @@ import {
 import {
   loadAll, loadStaff, upsertRows, deleteByIds, saveSingleton, verifyPin as dbVerifyPin,
   persistProduction, persistCancellation, clearQueueForLocation, resetAllStock,
-  scheduleSync, queueUpsert, setSyncErrorHandler,
+  scheduleSync, queueUpsert, setSyncErrorHandler, loadRecipeMediaChunk, updateRecipeFields,
   ingToRow, recToRow, staffToRow, locToRow,
 } from "./lib/db.js";
 
@@ -216,6 +216,13 @@ function App() {
   // Gate persistence until the first load completes, so the initial empty state
   // is never written back over the database.
   const readyRef = useRef(false);
+  // Ids of recipes whose images have streamed in (so their in-memory copy matches the
+  // database), and the set of ids that came from the database load. A whole-row recipe
+  // save is allowed when the recipe is either brand-new (created this session, so its
+  // images are already in memory) or has hydrated — never for a DB recipe still missing
+  // its photos, which would blank them.
+  const hydratedRef = useRef(new Set());
+  const dbRecipeIdsRef = useRef(new Set());
 
   // Single-site mode: we bake & sell in the same place — no shops to deliver to.
   const singleSite = !!cpu?.singleSite;
@@ -245,6 +252,7 @@ function App() {
 
   // ---- load all state: instant from cache, then fresh from Supabase ----
   const applyData = (data) => {
+    (data.recipes || []).forEach((r) => dbRecipeIdsRef.current.add(r.id)); // these came from the DB (images may still be streaming)
     setStaff(data.staff); setIngredients(data.ingredients); setRecipes(data.recipes);
     setCpu(data.cpu); setLocations(data.locations); setDelivery(data.delivery);
     setStoreStock(data.storeStock); setCentralStock(data.centralStock); setDeliveryQueue(data.deliveryQueue);
@@ -272,7 +280,13 @@ function App() {
       if (recovered) flash("Recovered unsaved changes ✓");
       try {
         const data = await loadAll();
-        if (data && !cancelled) { applyData(data); try { localStorage.setItem("ronis_cache_v1", JSON.stringify(data)); } catch {} }
+        if (data && !cancelled) {
+          applyData(data);
+          try { localStorage.setItem("ronis_cache_v1", JSON.stringify(data)); } catch {}
+          // App is usable now; stream recipe images in afterwards, a few at a time, so
+          // no single request is huge and a weak connection can't stall the whole load.
+          streamRecipeMedia(data.recipes.map((r) => r.id), () => cancelled);
+        }
       } catch (e) {
         console.error("Load failed", e); if (!hadCache) flash("Couldn't load data from the database");
       } finally {
@@ -282,17 +296,52 @@ function App() {
     return () => { cancelled = true; };
   }, []);
 
+  // Pull the heavy hero/step/images data for the recipes in small id-batches and merge
+  // them into state as they arrive (via the RAW setters, so this never writes back to
+  // the database). Each batch retries a few times; a batch that keeps failing is
+  // skipped so the rest still load.
+  const streamRecipeMedia = async (ids, isCancelled) => {
+    const CHUNK = 6;
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      if (isCancelled()) return;
+      const batch = ids.slice(i, i + CHUNK);
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const rows = await loadRecipeMediaChunk(batch);
+          if (isCancelled()) return;
+          const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
+          const merge = (r) => byId[r.id] ? { ...r, hero: byId[r.id].hero || null, images: byId[r.id].images || null } : r;
+          setRecipes((rs) => rs.map(merge));
+          setViewing((v) => (v && byId[v.id]) ? merge(v) : v);
+          rows.forEach((r) => hydratedRef.current.add(r.id)); // these are now safe to save as whole rows
+          break;
+        } catch (e) {
+          console.error("recipe media batch failed", e);
+          await new Promise((res) => setTimeout(res, 600 * (attempt + 1)));
+        }
+      }
+    }
+  };
+
   // ---- persistence-aware setters for admin-managed data ----
   // Same call signature as React setters; they also sync the change to Supabase
   // (debounced, so per-keystroke edits coalesce into one write).
   const alertToRow = (a) => ({ id: a.id, kind: a.kind || "time", message: a.message || null, recipe: a.recipe, from_sec: a.from, to_sec: a.to, dir: a.dir, diff: a.diff, runs: a.runs, when_label: a.when });
-  const persistColl = (setState, table, toRow) => (updater) => setState((prev) => {
+  const persistColl = (setState, table, toRow, isSafe) => (updater) => setState((prev) => {
     const next = typeof updater === "function" ? updater(prev) : updater;
     if (readyRef.current) {
       const prevById = Object.fromEntries(prev.map((x) => [x.id, x]));
       const nextIds = new Set(next.map((x) => x.id));
       // Only send rows that are NEW or actually CHANGED — never the whole collection.
-      const changed = next.filter((x) => { const p = prevById[x.id]; return !p || JSON.stringify(toRow(p)) !== JSON.stringify(toRow(x)); }).map(toRow);
+      let changedObjs = next.filter((x) => { const p = prevById[x.id]; return !p || JSON.stringify(toRow(p)) !== JSON.stringify(toRow(x)); });
+      // For recipes: don't write a row whose images haven't streamed in yet — that could
+      // blank its photos. Hold that save and ask the user to try again in a moment.
+      if (isSafe) {
+        const unsafe = changedObjs.filter((x) => !isSafe(x.id));
+        if (unsafe.length) flash("Still loading images for that recipe — give it a second, then save again.", 4500);
+        changedObjs = changedObjs.filter((x) => isSafe(x.id));
+      }
+      const changed = changedObjs.map(toRow);
       if (changed.length) queueUpsert(table, changed);
       // SAFETY: only delete a small, deliberate removal (a ✕ click). A large drop is
       // almost always a glitch/stale state — never let it wipe rows from the database.
@@ -308,7 +357,7 @@ function App() {
     return next;
   });
   const setIngredientsP = persistColl(setIngredients, "ingredients", ingToRow);
-  const setRecipesP = persistColl(setRecipes, "recipes", recToRow);
+  const setRecipesP = persistColl(setRecipes, "recipes", recToRow, (id) => hydratedRef.current.has(id) || !dbRecipeIdsRef.current.has(id));
   const setStaffP = persistColl(setStaff, "staff", staffToRow);
   const setLocationsP = persistColl(setLocations, "locations", locToRow);
   const setAlertsP = persistColl(setAlerts, "alerts", alertToRow);
@@ -398,7 +447,9 @@ function App() {
       const diffPct = Math.abs(actual - target) / target;
       if (diffPct <= 0.05) {
         const newBase = +(actual * recipe.yieldKg / target).toFixed(2);
-        setRecipesP((rs) => rs.map((r) => r.id === recipe.id ? { ...r, yieldKg: newBase } : r));
+        // targeted column write — never rewrites the whole recipe row (keeps images safe)
+        setRecipes((rs) => rs.map((r) => r.id === recipe.id ? { ...r, yieldKg: newBase } : r));
+        if (readyRef.current) updateRecipeFields(recipe.id, { yield_kg: newBase }).catch((e) => { console.error("yield save failed", e); flash("Couldn't save the amended yield"); });
         flash(`Yield auto-adjusted: ${recipe.name} → ${newBase} ${recipe.yieldUnit}`, 3500);
       } else {
         const pct = Math.round(diffPct * 100);
