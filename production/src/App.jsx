@@ -220,6 +220,8 @@ function App() {
   // Single-site mode: we bake & sell in the same place — no shops to deliver to.
   const singleSite = !!cpu?.singleSite;
   const stores = singleSite ? [] : locations.map((l) => l.name);
+  // Where "Back" lands: admins always return to the admin screen.
+  const backScreen = user?.role === "admin" ? "admin" : user?.role === "driver" ? "driver" : "home";
 
   const [productions, setProductions] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -528,10 +530,10 @@ function App() {
             onPick={(r) => { if ((r.dept2 || "Production") === "Service") { setViewing(r); setScreen("view"); } else { setFinishing({ _pickQty: r }); setScreen("qty"); } }} />
         )}
         {screen === "view" && viewing && (
-          <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onNavigate={(r) => setViewing(r)} onBack={() => { setViewing(null); setScreen(user ? "home" : "home"); }} />
+          <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onNavigate={(r) => setViewing(r)} onBack={() => { setViewing(null); setScreen(hasServiceRecipes && user?.role !== "admin" ? "sbook" : backScreen); }} />
         )}
         {screen === "sbook" && (
-          <SBook recipes={recipes} ingredients={ingredients} onView={(r) => { setViewing(r); setScreen("view"); }} onBack={() => setScreen(user?.role === "driver" ? "driver" : "home")} />
+          <SBook recipes={recipes} ingredients={ingredients} onView={(r) => { setViewing(r); setScreen("view"); }} onBack={() => setScreen(backScreen)} />
         )}
         {screen === "qty" && finishing?._pickQty && (
           <Quantity recipe={finishing._pickQty} ingredients={ingredients}
@@ -551,7 +553,7 @@ function App() {
         {screen === "stock" && (
           <LiveStock recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} runs={runs}
             onProduce={(recipe) => { if (!recipe) return; if (hasPerm(user, "production")) { setFinishing({ _pickQty: recipe }); setScreen("qty"); } else { setProduceGate(recipe); } }}
-            onBack={() => setScreen(user?.role === "driver" ? "driver" : "home")} />
+            onBack={() => setScreen(backScreen)} />
         )}
         {screen === "admin" && (
           <Admin ingredients={ingredients} setIngredients={setIngredientsP} recipes={recipes} setRecipes={setRecipesP}
@@ -1294,44 +1296,60 @@ function RecipeView({ recipe, ingredients, recipes = [], onBack, onNavigate }) {
         <span style={{ background: C.gold, color: C.ink, borderRadius: 999, padding: "5px 14px", fontSize: 13, fontWeight: 700 }}>Reference</span>
       </div>
 
-      {/* BIG hero — readable from across the kitchen; tap to open full screen */}
+      {/* BIG hero — WHOLE image (never cropped), tap to open full screen */}
       {recipe.hero && (
-        <div onClick={() => setLightbox(recipe.hero)} style={{ height: "clamp(220px, 42vh, 480px)", borderRadius: 22, background: `url(${recipe.hero}) center/cover`, border: `1px solid ${C.line}`, cursor: "zoom-in" }} />
+        <div onClick={() => setLightbox(recipe.hero)} style={{ borderRadius: 22, border: `1px solid ${C.line}`, background: C.white, cursor: "zoom-in", overflow: "hidden", display: "grid", placeItems: "center", padding: 8 }}>
+          <img src={recipe.hero} alt={recipe.name} style={{ width: "100%", maxHeight: "clamp(240px, 48vh, 540px)", objectFit: "contain", display: "block", borderRadius: 14 }} />
+        </div>
       )}
-      <h1 className="display" style={{ fontSize: "clamp(28px, 5.5vw, 46px)", fontWeight: 800, margin: "2px 0 0", lineHeight: 1.05 }}>{recipe.name}</h1>
+      <h1 className="display" style={{ fontSize: "clamp(30px, 6vw, 50px)", fontWeight: 800, margin: "4px 0 0", lineHeight: 1.03 }}>{recipe.name}</h1>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {recipe.category && <span style={{ background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{recipe.category}</span>}
-        {(recipe.dietary || []).map((d) => <span key={d} style={{ background: "#E2EFE0", color: C.go, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{d}</span>)}
-        {(recipe.allergens || []).map((a) => <span key={a} style={{ background: "#F6E0D6", color: C.rustDeep, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{a}</span>)}
+        {recipe.category && <span style={{ background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "4px 12px", fontSize: 13, fontWeight: 600 }}>{recipe.category}</span>}
+        {(recipe.dietary || []).map((d) => <span key={d} style={{ background: "#E2EFE0", color: C.go, borderRadius: 999, padding: "4px 12px", fontSize: 13, fontWeight: 700 }}>{d}</span>)}
+        {(recipe.allergens || []).map((a) => <span key={a} style={{ background: "#F6E0D6", color: C.rustDeep, borderRadius: 999, padding: "4px 12px", fontSize: 13, fontWeight: 700 }}>{a}</span>)}
       </div>
 
-      {/* secondary images — a touch smaller; tap to enlarge */}
+      {/* extra photos — whole images, tap to enlarge */}
       {gallery.length > 1 && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {gallery.slice(1).map((src, i) => (
-            <div key={i} onClick={() => setLightbox(src)} style={{ width: "clamp(120px, 22vw, 180px)", height: "clamp(90px, 16vw, 130px)", borderRadius: 14, background: `url(${src}) center/cover`, border: `1px solid ${C.line}`, cursor: "zoom-in", flexShrink: 0 }} />
+            <div key={i} onClick={() => setLightbox(src)} style={{ width: "clamp(110px, 20vw, 170px)", height: "clamp(90px, 15vw, 130px)", borderRadius: 14, background: C.white, border: `1px solid ${C.line}`, cursor: "zoom-in", flexShrink: 0, display: "grid", placeItems: "center", overflow: "hidden" }}>
+              <img src={src} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+            </div>
           ))}
         </div>
       )}
 
-      <div className="rv-cols" style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.8fr) minmax(0, 1.2fr)", gap: 14, alignItems: "start" }}>
-        <div style={{ background: C.card, borderRadius: 18, padding: "16px 20px", border: `1px solid ${C.line}` }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 }}>Ingredients</div>
+      <div className="rv-cols" style={{ display: "grid", gridTemplateColumns: "minmax(0, 0.85fr) minmax(0, 1.15fr)", gap: 16, alignItems: "start" }}>
+        <div style={{ background: C.card, borderRadius: 18, padding: "18px 22px", border: `1px solid ${C.line}` }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 }}>Ingredients</div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody>
             {items.map((it) => (
               <tr key={it.key} style={{ borderBottom: `1px solid ${C.line}` }}>
-                <td style={{ padding: "8px 0", fontWeight: it.isRecipe ? 700 : 400, color: it.isRecipe ? C.rust : C.ink, fontSize: "clamp(14px, 2.6vw, 17px)" }}>{it.isRecipe ? "▸ " : ""}{it.name}</td>
-                <td className="display" style={{ padding: "8px 0", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap", fontSize: "clamp(14px, 2.6vw, 17px)" }}>{it.qty} {it.unit}</td>
+                <td style={{ padding: "11px 0", fontWeight: it.isRecipe ? 700 : 500, color: it.isRecipe ? C.rust : C.ink, fontSize: "clamp(16px, 2.8vw, 20px)" }}>{it.isRecipe ? "▸ " : ""}{it.name}</td>
+                <td className="display" style={{ padding: "11px 0", textAlign: "right", fontWeight: 800, whiteSpace: "nowrap", fontSize: "clamp(16px, 2.8vw, 20px)" }}>{it.qty} {it.unit}</td>
               </tr>
             ))}
           </tbody></table>
         </div>
-        <div style={{ background: C.card, borderRadius: 18, padding: "16px 20px", border: `1px solid ${C.line}` }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 }}>Method</div>
-          <ol style={{ margin: 0, paddingLeft: 22, display: "grid", gap: 10 }}>
-            {recipe.steps.map((s, k) => <li key={k} style={{ fontSize: "clamp(14px, 2.6vw, 17px)", lineHeight: 1.45 }}>{s.text}</li>)}
-          </ol>
-          {recipe.notes && <div style={{ marginTop: 12, padding: "10px 12px", background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 10, fontSize: 14, color: C.inkSoft }}><b style={{ color: C.ink }}>Notes:</b> {recipe.notes}</div>}
+        <div style={{ background: C.card, borderRadius: 18, padding: "18px 22px", border: `1px solid ${C.line}` }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 14 }}>Method</div>
+          <div style={{ display: "grid", gap: 16 }}>
+            {recipe.steps.map((s, k) => (
+              <div key={k} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <span className="display" style={{ fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 800, color: C.gold, lineHeight: 1.15, minWidth: 30, flexShrink: 0 }}>{k + 1}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "clamp(16px, 2.9vw, 21px)", lineHeight: 1.5, color: C.ink }}>{s.text}</div>
+                  {s.image && (
+                    <div onClick={() => setLightbox(s.image)} style={{ marginTop: 10, width: "clamp(150px, 30vw, 240px)", height: "clamp(110px, 20vw, 160px)", borderRadius: 12, background: C.white, border: `1px solid ${C.line}`, cursor: "zoom-in", display: "grid", placeItems: "center", overflow: "hidden" }}>
+                      <img src={s.image} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {recipe.notes && <div style={{ marginTop: 16, padding: "12px 14px", background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 10, fontSize: 15, color: C.inkSoft }}><b style={{ color: C.ink }}>Notes:</b> {recipe.notes}</div>}
         </div>
       </div>
 
