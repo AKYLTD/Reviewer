@@ -483,7 +483,7 @@ function App() {
           onBack={() => setScreen("home")} />
       ) : (
       <>
-      <TopBar user={user} voiceOn={voiceOn} voiceSupported={voiceSupported}
+      <TopBar user={user} voiceOn={voiceOn} voiceSupported={voiceSupported} maxWidth={screen === "view" ? 1160 : 1060}
         onToggleVoice={() => setVoiceOn((v) => !v)}
         onHome={() => { if (productions.length && user?.role === "production") { setActiveId(productions[0].id); setScreen("run"); } else setScreen("home"); }}
         onAdmin={() => { if (productions.length) { flash("Finish the live production to open admin"); return; } if (user?.role === "admin") { setScreen("admin"); } else { setAdminPrompt(true); } }}
@@ -575,12 +575,13 @@ function App() {
   );
 }
 
-function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin, onStock, onTimer, onSBook, onSignOut, showAdmin, showStock, showSBook }) {
+function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin, onStock, onTimer, onSBook, onSignOut, showAdmin, showStock, showSBook, maxWidth = 1060 }) {
   return (
-    <div className="topbar" style={{ background: C.cream, borderBottom: `1px solid ${C.line}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, position: "sticky", top: 0, zIndex: 40 }}>
-      <div style={{ cursor: "pointer", display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }} onClick={onHome}>
-        <span className="display" style={{ fontSize: 24, fontWeight: 800, color: C.ink, whiteSpace: "nowrap" }}>Roni's<span style={{ color: C.rust }}>.</span></span>
-        <span className="display hide-sm" style={{ fontSize: 16, fontStyle: "italic", fontWeight: 500, color: C.inkSoft, whiteSpace: "nowrap" }}>Production Floor</span>
+    <div className="topbar" style={{ background: C.cream, borderBottom: `1px solid ${C.line}`, position: "sticky", top: 0, zIndex: 40 }}>
+    <div style={{ maxWidth, margin: "0 auto", padding: "14px 18px", display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ cursor: "pointer", display: "flex", alignItems: "baseline", gap: 9, minWidth: 0 }} onClick={onHome}>
+        <span className="display" style={{ fontSize: 27, fontWeight: 800, color: C.ink, whiteSpace: "nowrap" }}>Roni's<span style={{ color: C.rust }}>.</span></span>
+        <span className="display hide-sm" style={{ fontSize: 17, fontStyle: "italic", fontWeight: 500, color: C.inkSoft, whiteSpace: "nowrap" }}>Production Floor</span>
       </div>
       <div style={{ flex: 1 }} />
       <button onClick={onToggleVoice} title={voiceSupported ? "Voice control" : "Voice unsupported here — buttons still work"}
@@ -601,6 +602,7 @@ function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin,
           <button onClick={onSignOut} title="Sign out" style={{ background: "none", border: "none", color: C.inkSoft, cursor: "pointer", fontSize: 17 }}>⏻</button>
         </div>
       )}
+    </div>
     </div>
   );
 }
