@@ -524,7 +524,7 @@ function App() {
         <Switcher productions={productions} activeId={activeId} onSwitch={(id) => { setActiveId(id); setScreen("run"); }} onNew={() => setScreen("home")} />
       )}
 
-      <div style={{ maxWidth: screen === "view" ? 1200 : 1280, margin: "0 auto", padding: screen === "view" ? "18px clamp(14px,3vw,26px) 40px" : "24px clamp(14px,3vw,26px) 80px", ...((!user && screen === "home") ? { minHeight: "calc(100dvh - 66px)", display: "flex", flexDirection: "column", justifyContent: "center" } : {}) }}>
+      <div style={{ maxWidth: screen === "view" ? 1200 : 1280, margin: "0 auto", padding: screen === "view" ? "18px clamp(14px,3vw,26px) 40px" : "28px clamp(14px,3vw,26px) 80px" }}>
         {screen === "view" && viewing && (
           <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onNavigate={(r) => setViewing(r)} onBack={() => { setViewing(null); setScreen(hasServiceRecipes && user?.role !== "admin" ? "sbook" : backScreen); }} />
         )}
@@ -785,10 +785,10 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
         <p style={{ fontSize: 18, color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Tap your name, then your PIN. Or say “Sign in [name]”.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 14, marginTop: 22 }}>
           {staff.map((s) => (
-            <button key={s.id} onClick={() => { setPinFor(s); setPin(""); setErr(false); }} style={{ background: C.card, border: pinFor?.id === s.id ? `2px solid ${C.rust}` : `1px solid ${C.line}`, borderRadius: 20, padding: "24px 20px", cursor: "pointer", color: C.ink, textAlign: "left" }}>
-              <div style={{ width: 52, height: 52, borderRadius: 999, background: s.role === "driver" ? C.rust : C.gold, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 22, marginBottom: 12 }}>{s.name[0]}</div>
-              <div style={{ fontSize: 22, fontWeight: 700 }}>{s.name}</div>
-              <div style={{ fontSize: 13, color: C.inkSoft, textTransform: "capitalize" }}>{s.role}</div>
+            <button key={s.id} onClick={() => { setPinFor(s); setPin(""); setErr(false); }} style={{ background: C.card, border: pinFor?.id === s.id ? `2px solid ${C.rust}` : `1px solid ${C.line}`, borderRadius: 18, padding: "24px 24px 26px", cursor: "pointer", color: C.ink, textAlign: "left" }}>
+              <div style={{ width: 48, height: 48, borderRadius: 999, background: s.role === "driver" ? C.rust : C.gold, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 20, marginBottom: 16 }}>{s.name[0]}</div>
+              <div style={{ fontSize: 19, fontWeight: 800 }}>{s.name}</div>
+              <div style={{ fontSize: 14, color: C.inkSoft, textTransform: "capitalize", marginTop: 2 }}>{s.role}</div>
             </button>
           ))}
         </div>
