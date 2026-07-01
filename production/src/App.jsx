@@ -483,7 +483,7 @@ function App() {
           onBack={() => setScreen("home")} />
       ) : (
       <>
-      <TopBar user={user} voiceOn={voiceOn} voiceSupported={voiceSupported} maxWidth={screen === "view" ? 1200 : 1280}
+      <TopBar user={user} voiceOn={voiceOn} voiceSupported={voiceSupported} maxWidth={screen === "view" ? 1280 : 1600}
         onToggleVoice={() => setVoiceOn((v) => !v)}
         onHome={() => { if (productions.length && user?.role === "production") { setActiveId(productions[0].id); setScreen("run"); } else setScreen("home"); }}
         onAdmin={() => { if (productions.length) { flash("Finish the live production to open admin"); return; } if (user?.role === "admin") { setScreen("admin"); } else { setAdminPrompt(true); } }}
@@ -524,7 +524,7 @@ function App() {
         <Switcher productions={productions} activeId={activeId} onSwitch={(id) => { setActiveId(id); setScreen("run"); }} onNew={() => setScreen("home")} />
       )}
 
-      <div style={{ maxWidth: screen === "view" ? 1200 : 1280, margin: "0 auto", padding: screen === "view" ? "18px clamp(14px,3vw,26px) 40px" : "28px clamp(14px,3vw,26px) 80px" }}>
+      <div style={{ maxWidth: screen === "view" ? 1280 : 1600, margin: "0 auto", padding: screen === "view" ? "18px clamp(16px,3vw,36px) 40px" : "30px clamp(16px,3vw,44px) 80px" }}>
         {screen === "view" && viewing && (
           <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onNavigate={(r) => setViewing(r)} onBack={() => { setViewing(null); setScreen(hasServiceRecipes && user?.role !== "admin" ? "sbook" : backScreen); }} />
         )}
@@ -578,9 +578,9 @@ function App() {
 function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin, onStock, onTimer, onSBook, onSignOut, showAdmin, showStock, showSBook, maxWidth = 1060 }) {
   return (
     <div className="topbar" style={{ background: C.cream, borderBottom: `1px solid ${C.line}`, position: "sticky", top: 0, zIndex: 40 }}>
-    <div style={{ maxWidth, margin: "0 auto", padding: "14px clamp(14px,3vw,26px)", display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{ maxWidth, margin: "0 auto", padding: "15px clamp(16px,3vw,44px)", display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ cursor: "pointer", display: "flex", alignItems: "baseline", gap: 9, minWidth: 0 }} onClick={onHome}>
-        <span className="display" style={{ fontSize: 27, fontWeight: 800, color: C.ink, whiteSpace: "nowrap" }}>Roni's<span style={{ color: C.rust }}>.</span></span>
+        <span className="display" style={{ fontSize: 28, fontWeight: 800, color: C.ink, whiteSpace: "nowrap" }}>Roni's<span style={{ color: C.rust }}>.</span></span>
         <span className="display hide-sm" style={{ fontSize: 17, fontStyle: "italic", fontWeight: 500, color: C.inkSoft, whiteSpace: "nowrap" }}>Production Floor</span>
       </div>
       <div style={{ flex: 1 }} />
@@ -781,14 +781,14 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
     return (
       <div className="scr">
         <Eyebrow>Sign in</Eyebrow>
-        <h1 className="display" style={{ fontSize: 54, fontWeight: 800, margin: "0 0 6px", lineHeight: 1.02 }}>Who's on the <span style={{ color: C.rust }}>floor?</span></h1>
-        <p style={{ fontSize: 18, color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Tap your name, then your PIN. Or say “Sign in [name]”.</p>
+        <h1 className="display" style={{ fontSize: "clamp(40px,5vw,68px)", fontWeight: 800, margin: "0 0 6px", lineHeight: 1.02 }}>Who's on the <span style={{ color: C.rust }}>floor?</span></h1>
+        <p style={{ fontSize: "clamp(16px,1.5vw,20px)", color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Tap your name, then your PIN. Or say “Sign in [name]”.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 14, marginTop: 22 }}>
           {staff.map((s) => (
-            <button key={s.id} onClick={() => { setPinFor(s); setPin(""); setErr(false); }} style={{ background: C.card, border: pinFor?.id === s.id ? `2px solid ${C.rust}` : `1px solid ${C.line}`, borderRadius: 18, padding: "24px 24px 26px", cursor: "pointer", color: C.ink, textAlign: "left" }}>
-              <div style={{ width: 48, height: 48, borderRadius: 999, background: s.role === "driver" ? C.rust : C.gold, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 20, marginBottom: 16 }}>{s.name[0]}</div>
-              <div style={{ fontSize: 19, fontWeight: 800 }}>{s.name}</div>
-              <div style={{ fontSize: 14, color: C.inkSoft, textTransform: "capitalize", marginTop: 2 }}>{s.role}</div>
+            <button key={s.id} onClick={() => { setPinFor(s); setPin(""); setErr(false); }} style={{ background: C.card, border: pinFor?.id === s.id ? `2px solid ${C.rust}` : `1px solid ${C.line}`, borderRadius: 18, padding: "26px 26px 28px", cursor: "pointer", color: C.ink, textAlign: "left" }}>
+              <div style={{ width: 52, height: 52, borderRadius: 999, background: s.role === "driver" ? C.rust : C.gold, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 22, marginBottom: 18 }}>{s.name[0]}</div>
+              <div style={{ fontSize: "clamp(19px,1.5vw,23px)", fontWeight: 800 }}>{s.name}</div>
+              <div style={{ fontSize: "clamp(14px,1vw,16px)", color: C.inkSoft, textTransform: "capitalize", marginTop: 3 }}>{s.role}</div>
             </button>
           ))}
         </div>
@@ -1182,7 +1182,7 @@ function StockPanel({ recipes, storeStock, centralStock, cpu, stores, onOpenStoc
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 20px", borderBottom: `1px solid ${C.line}`, background: C.cardSoft, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ width: 9, height: 9, borderRadius: 999, background: C.go }} />
-          <span className="display" style={{ fontWeight: 800, fontSize: 18 }}>Live stock</span>
+          <span className="display" style={{ fontWeight: 800, fontSize: "clamp(18px,1.4vw,22px)" }}>Live stock</span>
         </div>
         <button onClick={onOpenStock} style={{ ...pillGhost, borderColor: C.go, color: C.go, padding: "8px 16px" }}>Full stock & leaderboard →</button>
       </div>
@@ -1190,13 +1190,13 @@ function StockPanel({ recipes, storeStock, centralStock, cpu, stores, onOpenStoc
         <div style={{ padding: 20, color: C.inkSoft, fontSize: 14 }}>No stock yet. Quantities appear here once productions are completed and allocated.</div>
       ) : (
         <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <div style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 110 + cols.length * 110, gap: 10, padding: "10px 20px", fontSize: 11, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `1px solid ${C.line}` }}>
+          <div style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 110 + cols.length * 110, gap: 10, padding: "12px 22px", fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `1px solid ${C.line}` }}>
             <span>Recipe</span>
             {cols.map((c) => <span key={c} style={{ textAlign: "right" }}>{c}</span>)}
             <span style={{ textAlign: "right" }}>Total</span>
           </div>
           {top.map((r, idx) => (
-            <div key={r.recipe} style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 110 + cols.length * 110, gap: 10, padding: "10px 20px", borderTop: idx ? `1px solid ${C.line}` : "none", fontSize: 14, alignItems: "center" }}>
+            <div key={r.recipe} style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 110 + cols.length * 110, gap: 10, padding: "14px 22px", borderTop: idx ? `1px solid ${C.line}` : "none", fontSize: "clamp(14px,1.1vw,17px)", alignItems: "center" }}>
               <b style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.recipe}</b>
               {cols.map((c) => { const v = r.byLoc[c] || 0; return <span key={c} className="display" style={{ textAlign: "right", fontWeight: 700, color: v > 0 ? C.ink : C.line }}>{v ? v.toFixed(1) : "—"}</span>; })}
               <span className="display" style={{ textAlign: "right", fontWeight: 800, color: C.rust }}>{r.total.toFixed(1)}</span>
