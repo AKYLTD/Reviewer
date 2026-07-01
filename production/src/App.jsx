@@ -483,7 +483,7 @@ function App() {
           onBack={() => setScreen("home")} />
       ) : (
       <>
-      <TopBar user={user} voiceOn={voiceOn} voiceSupported={voiceSupported} maxWidth={screen === "view" ? 1160 : 1060}
+      <TopBar user={user} voiceOn={voiceOn} voiceSupported={voiceSupported} maxWidth={screen === "view" ? 1200 : 1280}
         onToggleVoice={() => setVoiceOn((v) => !v)}
         onHome={() => { if (productions.length && user?.role === "production") { setActiveId(productions[0].id); setScreen("run"); } else setScreen("home"); }}
         onAdmin={() => { if (productions.length) { flash("Finish the live production to open admin"); return; } if (user?.role === "admin") { setScreen("admin"); } else { setAdminPrompt(true); } }}
@@ -524,7 +524,7 @@ function App() {
         <Switcher productions={productions} activeId={activeId} onSwitch={(id) => { setActiveId(id); setScreen("run"); }} onNew={() => setScreen("home")} />
       )}
 
-      <div style={{ maxWidth: screen === "view" ? 1160 : 1060, margin: "0 auto", padding: screen === "view" ? "18px 18px 40px" : "26px 18px 80px", ...((!user && screen === "home") ? { minHeight: "calc(100dvh - 66px)", display: "flex", flexDirection: "column", justifyContent: "center" } : {}) }}>
+      <div style={{ maxWidth: screen === "view" ? 1200 : 1280, margin: "0 auto", padding: screen === "view" ? "18px clamp(14px,3vw,26px) 40px" : "24px clamp(14px,3vw,26px) 80px", ...((!user && screen === "home") ? { minHeight: "calc(100dvh - 66px)", display: "flex", flexDirection: "column", justifyContent: "center" } : {}) }}>
         {screen === "view" && viewing && (
           <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onNavigate={(r) => setViewing(r)} onBack={() => { setViewing(null); setScreen(hasServiceRecipes && user?.role !== "admin" ? "sbook" : backScreen); }} />
         )}
@@ -578,7 +578,7 @@ function App() {
 function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin, onStock, onTimer, onSBook, onSignOut, showAdmin, showStock, showSBook, maxWidth = 1060 }) {
   return (
     <div className="topbar" style={{ background: C.cream, borderBottom: `1px solid ${C.line}`, position: "sticky", top: 0, zIndex: 40 }}>
-    <div style={{ maxWidth, margin: "0 auto", padding: "14px 18px", display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{ maxWidth, margin: "0 auto", padding: "14px clamp(14px,3vw,26px)", display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ cursor: "pointer", display: "flex", alignItems: "baseline", gap: 9, minWidth: 0 }} onClick={onHome}>
         <span className="display" style={{ fontSize: 27, fontWeight: 800, color: C.ink, whiteSpace: "nowrap" }}>Roni's<span style={{ color: C.rust }}>.</span></span>
         <span className="display hide-sm" style={{ fontSize: 17, fontStyle: "italic", fontWeight: 500, color: C.inkSoft, whiteSpace: "nowrap" }}>Production Floor</span>
@@ -783,7 +783,7 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
         <Eyebrow>Sign in</Eyebrow>
         <h1 className="display" style={{ fontSize: 54, fontWeight: 800, margin: "0 0 6px", lineHeight: 1.02 }}>Who's on the <span style={{ color: C.rust }}>floor?</span></h1>
         <p style={{ fontSize: 18, color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Tap your name, then your PIN. Or say “Sign in [name]”.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: 14, marginTop: 22 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 14, marginTop: 22 }}>
           {staff.map((s) => (
             <button key={s.id} onClick={() => { setPinFor(s); setPin(""); setErr(false); }} style={{ background: C.card, border: pinFor?.id === s.id ? `2px solid ${C.rust}` : `1px solid ${C.line}`, borderRadius: 20, padding: "24px 20px", cursor: "pointer", color: C.ink, textAlign: "left" }}>
               <div style={{ width: 52, height: 52, borderRadius: 999, background: s.role === "driver" ? C.rust : C.gold, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 22, marginBottom: 12 }}>{s.name[0]}</div>
