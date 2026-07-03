@@ -193,6 +193,35 @@ export async function saveSingleton(table, row) {
   if (error) throw error;
 }
 
+/* ---------- staff writes ----------
+   Staff are written through a SECURITY DEFINER RPC so the PIN is handled entirely
+   server-side: it's set when provided and left untouched otherwise. This sidesteps the
+   column-level grants / batching pitfalls that were dropping PINs. Falls back to a plain
+   upsert if the RPC hasn't been created yet (migration_v6 not run). */
+const _isMissingFn = (e) => e && (e.code === "PGRST202" || /could not find the function|does not exist|schema cache/i.test(e.message || ""));
+export async function upsertStaff(s) {
+  if (!supabase) return;
+  const args = {
+    p_id: s.id,
+    p_name: s.name || "",
+    p_role: s.role || "production",
+    p_wage: Number(s.wage) || 0,
+    p_perms: Array.isArray(s.perms) ? s.perms : (s.role === "driver" ? [] : ["production"]),
+    p_pin: s.pin ? String(s.pin) : null,
+  };
+  const { error } = await supabase.rpc("upsert_staff", args);
+  if (!error) return;
+  if (_isMissingFn(error)) { await upsertRows("staff", [staffToRow(s)]); return; }
+  throw error;
+}
+export async function deleteStaff(id) {
+  if (!supabase) return;
+  const { error } = await supabase.rpc("delete_staff", { p_id: id });
+  if (!error) return;
+  if (_isMissingFn(error)) { await deleteByIds("staff", [id]); return; }
+  throw error;
+}
+
 /* ---------- auth ---------- */
 export async function verifyPin(pin) {
   if (!supabase) return null;

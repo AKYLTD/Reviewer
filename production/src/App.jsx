@@ -14,6 +14,7 @@ import {
   loadAll, loadStaff, upsertRows, deleteByIds, saveSingleton, verifyPin as dbVerifyPin,
   persistProduction, persistCancellation, clearQueueForLocation, resetAllStock,
   scheduleSync, queueUpsert, setSyncErrorHandler, loadRecipeMediaChunk, updateRecipeFields,
+  upsertStaff, deleteStaff,
   ingToRow, recToRow, staffToRow, locToRow,
 } from "./lib/db.js";
 
@@ -380,11 +381,16 @@ function App() {
       for (const s of next) {
         const p = prevById[s.id];
         if (p && JSON.stringify(staffToRow(p)) === JSON.stringify(staffToRow(s))) continue; // unchanged
-        const row = staffToRow(s); // includes pin only when we actually have one
-        scheduleSync("staff_" + s.id, () => upsertRows("staff", [row]).catch((e) => { console.error("save staff failed", e); flash(`⚠️ Couldn't save staff — ${e.message || e}. Try again.`, 7000); }));
+        const snapshot = { ...s }; // capture the row now (debounce fires later)
+        scheduleSync("staff_" + s.id, () => upsertStaff(snapshot).catch((e) => {
+          console.error("save staff failed", e);
+          const msg = e.message || String(e);
+          const dupPin = /pin/i.test(msg) && /unique|duplicate|staff_pin_key/i.test(msg);
+          flash(dupPin ? `That PIN is already used by another person — pick a different one for ${snapshot.name || "this person"}.` : `⚠️ Couldn't save ${snapshot.name || "staff"} — ${msg}. Try again.`, 7000);
+        }));
       }
       const removed = prev.filter((x) => !nextIds.has(x.id)).map((x) => x.id);
-      if (removed.length && removed.length <= 3) deleteByIds("staff", removed).catch((e) => { console.error("delete staff failed", e); flash("Couldn't delete staff from the database"); });
+      if (removed.length && removed.length <= 3) removed.forEach((id) => deleteStaff(id).catch((e) => { console.error("delete staff failed", e); flash("Couldn't delete staff from the database"); }));
       else if (removed.length > 3) console.warn(`Skipped auto-delete of ${removed.length} staff rows (safety guard)`);
     }
     return next;
@@ -661,8 +667,8 @@ function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin,
     <div className="topbar" style={{ background: C.cream, borderBottom: `1px solid ${C.line}`, position: "sticky", top: 0, zIndex: 40 }}>
     <div style={{ maxWidth, margin: "0 auto", padding: "15px clamp(16px,3vw,44px)", display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ cursor: "pointer", display: "flex", alignItems: "baseline", gap: 9, minWidth: 0 }} onClick={onHome}>
-        <span className="display" style={{ fontSize: "clamp(26px,2vw,38px)", fontWeight: 800, color: C.ink, whiteSpace: "nowrap" }}>Roni's<span style={{ color: C.rust }}>.</span></span>
-        <span className="display hide-sm" style={{ fontSize: "clamp(16px,1.2vw,22px)", fontStyle: "italic", fontWeight: 500, color: C.inkSoft, whiteSpace: "nowrap" }}>Production Floor</span>
+        <span className="display" style={{ fontSize: "clamp(28px,2.1vw,44px)", fontWeight: 800, color: C.ink, whiteSpace: "nowrap" }}>Roni's<span style={{ color: C.rust }}>.</span></span>
+        <span className="display hide-sm" style={{ fontSize: "clamp(17px,1.3vw,24px)", fontStyle: "italic", fontWeight: 500, color: C.inkSoft, whiteSpace: "nowrap" }}>Production Floor</span>
       </div>
       <div style={{ flex: 1 }} />
       <button onClick={onToggleVoice} title={voiceSupported ? "Voice control" : "Voice unsupported here — buttons still work"}
@@ -828,7 +834,7 @@ function Switcher({ productions, activeId, onSwitch, onNew }) {
 }
 
 function Eyebrow({ children }) {
-  return <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}><span style={{ width: 30, height: 2, background: C.rust }} /><span style={{ color: C.rust, fontWeight: 700, letterSpacing: 3, fontSize: "clamp(12px,1vw,15px)", textTransform: "uppercase" }}>{children}</span></div>;
+  return <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}><span style={{ width: 30, height: 2, background: C.rust }} /><span style={{ color: C.rust, fontWeight: 700, letterSpacing: 3, fontSize: "clamp(13px,1.1vw,17px)", textTransform: "uppercase" }}>{children}</span></div>;
 }
 
 function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, storeStock = {}, centralStock = {}, cpu, stores = [], runs = [], onOpenStock }) {
@@ -862,14 +868,14 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
     return (
       <div className="scr">
         <Eyebrow>Sign in</Eyebrow>
-        <h1 className="display" style={{ fontSize: "clamp(42px,5.5vw,86px)", fontWeight: 800, margin: "0 0 8px", lineHeight: 1.02 }}>Who's on the <span style={{ color: C.rust }}>floor?</span></h1>
-        <p style={{ fontSize: "clamp(17px,1.6vw,26px)", color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Tap your name, then your PIN. Or say “Sign in [name]”.</p>
+        <h1 className="display" style={{ fontSize: "clamp(52px,6vw,104px)", fontWeight: 800, margin: "0 0 8px", lineHeight: 1.02 }}>Who's on the <span style={{ color: C.rust }}>floor?</span></h1>
+        <p style={{ fontSize: "clamp(19px,1.7vw,30px)", color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Tap your name, then your PIN. Or say “Sign in [name]”.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 16, marginTop: 26 }}>
           {staff.map((s) => (
             <button key={s.id} onClick={() => { setPinFor(s); setPin(""); setErr(false); }} style={{ background: C.card, border: pinFor?.id === s.id ? `2px solid ${C.rust}` : `1px solid ${C.line}`, borderRadius: 20, padding: "clamp(26px,2.4vw,40px) clamp(26px,2.4vw,40px) clamp(28px,2.6vw,44px)", cursor: "pointer", color: C.ink, textAlign: "left" }}>
-              <div style={{ width: "clamp(52px,4vw,68px)", height: "clamp(52px,4vw,68px)", borderRadius: 999, background: s.role === "driver" ? C.rust : C.gold, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: "clamp(22px,1.8vw,30px)", marginBottom: "clamp(18px,1.6vw,26px)" }}>{s.name[0]}</div>
-              <div style={{ fontSize: "clamp(20px,1.8vw,30px)", fontWeight: 800 }}>{s.name}</div>
-              <div style={{ fontSize: "clamp(14px,1.1vw,19px)", color: C.inkSoft, textTransform: "capitalize", marginTop: 4 }}>{s.role}</div>
+              <div style={{ width: "clamp(56px,4vw,72px)", height: "clamp(56px,4vw,72px)", borderRadius: 999, background: s.role === "driver" ? C.rust : C.gold, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: "clamp(25px,2vw,32px)", marginBottom: "clamp(18px,1.6vw,26px)" }}>{s.name[0]}</div>
+              <div style={{ fontSize: "clamp(24px,2vw,36px)", fontWeight: 800 }}>{s.name}</div>
+              <div style={{ fontSize: "clamp(16px,1.3vw,22px)", color: C.inkSoft, textTransform: "capitalize", marginTop: 4 }}>{s.role}</div>
             </button>
           ))}
         </div>
@@ -892,8 +898,7 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
                 <button onClick={() => setPin((p) => (p + "0").slice(0, 4))} style={padBtn}>0</button>
                 <button onClick={async () => { try { const u = await verifyPin(pin); if (u) { onSignIn(u); } else { setErrKind("wrong"); setErr(true); setPin(""); } } catch (e) { console.error("Sign-in failed", e); setErrKind("server"); setErr(true); setPin(""); } }} style={{ ...padBtn, background: C.go, color: "#fff" }}>✓</button>
               </div>
-              {err && <p style={{ color: C.rust, fontSize: 13, marginBottom: 0, marginTop: 12 }}>{errKind === "server" ? "Couldn't reach the server — check the connection and try again." : "Wrong PIN — try again."}</p>}
-              <p style={{ color: C.inkSoft, fontSize: 12, marginTop: 12, marginBottom: 0, textAlign: "center" }}>Demo: Marco 1234 · Aylin 2222 · Tomas 3333 · Driver Sam 9999</p>
+              {err && <p style={{ color: C.rust, fontSize: 14, marginBottom: 0, marginTop: 12 }}>{errKind === "server" ? "Couldn't reach the server — check the connection and try again." : "Wrong PIN — try again."}</p>}
             </div>
           </Modal>
         )}
@@ -904,14 +909,14 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
   return (
     <div className="scr">
       <Eyebrow>Production</Eyebrow>
-      <h1 className="display" style={{ fontSize: "clamp(38px,4.6vw,76px)", fontWeight: 800, margin: "0 0 6px", lineHeight: 1.02 }}>What are we <span style={{ color: C.rust }}>making?</span></h1>
+      <h1 className="display" style={{ fontSize: "clamp(46px,5.4vw,92px)", fontWeight: 800, margin: "0 0 6px", lineHeight: 1.02 }}>What are we <span style={{ color: C.rust }}>making?</span></h1>
       <p style={{ fontSize: "clamp(17px,1.6vw,26px)", color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Pick a recipe — start as many as you like and switch between them up top.</p>
       <div style={{ marginTop: 18 }}>
         <StockPanel recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} onOpenStock={onOpenStock} />
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 4, alignItems: "stretch" }}>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search recipes — type or tap the mic"
-          style={{ flex: 1, background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "16px 20px", fontSize: "clamp(17px,1.4vw,23px)", color: C.ink }} />
+          style={{ flex: 1, background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "18px 22px", fontSize: "clamp(19px,1.5vw,26px)", color: C.ink }} />
         {query && <button onClick={() => setQuery("")} title="Clear" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "0 16px", fontSize: 18, color: C.inkSoft, cursor: "pointer" }}>✕</button>}
         <button onClick={startVoiceSearch} title="Say a recipe"
           style={{ background: listening ? C.rust : C.card, border: `1px solid ${listening ? C.rust : C.line}`, color: listening ? "#fff" : C.ink, borderRadius: 14, padding: "0 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
@@ -931,8 +936,8 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
               <button key={r.id} onClick={() => onPick(r)} style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 22, padding: 0, overflow: "hidden", cursor: "pointer", color: C.ink, textAlign: "left" }}>
                 <div style={{ height: "clamp(150px,13vw,220px)", background: r.hero ? `url(${r.hero}) center/cover` : `linear-gradient(135deg,${C.goldSoft},${C.rust})` }} />
                 <div style={{ padding: "18px 22px" }}>
-                  <div className="display" style={{ fontSize: "clamp(24px,1.9vw,34px)", fontWeight: 700 }}>{r.name}</div>
-                  <div style={{ fontSize: "clamp(14px,1.1vw,19px)", color: C.inkSoft, marginTop: 5 }}>{r.steps.length} steps · yields {r.yieldKg} {r.yieldUnit}</div>
+                  <div className="display" style={{ fontSize: "clamp(26px,2vw,38px)", fontWeight: 700 }}>{r.name}</div>
+                  <div style={{ fontSize: "clamp(16px,1.2vw,21px)", color: C.inkSoft, marginTop: 5 }}>{r.steps.length} steps · yields {r.yieldKg} {r.yieldUnit}</div>
                 </div>
               </button>
             ))}
@@ -958,7 +963,7 @@ function Quantity({ recipe, ingredients, onBack, onStart }) {
     <div className="scr">
       <button onClick={onBack} style={pillGhost}>← Back</button>
       <h1 className="display" style={{ fontSize: 44, fontWeight: 800, margin: "12px 0 2px" }}>{recipe.name}</h1>
-      <p style={{ fontSize: "clamp(17px,1.4vw,24px)", color: C.inkSoft, marginTop: 0 }}>How many {recipe.yieldUnit} do you need to produce?</p>
+      <p style={{ fontSize: "clamp(19px,1.6vw,27px)", color: C.inkSoft, marginTop: 0 }}>How many {recipe.yieldUnit} do you need to produce?</p>
       <div style={{ display: "flex", alignItems: "center", gap: 20, justifyContent: "center", margin: "18px 0", flexWrap: "wrap" }}>
         <button onClick={() => setQty((k) => Math.max(1, +(k - 1).toFixed(1)))} style={stepBtn}>−</button>
         <div style={{ textAlign: "center" }}><div className="display" style={{ fontSize: 92, fontWeight: 800, lineHeight: 1, color: C.rust }}>{qty}</div><div style={{ fontSize: 20, color: C.inkSoft, fontWeight: 600 }}>{recipe.yieldUnit}</div></div>
@@ -1156,7 +1161,7 @@ function Distribute({ production, stores, locations, delivery, onConfirm }) {
     <div className="scr">
       <Eyebrow>Distribute</Eyebrow>
       <h1 className="display" style={{ fontSize: 42, fontWeight: 800, margin: "0 0 2px" }}>Where's it <span style={{ color: C.rust }}>going?</span></h1>
-      <p style={{ fontSize: "clamp(17px,1.4vw,24px)", color: C.inkSoft, marginTop: 0 }}>You made <b>{targetQty} {recipe.yieldUnit}</b> of {recipe.name}. Hold <b>+</b> to add all that's left · hold <b>−</b> to reset to 0.</p>
+      <p style={{ fontSize: "clamp(19px,1.6vw,27px)", color: C.inkSoft, marginTop: 0 }}>You made <b>{targetQty} {recipe.yieldUnit}</b> of {recipe.name}. Hold <b>+</b> to add all that's left · hold <b>−</b> to reset to 0.</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 16, marginTop: 18 }}>
         {alloc.map(({ store, qty }) => {
           const loc = locations.find((l) => l.name === store);
@@ -1202,7 +1207,7 @@ function DriverView({ deliveryQueue, stores, onCollected }) {
       <div className="scr">
         <Eyebrow>Delivery</Eyebrow>
         <h1 className="display" style={{ fontSize: 42, fontWeight: 800, margin: "0 0 4px" }}>Delivery <span style={{ color: C.rust }}>run</span></h1>
-        <p style={{ fontSize: "clamp(17px,1.4vw,24px)", color: C.inkSoft, marginTop: 0 }}>Pick a shop to see what's waiting for collection.</p>
+        <p style={{ fontSize: "clamp(19px,1.6vw,27px)", color: C.inkSoft, marginTop: 0 }}>Pick a shop to see what's waiting for collection.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 16, marginTop: 18 }}>
           {stores.map((s) => {
             const items = deliveryQueue[s] || [];
@@ -1265,7 +1270,7 @@ function StockPanel({ recipes, storeStock, centralStock, cpu, stores, onOpenStoc
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 20px", borderBottom: `1px solid ${C.line}`, background: C.cardSoft, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ width: 9, height: 9, borderRadius: 999, background: C.go }} />
-          <span className="display" style={{ fontWeight: 800, fontSize: "clamp(18px,1.4vw,22px)" }}>Live stock</span>
+          <span className="display" style={{ fontWeight: 800, fontSize: "clamp(20px,1.6vw,26px)" }}>Live stock</span>
         </div>
         <button onClick={onOpenStock} style={{ ...pillGhost, borderColor: C.go, color: C.go, padding: "8px 16px" }}>Full stock & leaderboard →</button>
       </div>
@@ -1273,13 +1278,13 @@ function StockPanel({ recipes, storeStock, centralStock, cpu, stores, onOpenStoc
         <div style={{ padding: 20, color: C.inkSoft, fontSize: 14 }}>No stock yet. Quantities appear here once productions are completed and allocated.</div>
       ) : (
         <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <div style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 110 + cols.length * 110, gap: 10, padding: "12px 22px", fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `1px solid ${C.line}` }}>
+          <div style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 110 + cols.length * 110, gap: 10, padding: "12px 22px", fontSize: 13, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `1px solid ${C.line}` }}>
             <span>Recipe</span>
             {cols.map((c) => <span key={c} style={{ textAlign: "right" }}>{c}</span>)}
             <span style={{ textAlign: "right" }}>Total</span>
           </div>
           {top.map((r, idx) => (
-            <div key={r.recipe} style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 110 + cols.length * 110, gap: 10, padding: "14px 22px", borderTop: idx ? `1px solid ${C.line}` : "none", fontSize: "clamp(14px,1.1vw,17px)", alignItems: "center" }}>
+            <div key={r.recipe} style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr`, minWidth: 110 + cols.length * 110, gap: 10, padding: "15px 22px", borderTop: idx ? `1px solid ${C.line}` : "none", fontSize: "clamp(16px,1.2vw,20px)", alignItems: "center" }}>
               <b style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.recipe}</b>
               {cols.map((c) => { const v = r.byLoc[c] || 0; return <span key={c} className="display" style={{ textAlign: "right", fontWeight: 700, color: v > 0 ? C.ink : C.line }}>{v ? v.toFixed(1) : "—"}</span>; })}
               <span className="display" style={{ textAlign: "right", fontWeight: 800, color: C.rust }}>{r.total.toFixed(1)}</span>
