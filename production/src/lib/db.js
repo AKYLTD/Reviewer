@@ -187,6 +187,15 @@ export async function deleteByIds(table, ids) {
   if (error) throw error;
 }
 
+/* Clear the reports log — every production run and cancellation. Stock is untouched. */
+export async function resetReports() {
+  if (!supabase) return;
+  const a = await supabase.from("production_runs").delete().neq("id", "___none___");
+  if (a.error) throw a.error;
+  const b = await supabase.from("cancellations").delete().neq("id", "___none___");
+  if (b.error) throw b.error;
+}
+
 export async function saveSingleton(table, row) {
   if (!supabase) return;
   const { error } = await supabase.from(table).upsert({ id: 1, ...row });
