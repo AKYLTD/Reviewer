@@ -282,6 +282,16 @@ export async function resetAllStock() {
   for (const r of results) if (r.error) throw r.error;
 }
 
+/* Stock take: set the CPU (central) stock baseline. `entries` is [{recipe_id, qty}].
+   Rows with qty 0 are removed; the rest are upserted. Store stock is left untouched. */
+export async function setCentralBaseline(entries) {
+  if (!supabase) return;
+  const zero = entries.filter((e) => !(Number(e.qty) > 0)).map((e) => e.recipe_id);
+  const set = entries.filter((e) => Number(e.qty) > 0).map((e) => ({ recipe_id: e.recipe_id, qty: Number(e.qty) }));
+  if (set.length) { const { error } = await supabase.from("central_stock").upsert(set); if (error) throw error; }
+  if (zero.length) { const { error } = await supabase.from("central_stock").delete().in("recipe_id", zero); if (error) throw error; }
+}
+
 /* ============================================================================
    Robust write queue.
    - Only the CHANGED rows are sent (never the whole collection), so one bad/blocked

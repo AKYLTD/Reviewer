@@ -12,7 +12,7 @@ import {
 // them to/from the database and exposes the reads/writes the App needs.
 import {
   loadAll, loadStaff, upsertRows, deleteByIds, saveSingleton, verifyPin as dbVerifyPin,
-  persistProduction, persistCancellation, clearQueueForLocation, resetAllStock,
+  persistProduction, persistCancellation, clearQueueForLocation, resetAllStock, setCentralBaseline,
   scheduleSync, queueUpsert, setSyncErrorHandler, loadRecipeMediaChunk, updateRecipeFields,
   upsertStaff, deleteStaff, resetReports as dbResetReports,
   ingToRow, recToRow, staffToRow, locToRow,
@@ -33,6 +33,15 @@ import {
 
 const fmtMoney = (n) => "£" + (n || 0).toFixed(2);
 const fmtClock = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+// "just now" / "3m ago" / "2h ago" / "5 Sep 14:20" — for the last-synced label.
+const timeAgo = (ts) => {
+  if (!ts) return "never";
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 45) return "just now";
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return new Date(ts).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+};
 // Human duration: "2h 05m" / "45m" / "30s" — used for how long a production took.
 const fmtDur = (sec) => {
   sec = Math.max(0, Math.round(sec || 0));
@@ -235,7 +244,8 @@ const SEED_INGREDIENTS = _seed.ingredients;
 
 function App() {
   const [screen, setScreen] = useState("home");
-  const [user, setUser] = useState(null);
+  // Signed-in staff member is remembered across reloads so a refresh doesn't sign you out.
+  const [user, setUser] = useState(() => { try { const u = localStorage.getItem("ronis_user"); return u ? JSON.parse(u) : null; } catch { return null; } });
   // State starts empty and is populated from Supabase on mount (see load effect).
   const [staff, setStaff] = useState([]);
   const [ingredients, setIngredients] = useState([]);
@@ -244,6 +254,10 @@ function App() {
   const [locations, setLocations] = useState([]);
   const [delivery, setDelivery] = useState({ perMile: 0, perHour: 0 });
   const [ready, setReady] = useState(false);
+  // Manual/auto sync bookkeeping (the app fetches once on load, then every 4 hours or
+  // when the user taps "Sync now" — there is no realtime/polling).
+  const [lastSync, setLastSync] = useState(() => { try { const t = localStorage.getItem("ronis_last_sync"); return t ? Number(t) : null; } catch { return null; } });
+  const [syncing, setSyncing] = useState(false);
   // Gate persistence until the first load completes, so the initial empty state
   // is never written back over the database.
   const readyRef = useRef(false);
@@ -275,6 +289,8 @@ function App() {
   const [voiceOn, setVoiceOn] = useState(false);
   const [toast, setToast] = useState(null);
   const [adminPrompt, setAdminPrompt] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState(null);   // recipe (or "new") open in the top-level editor
+  const [pendingEditRecipe, setPendingEditRecipe] = useState(null); // recipe to edit once admin PIN clears
   const flash = (m, ms = 1700) => { setToast(m); setTimeout(() => setToast(null), ms); };
   const handleVoice = useCallback((t) => { flash(`“${t}”`); window.dispatchEvent(new CustomEvent("voicecmd", { detail: t })); }, []);
   const { supported: voiceSupported } = useVoice(handleVoice, voiceOn);
@@ -310,14 +326,7 @@ function App() {
       }
       if (recovered) flash("Recovered unsaved changes ✓");
       try {
-        const data = await loadAll();
-        if (data && !cancelled) {
-          applyData(data);
-          try { localStorage.setItem("ronis_cache_v1", JSON.stringify(data)); } catch {}
-          // App is usable now; stream recipe images in afterwards, a few at a time, so
-          // no single request is huge and a weak connection can't stall the whole load.
-          streamRecipeMedia(data.recipes.map((r) => r.id), () => cancelled);
-        }
+        await syncNow({ silent: true });
       } catch (e) {
         console.error("Load failed", e); if (!hadCache) flash("Couldn't load data from the database");
       } finally {
@@ -353,6 +362,64 @@ function App() {
       }
     }
   };
+
+  // Fetch the whole dataset once and refresh the cache. Called on load, every 4 hours,
+  // and by the "Sync now" button. There are no realtime subscriptions.
+  const syncNow = async ({ silent } = {}) => {
+    setSyncing(true);
+    try {
+      const data = await loadAll();
+      if (data) {
+        applyData(data);
+        try { localStorage.setItem("ronis_cache_v1", JSON.stringify(data)); } catch {}
+        streamRecipeMedia(data.recipes.map((r) => r.id), () => false);
+        const now = Date.now(); setLastSync(now);
+        try { localStorage.setItem("ronis_last_sync", String(now)); } catch {}
+        if (!silent) flash("Synced ✓");
+      }
+      return true;
+    } catch (e) {
+      console.error("Sync failed", e);
+      if (!silent) flash("Sync failed — check the connection and try again", 5000);
+      return false;
+    } finally { setSyncing(false); }
+  };
+  const syncRef = useRef(syncNow); syncRef.current = syncNow;
+  // Auto-refresh every 4 hours (silent). No constant polling.
+  useEffect(() => { const id = setInterval(() => syncRef.current({ silent: true }), 4 * 60 * 60 * 1000); return () => clearInterval(id); }, []);
+
+  // Remember the signed-in staff member across reloads.
+  useEffect(() => { try { user ? localStorage.setItem("ronis_user", JSON.stringify(user)) : localStorage.removeItem("ronis_user"); } catch {} }, [user]);
+
+  // Persist an in-progress production run (slim: recipe id + step/timer state) so a reload
+  // or closing the app doesn't lose it. Elapsed time is derived from startedAt on restore.
+  const runsRestored = useRef(false);
+  useEffect(() => {
+    if (!readyRef.current || !runsRestored.current) return; // don't write until we've restored
+    try {
+      if (productions.length) {
+        const slim = productions.map((p) => ({ id: p.id, recipeId: p.recipe.id, targetQty: p.targetQty, stepIndex: p.stepIndex, durations: p.durations, startedBy: p.startedBy, startedAt: p.startedAt }));
+        localStorage.setItem("ronis_active_runs", JSON.stringify({ activeId, productions: slim }));
+      } else localStorage.removeItem("ronis_active_runs");
+    } catch {}
+  }, [productions, activeId, ready]);
+  // Restore the saved run once recipes are available (resolve the recipe by id).
+  useEffect(() => {
+    if (runsRestored.current || !recipes.length) return;
+    runsRestored.current = true;
+    try {
+      const raw = localStorage.getItem("ronis_active_runs");
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      const byId = Object.fromEntries(recipes.map((r) => [r.id, r]));
+      const restored = (saved.productions || []).map((p) => { const rec = byId[p.recipeId]; return rec ? { ...p, recipe: rec } : null; }).filter(Boolean);
+      if (restored.length) {
+        setProductions(restored);
+        setActiveId(saved.activeId && restored.some((p) => p.id === saved.activeId) ? saved.activeId : restored[0].id);
+        if (user?.role === "production") setScreen("run"); // resume straight into the live run
+      }
+    } catch {}
+  }, [recipes]);
 
   // ---- persistence-aware setters for admin-managed data ----
   // Same call signature as React setters; they also sync the change to Supabase
@@ -527,6 +594,15 @@ function App() {
     else { setUser(null); setScreen("home"); }
   };
 
+  // Open a recipe in the top-level editor (from Production cards / Service Book). Gated by
+  // admin: an admin opens it straight away, anyone else must pass the admin PIN first.
+  const saveRecipe = (r) => setRecipesP((rs) => rs.some((x) => x.id === r.id) ? rs.map((x) => x.id === r.id ? r : x) : [...rs, r]);
+  const requestEditRecipe = (recipe) => {
+    if (!recipe) return;
+    if (user?.role === "admin") setEditingRecipe(recipe);
+    else { setPendingEditRecipe(recipe); setAdminPrompt(true); }
+  };
+
   const resetStock = () => {
     setStoreStock({}); setCentralStock({}); setDeliveryQueue({});
     if (readyRef.current) resetAllStock().then(() => flash("Stock reset")).catch((e) => { console.error("Reset stock failed", e); flash("Stock reset on screen, but database write failed"); });
@@ -540,6 +616,18 @@ function App() {
     const set = new Set(ids);
     setRuns((rs) => rs.filter((r) => !set.has(r.id)));
     if (readyRef.current) deleteByIds("production_runs", ids).catch((e) => { console.error("Delete runs failed", e); flash("Deleted on screen, but database write failed"); });
+  };
+  // Stock take: replace CPU (central) stock with counted quantities. `counts` maps recipe
+  // name → qty; `date` is the effective count date (kept for reference, no schema change).
+  const applyStockTake = (counts, date) => {
+    const next = {};
+    Object.entries(counts).forEach(([name, q]) => { if (Number(q) > 0) next[name] = Number(q); });
+    setCentralStock(next);
+    try { localStorage.setItem("ronis_last_stocktake", JSON.stringify({ date: date || null, at: Date.now() })); } catch {}
+    if (readyRef.current) {
+      const rows = Object.entries(counts).map(([name, q]) => { const rec = recipes.find((r) => r.name === name); return rec ? { recipe_id: rec.id, qty: Number(q) || 0 } : null; }).filter(Boolean);
+      setCentralBaseline(rows).then(() => flash("Stock take saved ✓")).catch((e) => { console.error("Stock take failed", e); flash("Saved on screen, but the database write failed", 6000); });
+    }
   };
 
   const [timerOpen, setTimerOpen] = useState(false);
@@ -560,6 +648,7 @@ function App() {
         .display{font-family:'Quicksand',sans-serif;letter-spacing:-.01em}
         @keyframes pop{from{transform:scale(.98);opacity:0}to{transform:scale(1);opacity:1}}
         @keyframes ring{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
         .scr{animation:pop .22s ease}
         input,textarea,select{font-family:inherit}
         /* mobile / tablet */
@@ -609,10 +698,21 @@ function App() {
         onTimer={() => setTimerOpen(true)}
         onSBook={() => { if (hasPerm(user, "sbook")) { setScreen("sbook"); } else { setSbookPrompt(true); } }}
         onSignOut={requestSignOut}
+        onSync={() => syncNow()} syncing={syncing} lastSync={lastSync}
         showAdmin showStock={!!user} showSBook={hasServiceRecipes} />
 
       {adminPrompt && (
-        <AdminPinGate onClose={() => setAdminPrompt(false)} onOk={() => { setAdminPrompt(false); setUser(ADMIN_USER); setScreen("admin"); }} />
+        <AdminPinGate verifyPin={dbVerifyPin} onClose={() => { setAdminPrompt(false); setPendingEditRecipe(null); }} onOk={(u) => { setAdminPrompt(false); setUser(u || ADMIN_USER); if (pendingEditRecipe) { setEditingRecipe(pendingEditRecipe); setPendingEditRecipe(null); } else { setScreen("admin"); } }} />
+      )}
+      {editingRecipe && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60, background: C.cream, overflowY: "auto" }}>
+          <div style={{ maxWidth: "min(96vw,1100px)", margin: "0 auto", padding: "20px clamp(14px,3vw,40px)" }}>
+            <RecipeBuilder ingredients={ingredients} recipes={recipes} initial={editingRecipe === "new" ? null : editingRecipe}
+              onAutoSave={saveRecipe}
+              onCancel={() => setEditingRecipe(null)}
+              onSave={(r) => { saveRecipe(r); setEditingRecipe(null); }} />
+          </div>
+        </div>
       )}
       {sbookPrompt && (
         <StaffPinGate perm="sbook" title="Service Book" subtitle="Enter your PIN to open the service recipe book"
@@ -644,12 +744,14 @@ function App() {
 
       <div style={{ maxWidth: screen === "view" ? "min(96vw,1600px)" : "min(96vw,2100px)", margin: "0 auto", padding: screen === "view" ? "18px clamp(16px,2.5vw,32px) 40px" : "30px clamp(16px,2.5vw,40px) 80px" }}>
         {screen === "view" && viewing && (
-          <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onNavigate={(r) => setViewing(r)} onBack={() => { setViewing(null); setScreen(hasServiceRecipes && user?.role !== "admin" ? "sbook" : backScreen); }} />
+          <RecipeView recipe={viewing} ingredients={ingredients} recipes={recipes} onEdit={requestEditRecipe} onNavigate={(r) => setViewing(r)} onBack={() => { setViewing(null); setScreen(hasServiceRecipes && user?.role !== "admin" ? "sbook" : backScreen); }} />
         )}
         {screen === "home" && (
           <Home user={user} staff={staff} recipes={recipes} ingredients={ingredients} verifyPin={dbVerifyPin}
             storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} runs={runs}
             onOpenStock={() => setScreen("stock")}
+            onAdmin={() => { if (user?.role === "admin") { setScreen("admin"); } else { setAdminPrompt(true); } }}
+            onEditRecipe={requestEditRecipe}
             onProduce={(recipe) => { if (!recipe) return; if (hasPerm(user, "production")) { setFinishing({ _pickQty: recipe }); setScreen("qty"); } else { setProduceGate(recipe); } }}
             onSignIn={(u) => { setUser(u); setScreen(u.role === "driver" ? "driver" : u.role === "admin" ? "admin" : "home"); }}
             onPick={(r) => { if ((r.dept2 || "Production") === "Service") { setViewing(r); setScreen("view"); } else { setFinishing({ _pickQty: r }); setScreen("qty"); } }} />
@@ -681,7 +783,7 @@ function App() {
           <Admin ingredients={ingredients} setIngredients={setIngredientsP} recipes={recipes} setRecipes={setRecipesP}
             staff={staff} setStaff={setStaffP} cpu={cpu} setCpu={setCpuP} locations={locations} setLocations={setLocationsP}
             delivery={delivery} setDelivery={setDeliveryP} storeStock={storeStock} centralStock={centralStock}
-            deliveryQueue={deliveryQueue} runs={runs} cancellations={cancellations} alerts={alerts} setAlerts={setAlertsP} stores={stores} onResetStock={resetStock} onResetReports={resetReports} onDeleteRuns={deleteRuns} onClose={() => { if (user?.role === "admin") { setUser(null); } setScreen("home"); }} />
+            deliveryQueue={deliveryQueue} runs={runs} cancellations={cancellations} alerts={alerts} setAlerts={setAlertsP} stores={stores} onResetStock={resetStock} onResetReports={resetReports} onDeleteRuns={deleteRuns} onStockTake={applyStockTake} onClose={() => { if (user?.role === "admin") { setUser(null); } setScreen("home"); }} />
         )}
       </div>
       </>
@@ -694,7 +796,7 @@ function App() {
   );
 }
 
-function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin, onStock, onTimer, onSBook, onSignOut, showAdmin, showStock, showSBook, maxWidth = 1060 }) {
+function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin, onStock, onTimer, onSBook, onSignOut, showAdmin, showStock, showSBook, onSync, syncing, lastSync, maxWidth = 1060 }) {
   return (
     <div className="topbar" style={{ background: C.cream, borderBottom: `1px solid ${C.line}`, position: "sticky", top: 0, zIndex: 40 }}>
     <div style={{ maxWidth, margin: "0 auto", padding: "15px clamp(16px,3vw,44px)", display: "flex", alignItems: "center", gap: 10 }}>
@@ -703,6 +805,13 @@ function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin,
         <span className="display hide-sm" style={{ fontSize: "clamp(17px,1.3vw,24px)", fontStyle: "italic", fontWeight: 500, color: C.inkSoft, whiteSpace: "nowrap" }}>Production Floor</span>
       </div>
       <div style={{ flex: 1 }} />
+      {onSync && (
+        <button onClick={onSync} disabled={syncing} title={lastSync ? `Last synced ${timeAgo(lastSync)}` : "Not synced yet"}
+          style={{ ...pillGhost, flexShrink: 0, display: "flex", alignItems: "center", gap: 7, opacity: syncing ? 0.6 : 1, cursor: syncing ? "default" : "pointer" }}>
+          <span style={{ display: "inline-block", animation: syncing ? "spin 0.9s linear infinite" : "none", fontSize: 15 }}>⟳</span>
+          <span className="hide-sm">{syncing ? "Syncing…" : lastSync ? `Synced ${timeAgo(lastSync)}` : "Sync now"}</span>
+        </button>
+      )}
       <button onClick={onToggleVoice} title={voiceSupported ? "Voice control" : "Voice unsupported here — buttons still work"}
         style={{ background: voiceOn ? C.go : "transparent", border: `1.5px solid ${voiceOn ? C.go : C.line}`, color: voiceOn ? "#fff" : C.ink, borderRadius: 999, padding: "9px 14px", fontWeight: 600, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         <span style={{ width: 9, height: 9, borderRadius: 999, background: voiceOn ? "#9be8ad" : C.line }} /><span className="hide-sm">{voiceOn ? "Listening" : "Voice"}</span>
@@ -869,7 +978,7 @@ function Eyebrow({ children }) {
   return <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}><span style={{ width: 30, height: 2, background: C.rust }} /><span style={{ color: C.rust, fontWeight: 700, letterSpacing: 3, fontSize: "clamp(13px,1.1vw,17px)", textTransform: "uppercase" }}>{children}</span></div>;
 }
 
-function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, storeStock = {}, centralStock = {}, cpu, stores = [], runs = [], onOpenStock, onProduce }) {
+function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, storeStock = {}, centralStock = {}, cpu, stores = [], runs = [], onOpenStock, onProduce, onAdmin, onEditRecipe }) {
   const [pinFor, setPinFor] = useState(null);
   const [pin, setPin] = useState("");
   const [err, setErr] = useState(false);
@@ -899,7 +1008,10 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
   if (!user) {
     return (
       <div className="scr">
-        <Eyebrow>Sign in</Eyebrow>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <Eyebrow>Sign in</Eyebrow>
+          {onAdmin && <button onClick={onAdmin} style={{ ...pillGhost, flexShrink: 0, borderColor: C.ink, color: C.ink, fontWeight: 700 }}>Admin →</button>}
+        </div>
         <h1 className="display" style={{ fontSize: "clamp(52px,6vw,104px)", fontWeight: 800, margin: "0 0 8px", lineHeight: 1.02 }}>Who's on the <span style={{ color: C.rust }}>floor?</span></h1>
         <p style={{ fontSize: "clamp(19px,1.7vw,30px)", color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Tap your name, then your PIN. Or say “Sign in [name]”.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 16, marginTop: 26 }}>
@@ -965,13 +1077,14 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
         return (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(340px,1fr))", gap: 20, marginTop: 20 }}>
             {filtered.map((r) => (
-              <button key={r.id} onClick={() => onPick(r)} style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 22, padding: 0, overflow: "hidden", cursor: "pointer", color: C.ink, textAlign: "left" }}>
+              <div key={r.id} onClick={() => onPick(r)} style={{ position: "relative", background: C.card, border: `1px solid ${C.line}`, borderRadius: 22, padding: 0, overflow: "hidden", cursor: "pointer", color: C.ink, textAlign: "left" }}>
+                {onEditRecipe && <button onClick={(e) => { e.stopPropagation(); onEditRecipe(r); }} title="Edit recipe" style={{ position: "absolute", top: 10, right: 10, zIndex: 2, background: "rgba(255,255,255,.92)", border: `1px solid ${C.line}`, borderRadius: 999, width: 38, height: 38, cursor: "pointer", fontSize: 17, display: "grid", placeItems: "center", boxShadow: "0 2px 6px rgba(0,0,0,.15)" }}>✎</button>}
                 <div style={{ height: "clamp(150px,13vw,220px)", background: r.hero ? `url(${r.hero}) center/cover` : `linear-gradient(135deg,${C.goldSoft},${C.rust})` }} />
                 <div style={{ padding: "18px 22px" }}>
                   <div className="display" style={{ fontSize: "clamp(26px,2vw,38px)", fontWeight: 700 }}>{r.name}</div>
                   <div style={{ fontSize: "clamp(16px,1.2vw,21px)", color: C.inkSoft, marginTop: 5 }}>{r.steps.length} steps · yields {r.yieldKg} {r.yieldUnit}</div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         );
@@ -1348,14 +1461,14 @@ function StockPanel({ recipes, storeStock, centralStock, cpu, stores, onOpenStoc
         <div style={{ padding: 20, color: C.inkSoft, fontSize: 14 }}>No stock yet. Quantities appear here once productions are completed and allocated.</div>
       ) : (
         <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <div style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr${onProduce ? " 104px" : ""}`, minWidth: 110 + cols.length * 110 + (onProduce ? 104 : 0), gap: 10, padding: "12px 22px", fontSize: 13, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `1px solid ${C.line}` }}>
+          <div style={{ display: "grid", gridTemplateColumns: `minmax(120px,1.6fr) repeat(${cols.length}, 68px) 76px${onProduce ? " 96px" : ""}`, minWidth: 120 + cols.length * 68 + 76 + (onProduce ? 96 : 0), gap: 10, padding: "12px 22px", fontSize: 13, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `1px solid ${C.line}` }}>
             <span>Recipe</span>
             {cols.map((c) => <span key={c} style={{ textAlign: "right" }}>{c}</span>)}
             <span style={{ textAlign: "right" }}>Total</span>
             {onProduce && <span />}
           </div>
           {top.map((r, idx) => (
-            <div key={r.recipe} style={{ display: "grid", gridTemplateColumns: `1.6fr repeat(${cols.length}, 1fr) 0.9fr${onProduce ? " 104px" : ""}`, minWidth: 110 + cols.length * 110 + (onProduce ? 104 : 0), gap: 10, padding: "15px 22px", borderTop: idx ? `1px solid ${C.line}` : "none", fontSize: "clamp(16px,1.2vw,20px)", alignItems: "center" }}>
+            <div key={r.recipe} style={{ display: "grid", gridTemplateColumns: `minmax(120px,1.6fr) repeat(${cols.length}, 68px) 76px${onProduce ? " 96px" : ""}`, minWidth: 120 + cols.length * 68 + 76 + (onProduce ? 96 : 0), gap: 10, padding: "15px 22px", borderTop: idx ? `1px solid ${C.line}` : "none", fontSize: "clamp(16px,1.2vw,20px)", alignItems: "center" }}>
               <b style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.recipe}</b>
               {cols.map((c) => { const v = r.byLoc[c] || 0; return <span key={c} className="display" style={{ textAlign: "right", fontWeight: 700, color: v > 0 ? C.ink : C.line }}>{v ? v.toFixed(1) : "—"}</span>; })}
               <span className="display" style={{ textAlign: "right", fontWeight: 800, color: C.rust }}>{r.total.toFixed(1)}</span>
@@ -1418,7 +1531,7 @@ function SBook({ recipes, ingredients, onView, onBack }) {
 }
 
 /* SERVICE recipe — one-page read-only reference. No production flow. */
-function RecipeView({ recipe, ingredients, recipes = [], onBack, onNavigate }) {
+function RecipeView({ recipe, ingredients, recipes = [], onBack, onNavigate, onEdit }) {
   const m = ingMap(ingredients);
   const recById = Object.fromEntries(recipes.map((r) => [r.id, r]));
   const [lightbox, setLightbox] = useState(null);
@@ -1461,6 +1574,7 @@ function RecipeView({ recipe, ingredients, recipes = [], onBack, onNavigate }) {
         {onNavigate && <button disabled={!next} onClick={() => next && onNavigate(next)} style={arrow(next)} title="Next">›</button>}
         {siblings.length > 1 && <span style={{ fontSize: 13, color: C.inkSoft }}>{idx + 1} / {siblings.length} · swipe to flip</span>}
         <div style={{ flex: 1 }} />
+        {onEdit && <button onClick={() => onEdit(recipe)} title="Edit recipe" style={{ ...pillGhost, borderColor: C.ink }}>✎ Edit</button>}
         <span style={{ background: C.gold, color: C.ink, borderRadius: 999, padding: "5px 14px", fontSize: 13, fontWeight: 700 }}>Reference</span>
       </div>
 
@@ -1545,8 +1659,10 @@ function LiveStock({ recipes, storeStock, centralStock, cpu, stores, runs = [], 
 
   const colTotal = (c) => rows.reduce((a, r) => a + (r.byLoc[c] || 0), 0);
   const canProduce = !!onProduce;
-  const gcols = `1.6fr repeat(${cols.length}, 1fr) 0.9fr${canProduce ? " 110px" : ""}`;
-  const minW = 120 + cols.length * 120 + (canProduce ? 110 : 0);
+  // Fixed-width numeric columns so headers sit exactly above their values.
+  const NUMW = 72;
+  const gcols = `minmax(130px,1.6fr) repeat(${cols.length}, ${NUMW}px) 80px${canProduce ? " 104px" : ""}`;
+  const minW = 130 + cols.length * NUMW + 80 + (canProduce ? 104 : 0);
 
   return (
     <div className="scr">
@@ -1699,9 +1815,9 @@ function ProductionsLog({ runs }) {
 }
 
 /* ===================== ADMIN ===================== */
-function Admin({ ingredients, setIngredients, recipes, setRecipes, staff, setStaff, cpu, setCpu, locations, setLocations, delivery, setDelivery, storeStock, centralStock, deliveryQueue, runs, cancellations, alerts, setAlerts, stores, onResetStock, onResetReports, onDeleteRuns, onClose }) {
+function Admin({ ingredients, setIngredients, recipes, setRecipes, staff, setStaff, cpu, setCpu, locations, setLocations, delivery, setDelivery, storeStock, centralStock, deliveryQueue, runs, cancellations, alerts, setAlerts, stores, onResetStock, onResetReports, onDeleteRuns, onStockTake, onClose }) {
   const [tab, setTab] = useState("recipes");
-  const tabs = [["recipes", "Recipes"], ["ingredients", "Ingredient costs"], ["staff", "Staff & wages"], ["locations", "Locations & delivery"], ["reports", "Reports"]];
+  const tabs = [["recipes", "Recipes"], ["ingredients", "Ingredient costs"], ["staff", "Staff & wages"], ["locations", "Locations & delivery"], ["stocktake", "Stock take"], ["reports", "Reports"]];
   return (
     <div className="scr">
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16, flexWrap: "wrap" }}>
@@ -1732,6 +1848,7 @@ function Admin({ ingredients, setIngredients, recipes, setRecipes, staff, setSta
       {tab === "ingredients" && <AdminIngredients ingredients={ingredients} setIngredients={setIngredients} />}
       {tab === "staff" && <AdminStaff staff={staff} setStaff={setStaff} />}
       {tab === "locations" && <AdminLocations cpu={cpu} setCpu={setCpu} locations={locations} setLocations={setLocations} delivery={delivery} setDelivery={setDelivery} />}
+      {tab === "stocktake" && <AdminStockTake recipes={recipes} centralStock={centralStock} cpu={cpu} onStockTake={onStockTake} />}
       {tab === "reports" && <AdminReports runs={runs} recipes={recipes} cancellations={cancellations} storeStock={storeStock} centralStock={centralStock} deliveryQueue={deliveryQueue} stores={stores} onResetStock={onResetStock} onResetReports={onResetReports} onDeleteRuns={onDeleteRuns} />}
     </div>
   );
@@ -2307,6 +2424,64 @@ function AdminLocations({ cpu, setCpu, locations, setLocations, delivery, setDel
   );
 }
 
+/* Stock take — count what's physically at the CPU and write it as the new central-stock
+   baseline. Pick an effective date, fill counts (pre-loaded with current figures), save. */
+function AdminStockTake({ recipes, centralStock, cpu, onStockTake }) {
+  const prod = recipes.filter((r) => (r.dept2 || "Production") === "Production").sort((a, b) => a.name.localeCompare(b.name));
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [counts, setCounts] = useState(() => Object.fromEntries(prod.map((r) => [r.name, centralStock[r.name] != null ? String(centralStock[r.name]) : ""])));
+  const [q, setQ] = useState("");
+  const [saved, setSaved] = useState(false);
+  const last = (() => { try { return JSON.parse(localStorage.getItem("ronis_last_stocktake") || "null"); } catch { return null; } })();
+  const query = q.trim().toLowerCase();
+  const list = prod.filter((r) => !query || r.name.toLowerCase().includes(query));
+  const totalCounted = Object.values(counts).reduce((a, v) => a + (Number(v) || 0), 0);
+  const set = (name, v) => { setSaved(false); setCounts((c) => ({ ...c, [name]: v })); };
+  const save = () => {
+    const clean = {}; prod.forEach((r) => { clean[r.name] = Number(counts[r.name]) || 0; });
+    onStockTake(clean, date); setSaved(true);
+  };
+  const cell = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 10, padding: "8px 12px", fontSize: 15, color: C.ink, width: 110, textAlign: "right" };
+  return (
+    <div>
+      <div style={{ background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 14, padding: "14px 18px", marginBottom: 16, display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Count date</div>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ ...cell, width: "auto", textAlign: "left" }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 180, fontSize: 14, color: C.inkSoft }}>
+          Enter what's physically at <b>{cpu?.name || "the CPU"}</b> right now. This becomes the new Total&nbsp;Production (central) stock baseline. Shop stock isn't changed.
+          {last?.at && <div style={{ marginTop: 4, fontSize: 12 }}>Last stock take: {last.date || "—"} ({timeAgo(last.at)})</div>}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a recipe…" style={{ flex: 1, minWidth: 180, background: C.card, border: `1px solid ${C.line}`, borderRadius: 999, padding: "10px 16px", fontSize: 14, color: C.ink }} />
+        <span style={{ fontSize: 13, color: C.inkSoft }}>Counted total: <b style={{ color: C.rust }}>{fmtNum(totalCounted)}</b></span>
+      </div>
+
+      <div style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.line}`, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 130px", gap: 10, padding: "12px 18px", borderBottom: `2px solid ${C.line}`, fontSize: 12, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <span>Recipe</span><span style={{ textAlign: "right" }}>Counted qty</span>
+        </div>
+        {list.length === 0 ? <div style={{ padding: 18, color: C.inkSoft }}>No production recipes match.</div> : list.map((r, idx) => (
+          <div key={r.id} style={{ display: "grid", gridTemplateColumns: "1fr 130px", gap: 10, padding: "10px 18px", borderTop: idx ? `1px solid ${C.line}` : "none", alignItems: "center" }}>
+            <div><b>{r.name}</b> <span style={{ fontSize: 12, color: C.inkSoft }}>({r.yieldUnit})</span></div>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
+              <input type="number" inputMode="decimal" min="0" step="0.1" value={counts[r.name] ?? ""} onChange={(e) => set(r.name, e.target.value)} onFocus={(e) => e.target.select()} placeholder="0" style={cell} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 16 }}>
+        <button onClick={save} style={{ ...adminBtn, background: C.go, color: "#fff", border: "none" }}>Save stock take → set baseline</button>
+        {saved && <span style={{ color: C.go, fontWeight: 700, fontSize: 14 }}>✓ Baseline updated</span>}
+      </div>
+    </div>
+  );
+}
+
 function AdminReports({ runs: allRuns, recipes, cancellations, storeStock, centralStock, deliveryQueue, stores, onResetStock, onResetReports, onDeleteRuns }) {
   const [view, setView] = useState("runs");
   const [range, setRange] = useState("all"); // all | today | 7 | 30
@@ -2491,22 +2666,30 @@ function GestureBar({ onThumbsUp, label }) {
     </div>
   );
 }
-function AdminPinGate({ onClose, onOk }) {
+function AdminPinGate({ onClose, onOk, verifyPin }) {
   const [pin, setPin] = useState("");
-  const [err, setErr] = useState(false);
-  const submit = (p) => { if (p === ADMIN_USER.pin) onOk(); else { setErr(true); setPin(""); } };
+  const [err, setErr] = useState("");
+  const submit = async (p) => {
+    if (verifyPin) {
+      try {
+        const u = await verifyPin(p);
+        if (u && u.role === "admin") { onOk(u); return; }
+        setErr(u ? "That PIN isn't an admin account." : "Wrong PIN — try again."); setPin("");
+      } catch (e) { console.error("admin verify failed", e); setErr("Couldn't reach the server — try again."); setPin(""); }
+    } else { if (p === ADMIN_USER.pin) onOk(ADMIN_USER); else { setErr("Wrong PIN — try again."); setPin(""); } }
+  };
   return (
     <Modal onClose={onClose}>
       <div className="display" style={{ fontSize: 26, fontWeight: 800, marginBottom: 4 }}>Admin access</div>
       <p style={{ color: C.inkSoft, marginTop: 0, fontSize: 14 }}>Enter the admin PIN to manage recipes, costs, staff and reports.</p>
       <div style={{ fontSize: 32, letterSpacing: 12, textAlign: "center", minHeight: 40, color: err ? C.rust : C.ink }}>{pin.replace(/./g, "•")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 12 }}>
-        {[1,2,3,4,5,6,7,8,9].map((n) => <button key={n} onClick={() => { setErr(false); setPin((p) => (p + n).slice(0, 4)); }} style={padBtn}>{n}</button>)}
+        {[1,2,3,4,5,6,7,8,9].map((n) => <button key={n} onClick={() => { setErr(""); setPin((p) => (p + n).slice(0, 4)); }} style={padBtn}>{n}</button>)}
         <button onClick={() => setPin("")} style={{ ...padBtn, fontSize: 15 }}>clear</button>
         <button onClick={() => setPin((p) => (p + "0").slice(0, 4))} style={padBtn}>0</button>
         <button onClick={() => submit(pin)} style={{ ...padBtn, background: C.go, color: "#fff" }}>✓</button>
       </div>
-      {err && <p style={{ color: C.rust, fontSize: 13, marginBottom: 0 }}>Wrong PIN — try again.</p>}
+      {err && <p style={{ color: C.rust, fontSize: 13, marginBottom: 0 }}>{err}</p>}
     </Modal>
   );
 }
