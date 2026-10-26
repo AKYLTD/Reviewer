@@ -398,7 +398,7 @@ function App() {
     if (!readyRef.current || !runsRestored.current) return; // don't write until we've restored
     try {
       if (productions.length) {
-        const slim = productions.map((p) => ({ id: p.id, recipeId: p.recipe.id, targetQty: p.targetQty, stepIndex: p.stepIndex, durations: p.durations, startedBy: p.startedBy, startedAt: p.startedAt }));
+        const slim = productions.map((p) => ({ id: p.id, recipeId: p.recipe.id, targetQty: p.targetQty, stepIndex: p.stepIndex, durations: p.durations, startedBy: p.startedBy, startedAt: p.startedAt, timedRanSec: p.timedRanSec || 0, timedRanSteps: p.timedRanSteps || [] }));
         localStorage.setItem("ronis_active_runs", JSON.stringify({ activeId, productions: slim }));
       } else localStorage.removeItem("ronis_active_runs");
     } catch {}
@@ -416,7 +416,7 @@ function App() {
       if (restored.length) {
         setProductions(restored);
         setActiveId(saved.activeId && restored.some((p) => p.id === saved.activeId) ? saved.activeId : restored[0].id);
-        if (user?.role === "production") setScreen("run"); // resume straight into the live run
+        if (user?.role === "production") setScreen("produce"); // resume straight into the live run
       }
     } catch {}
   }, [recipes]);
@@ -491,8 +491,8 @@ function App() {
   const locId = (name) => locations.find((l) => l.name === name)?.id;
 
   const startProduction = (recipe, targetQty) => {
-    const p = { id: uid("p"), recipe, targetQty, stepIndex: 0, durations: [], startedBy: user, startedAt: Date.now() };
-    setProductions((ps) => [...ps, p]); setActiveId(p.id); setScreen("run");
+    const p = { id: uid("p"), recipe, targetQty, stepIndex: 0, durations: [], startedBy: user, startedAt: Date.now(), timedRanSec: 0, timedRanSteps: [] };
+    setProductions((ps) => [...ps, p]); setActiveId(p.id); setFinishing(null); setScreen("produce");
   };
   const updateProduction = (id, patch) => setProductions((ps) => ps.map((p) => p.id === id ? { ...p, ...patch } : p));
   const removeProduction = (id) => setProductions((ps) => ps.filter((p) => p.id !== id));
@@ -514,7 +514,10 @@ function App() {
 
     // total time the production took (clock stopped at the delivery stage)
     const totalSec = p.finishedAt && p.startedAt ? Math.max(0, Math.round((p.finishedAt - p.startedAt) / 1000)) : p.durations.reduce((a, b) => a + b, 0);
-    const labour = (totalSec / 3600) * (p.startedBy?.wage || 0);
+    // Labour excludes timed waits that were actually run (staff work on other things
+    // during e.g. a 30-min bake). Reports still show the gross time (totalSec).
+    const activeSec = Math.max(0, totalSec - (p.timedRanSec || 0));
+    const labour = (activeSec / 3600) * (p.startedBy?.wage || 0);
     const ingCost = recipeCost(p.recipe, ingredients) * (p.targetQty / p.recipe.yieldKg);
     const deliv = alloc.reduce((sum, { store }) => sum + deliveryCost(locations.find((l) => l.name === store), delivery), 0);
     const thisRun = { id: uid("run"), recipeId: rId, recipe: rName, qty: producedQty, unit: yUnit, by: p.startedBy?.name, totalSec, labour, ingCost, deliv, total: labour + ingCost + deliv, when: whenLabel, at: new Date().toISOString() };
@@ -554,7 +557,10 @@ function App() {
   };
   const cancelProduction = (p) => {
     const whenLabel = new Date().toLocaleString("en-GB");
-    const row = { id: uid("cx"), recipe: p.recipe.name, qty: p.targetQty, unit: p.recipe.yieldUnit, by: p.startedBy?.name, stoppedAtStep: (p.stepIndex || 0) + 1, totalSteps: p.recipe.steps.length, when: whenLabel };
+    // "How long after starting" — stored in the (now-unused) stopped_at_step column as
+    // seconds; total_steps=0 marks a new-flow cancellation. No schema change.
+    const elapsedSec = p.startedAt ? Math.max(0, Math.round((Date.now() - p.startedAt) / 1000)) : 0;
+    const row = { id: uid("cx"), recipe: p.recipe.name, qty: p.targetQty, unit: p.recipe.yieldUnit, by: p.startedBy?.name, stoppedAtStep: elapsedSec, totalSteps: 0, when: whenLabel, elapsedSec };
     setCancellations((c) => [row, ...c]);
     removeProduction(p.id); setFinishing(null); setActiveId(null); setScreen("home"); flash("Production cancelled — logged");
     if (readyRef.current) persistCancellation({ id: row.id, recipe: row.recipe, qty: row.qty, unit: row.unit, by_name: row.by, stopped_at_step: row.stoppedAtStep, total_steps: row.totalSteps, when_label: row.when })
@@ -590,7 +596,7 @@ function App() {
   };
 
   const requestSignOut = () => {
-    if (productions.length > 0) { setActiveId(productions[0].id); setScreen("run"); flash("Finish or stop the live production first"); }
+    if (productions.length > 0) { setActiveId(productions[0].id); setScreen("produce"); flash("Finish or stop the live production first"); }
     else { setUser(null); setScreen("home"); }
   };
 
@@ -616,6 +622,19 @@ function App() {
     const set = new Set(ids);
     setRuns((rs) => rs.filter((r) => !set.has(r.id)));
     if (readyRef.current) deleteByIds("production_runs", ids).catch((e) => { console.error("Delete runs failed", e); flash("Deleted on screen, but database write failed"); });
+  };
+  // Admin comments (alerts) — delete selected ids, or clear every one. Uses an explicit
+  // DB delete (not the collection setter) so a large clear isn't blocked by the safety guard.
+  const deleteAlerts = (ids) => {
+    if (!ids || !ids.length) return;
+    const set = new Set(ids);
+    setAlerts((al) => al.filter((a) => !set.has(a.id)));
+    if (readyRef.current) deleteByIds("alerts", ids).catch((e) => { console.error("Delete comments failed", e); flash("Deleted on screen, but database write failed"); });
+  };
+  const clearAllAlerts = () => {
+    const ids = alerts.map((a) => a.id);
+    setAlerts([]);
+    if (readyRef.current && ids.length) deleteByIds("alerts", ids).then(() => flash("Comments cleared")).catch((e) => { console.error("Clear comments failed", e); flash("Cleared on screen, but database write failed"); });
   };
   // Stock take: replace CPU (central) stock with counted quantities. `counts` maps recipe
   // name → qty; `date` is the effective count date (kept for reference, no schema change).
@@ -683,7 +702,23 @@ function App() {
         }
       `}</style>
 
-      {screen === "run" && active ? (
+      {screen === "produce" && finishing?._pickQty ? (
+        <ProducePage key="draft"
+          recipe={finishing._pickQty} production={null}
+          ingredients={ingredients} recipes={recipes}
+          onStart={(qty) => startProduction(finishing._pickQty, qty)}
+          onStep={() => {}} onFinish={() => {}} onCancel={() => {}}
+          onBack={() => { setFinishing(null); setScreen("home"); }} />
+      ) : screen === "produce" && active ? (
+        <ProducePage key={active.id}
+          recipe={active.recipe} production={active}
+          ingredients={ingredients} recipes={recipes}
+          onStart={() => {}}
+          onStep={(patch) => updateProduction(active.id, patch)}
+          onFinish={() => finishProduction(active)}
+          onCancel={() => cancelProduction(active)}
+          onBack={() => setScreen("home")} />
+      ) : screen === "run" && active ? (
         <RunRecipe key={active.id} production={active} ingredients={ingredients} recipes={recipes}
           onStep={(patch) => updateProduction(active.id, patch)}
           onComplete={() => finishProduction(active)} onCancel={() => cancelProduction(active)}
@@ -692,7 +727,7 @@ function App() {
       <>
       <TopBar user={user} voiceOn={voiceOn} voiceSupported={voiceSupported} maxWidth={screen === "view" ? "min(96vw,1600px)" : "min(96vw,2100px)"}
         onToggleVoice={() => setVoiceOn((v) => !v)}
-        onHome={() => { if (productions.length && user?.role === "production") { setActiveId(productions[0].id); setScreen("run"); } else setScreen("home"); }}
+        onHome={() => { if (productions.length && user?.role === "production") { setActiveId(productions[0].id); setScreen("produce"); } else setScreen("home"); }}
         onAdmin={() => { if (productions.length) { flash("Finish the live production to open admin"); return; } if (user?.role === "admin") { setScreen("admin"); } else { setAdminPrompt(true); } }}
         onStock={() => setScreen("stock")}
         onTimer={() => setTimerOpen(true)}
@@ -720,7 +755,7 @@ function App() {
       )}
       {produceGate && (
         <StaffPinGate perm="production" title={`Produce ${produceGate.name}`} subtitle="Enter your PIN to start this production"
-          onClose={() => setProduceGate(null)} onOk={(person) => { const r = produceGate; setProduceGate(null); setUser(person); setFinishing({ _pickQty: r }); setScreen("qty"); }} />
+          onClose={() => setProduceGate(null)} onOk={(person) => { const r = produceGate; setProduceGate(null); setUser(person); setFinishing({ _pickQty: r }); setScreen("produce"); }} />
       )}
       {yieldPopup && yieldAlerts.length > 0 && (
         <Modal onClose={() => setYieldPopup(false)}>
@@ -739,7 +774,7 @@ function App() {
       )}
 
       {user?.role === "production" && productions.length > 0 && screen !== "admin" && (
-        <Switcher productions={productions} activeId={activeId} onSwitch={(id) => { setActiveId(id); setScreen("run"); }} onNew={() => setScreen("home")} />
+        <Switcher productions={productions} activeId={activeId} onSwitch={(id) => { setActiveId(id); setScreen("produce"); }} onNew={() => setScreen("home")} />
       )}
 
       <div style={{ maxWidth: screen === "view" ? "min(96vw,1600px)" : "min(96vw,2100px)", margin: "0 auto", padding: screen === "view" ? "18px clamp(16px,2.5vw,32px) 40px" : "30px clamp(16px,2.5vw,40px) 80px" }}>
@@ -752,17 +787,12 @@ function App() {
             onOpenStock={() => setScreen("stock")}
             onAdmin={() => { if (user?.role === "admin") { setScreen("admin"); } else { setAdminPrompt(true); } }}
             onEditRecipe={requestEditRecipe}
-            onProduce={(recipe) => { if (!recipe) return; if (hasPerm(user, "production")) { setFinishing({ _pickQty: recipe }); setScreen("qty"); } else { setProduceGate(recipe); } }}
+            onProduce={(recipe) => { if (!recipe) return; if (hasPerm(user, "production")) { setFinishing({ _pickQty: recipe }); setScreen("produce"); } else { setProduceGate(recipe); } }}
             onSignIn={(u) => { setUser(u); setScreen(u.role === "driver" ? "driver" : u.role === "admin" ? "admin" : "home"); }}
-            onPick={(r) => { if ((r.dept2 || "Production") === "Service") { setViewing(r); setScreen("view"); } else { setFinishing({ _pickQty: r }); setScreen("qty"); } }} />
+            onPick={(r) => { if ((r.dept2 || "Production") === "Service") { setViewing(r); setScreen("view"); } else { setFinishing({ _pickQty: r }); setScreen("produce"); } }} />
         )}
         {screen === "sbook" && (
           <SBook recipes={recipes} ingredients={ingredients} onView={(r) => { setViewing(r); setScreen("view"); }} onBack={() => setScreen(backScreen)} />
-        )}
-        {screen === "qty" && finishing?._pickQty && (
-          <Quantity recipe={finishing._pickQty} ingredients={ingredients}
-            onBack={() => { setFinishing(null); setScreen("home"); }}
-            onStart={(qty) => { const r = finishing._pickQty; setFinishing(null); startProduction(r, qty); }} />
         )}
         {screen === "yield" && finishing && !finishing._pickQty && (
           <YieldCheck production={finishing} onConfirm={confirmYield} onStop={() => cancelProduction(finishing)} />
@@ -776,14 +806,14 @@ function App() {
         )}
         {screen === "stock" && (
           <LiveStock recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} runs={runs}
-            onProduce={(recipe) => { if (!recipe) return; if (hasPerm(user, "production")) { setFinishing({ _pickQty: recipe }); setScreen("qty"); } else { setProduceGate(recipe); } }}
+            onProduce={(recipe) => { if (!recipe) return; if (hasPerm(user, "production")) { setFinishing({ _pickQty: recipe }); setScreen("produce"); } else { setProduceGate(recipe); } }}
             onBack={() => setScreen(backScreen)} />
         )}
         {screen === "admin" && (
           <Admin ingredients={ingredients} setIngredients={setIngredientsP} recipes={recipes} setRecipes={setRecipesP}
             staff={staff} setStaff={setStaffP} cpu={cpu} setCpu={setCpuP} locations={locations} setLocations={setLocationsP}
             delivery={delivery} setDelivery={setDeliveryP} storeStock={storeStock} centralStock={centralStock}
-            deliveryQueue={deliveryQueue} runs={runs} cancellations={cancellations} alerts={alerts} setAlerts={setAlertsP} stores={stores} onResetStock={resetStock} onResetReports={resetReports} onDeleteRuns={deleteRuns} onStockTake={applyStockTake} onClose={() => { if (user?.role === "admin") { setUser(null); } setScreen("home"); }} />
+            deliveryQueue={deliveryQueue} runs={runs} cancellations={cancellations} alerts={alerts} setAlerts={setAlertsP} stores={stores} onResetStock={resetStock} onResetReports={resetReports} onDeleteRuns={deleteRuns} onStockTake={applyStockTake} onDeleteAlerts={deleteAlerts} onClearAlerts={clearAllAlerts} onClose={() => { if (user?.role === "admin") { setUser(null); } setScreen("home"); }} />
         )}
       </div>
       </>
@@ -978,6 +1008,49 @@ function Eyebrow({ children }) {
   return <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}><span style={{ width: 30, height: 2, background: C.rust }} /><span style={{ color: C.rust, fontWeight: 700, letterSpacing: 3, fontSize: "clamp(13px,1.1vw,17px)", textTransform: "uppercase" }}>{children}</span></div>;
 }
 
+/* A staff member's own recent production, grouped by day: this week (last 7 days) and the
+   7 days before. Collapsed by default. */
+function MyProduction({ runs, user }) {
+  const [open, setOpen] = useState(false);
+  const mine = (runs || []).filter((r) => r.by && user?.name && r.by === user.name);
+  const now = Date.now(), dayMs = 86400000;
+  const tOf = (r) => r.at ? Date.parse(r.at) : (r.when ? Date.parse(r.when) : 0);
+  const inWin = (r, from, to) => { const t = tOf(r); return t >= from && t < to; };
+  const thisWeek = mine.filter((r) => inWin(r, now - 7 * dayMs, now + dayMs));
+  const prevWeek = mine.filter((r) => inWin(r, now - 14 * dayMs, now - 7 * dayMs));
+  const byDay = (list) => {
+    const g = {};
+    list.forEach((r) => { const key = new Date(tOf(r) || now).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }); (g[key] ||= []).push(r); });
+    return Object.entries(g).sort((a, b) => tOf(b[1][0]) - tOf(a[1][0]));
+  };
+  const section = (title, list) => (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1, margin: "8px 0 4px" }}>{title}</div>
+      {list.length === 0 ? <div style={{ color: C.inkSoft, fontSize: 14 }}>Nothing recorded.</div> : byDay(list).map(([day, items]) => (
+        <div key={day} style={{ padding: "8px 0", borderTop: `1px solid ${C.line}` }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{day}</div>
+          <div style={{ fontSize: 14, color: C.inkSoft }}>{items.map((r, i) => <span key={r.id}>{i ? " · " : ""}{r.recipe} <b style={{ color: C.ink }}>{fmtNum(r.qty)}{r.unit || ""}</b></span>)}</div>
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <div style={{ marginTop: 14 }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ display: "flex", alignItems: "center", gap: 10, background: C.card, border: `1px solid ${C.line}`, borderRadius: 999, padding: "10px 18px", cursor: "pointer", fontWeight: 700, color: C.ink, fontSize: 15 }}>
+        <span>My recent production</span>
+        <span style={{ background: C.gold, color: C.ink, borderRadius: 999, minWidth: 24, height: 24, padding: "0 7px", display: "inline-grid", placeItems: "center", fontSize: 13, fontWeight: 800 }}>{thisWeek.length}</span>
+        <span style={{ color: C.inkSoft, fontSize: 13 }}>{open ? "▲ hide" : "▾ this week & last"}</span>
+      </button>
+      {open && (
+        <div style={{ marginTop: 10, background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "4px 18px 14px" }}>
+          {section("This week (last 7 days)", thisWeek)}
+          {section("Previous 7 days", prevWeek)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, storeStock = {}, centralStock = {}, cpu, stores = [], runs = [], onOpenStock, onProduce, onAdmin, onEditRecipe }) {
   const [pinFor, setPinFor] = useState(null);
   const [pin, setPin] = useState("");
@@ -1055,6 +1128,7 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
       <Eyebrow>Production</Eyebrow>
       <h1 className="display" style={{ fontSize: "clamp(46px,5.4vw,92px)", fontWeight: 800, margin: "0 0 6px", lineHeight: 1.02 }}>What are we <span style={{ color: C.rust }}>making?</span></h1>
       <p style={{ fontSize: "clamp(17px,1.6vw,26px)", color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Pick a recipe — start as many as you like and switch between them up top.</p>
+      {user?.role === "production" && <MyProduction runs={runs} user={user} />}
       <div style={{ marginTop: 18 }}>
         <StockPanel recipes={recipes} storeStock={storeStock} centralStock={centralStock} cpu={cpu} stores={stores} onOpenStock={onOpenStock} />
       </div>
@@ -1290,9 +1364,175 @@ function RunRecipe({ production, ingredients, recipes = [], onStep, onComplete, 
   );
 }
 
+/* ---- The single Produce page: image → ingredients (big) → quantity (+Half/Double) →
+   expandable method with per-step timers. Start begins the labour clock; Finish asks the
+   yield; Cancel logs who/recipe/how-long-after-start. Labour excludes timed waits run. ---- */
+function ProducePage({ recipe, production, ingredients, recipes = [], onStart, onStep, onFinish, onCancel, onBack }) {
+  const started = !!production;
+  const m = ingMap(ingredients);
+  const rcById = Object.fromEntries(recipes.map((r) => [r.id, r]));
+  const cName = (u) => u.recipeId ? (rcById[u.recipeId]?.name || "Recipe") : (m[u.ingId]?.name || "");
+  const cUnit = (u) => u.recipeId ? (u.unit || "units") : (m[u.ingId]?.unit || "");
+
+  const [qty, setQty] = useState(started ? production.targetQty : (recipe.yieldKg || 1));
+  const factor = (Number(qty) || 0) / (recipe.yieldKg || 1);
+  const [methodOpen, setMethodOpen] = useState(false);
+  const [timers, setTimers] = useState({});          // stepIdx -> { running, remaining }
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [nowTick, setNowTick] = useState(Date.now());
+  useEffect(() => { const i = setInterval(() => setNowTick(Date.now()), 1000); return () => clearInterval(i); }, []);
+  const elapsed = started ? Math.max(0, Math.floor((nowTick - production.startedAt) / 1000)) : 0;
+
+  // one ticking interval drives every running step countdown
+  useEffect(() => {
+    const anyRunning = Object.values(timers).some((t) => t.running && t.remaining > 0);
+    if (!anyRunning) return;
+    const i = setInterval(() => setTimers((ts) => {
+      let changed = false; const n = { ...ts };
+      for (const k in n) if (n[k].running && n[k].remaining > 0) { const rem = n[k].remaining - 1; n[k] = { ...n[k], remaining: rem, running: rem > 0 }; if (rem === 0) beep(); changed = true; }
+      return changed ? n : ts;
+    }), 1000);
+    return () => clearInterval(i);
+  }, [timers]);
+
+  // full ingredient list across all steps (handles produced recipes used as components)
+  const agg = {};
+  (recipe.steps || []).forEach((s) => (s.use || []).forEach((u) => {
+    if (!u.recipeId && !u.ingId) return;
+    const key = u.recipeId ? "r:" + u.recipeId : "i:" + u.ingId;
+    if (!agg[key]) agg[key] = { key, name: cName(u), unit: cUnit(u), qty: 0, isRecipe: !!u.recipeId };
+    agg[key].qty += Number(u.qty) || 0;
+  }));
+  const items = Object.values(agg);
+
+  const startStep = (idx, timerSec) => {
+    setTimers((ts) => ({ ...ts, [idx]: { running: true, remaining: ts[idx]?.remaining ?? timerSec } }));
+    const ran = production?.timedRanSteps || [];
+    if (!ran.includes(idx)) onStep({ timedRanSteps: [...ran, idx], timedRanSec: (production?.timedRanSec || 0) + timerSec });
+  };
+
+  const frame = { borderRadius: 16, overflow: "hidden", border: `1px solid ${C.line}`, background: C.card };
+  const halfDbl = { background: C.gold, color: C.ink, border: "none", borderRadius: 12, padding: "13px 22px", fontSize: 17, fontWeight: 800, cursor: "pointer" };
+  const quickBtn = { borderRadius: 12, padding: "13px 20px", fontSize: 17, fontWeight: 700, cursor: "pointer" };
+
+  return (
+    <div className="runscr" style={{ height: "100dvh", display: "flex", flexDirection: "column", gap: "clamp(8px,1.4vh,14px)", overflow: "hidden", padding: "clamp(10px,1.8vh,18px) clamp(12px,3vw,28px)" }}>
+      {/* top bar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+        <button onClick={onBack} style={pillGhost}>← Back</button>
+        {started && <span style={{ background: C.rust, color: "#fff", borderRadius: 999, padding: "5px 12px", fontWeight: 800, fontSize: 12, letterSpacing: 1, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}><span style={{ width: 8, height: 8, borderRadius: 999, background: "#fff", animation: "ring 1.2s infinite" }} />LIVE</span>}
+        <span className="display" style={{ fontSize: "clamp(20px,3vw,32px)", fontWeight: 800, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{recipe.name}</span>
+        <div style={{ flex: 1 }} />
+        {started && <div style={{ background: C.ink, color: C.cream, borderRadius: 999, padding: "6px 14px", display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", opacity: .8 }}>time</span><span className="display" style={{ fontSize: "clamp(18px,2.6vw,24px)", fontWeight: 800 }}>{fmtClock(elapsed)}</span></div>}
+      </div>
+
+      {/* scrollable middle: image → ingredients → quantity → method */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "clamp(10px,1.6vh,16px)" }}>
+        {recipe.hero && <div style={{ ...frame, height: "clamp(120px,22vh,260px)", flexShrink: 0, background: `url(${recipe.hero}) center/cover` }} />}
+
+        {/* INGREDIENTS — the main focus */}
+        <div style={{ ...frame, padding: "clamp(14px,2vh,22px) clamp(16px,3vw,26px)" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 }}>Ingredients — for {fmtNum(qty)} {recipe.yieldUnit}</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody>
+            {items.length === 0 ? <tr><td style={{ color: C.inkSoft, padding: "8px 0" }}>No ingredients listed for this recipe.</td></tr> : items.map((it) => (
+              <tr key={it.key} style={{ borderBottom: `1px solid ${C.line}` }}>
+                <td style={{ padding: "clamp(10px,1.5vh,15px) 0", fontWeight: it.isRecipe ? 700 : 500, color: it.isRecipe ? C.rust : C.ink, fontSize: "clamp(19px,2.6vw,30px)" }}>{it.isRecipe ? "▸ " : ""}{it.name}</td>
+                <td className="display" style={{ padding: "clamp(10px,1.5vh,15px) 0", textAlign: "right", fontWeight: 800, whiteSpace: "nowrap", fontSize: "clamp(20px,2.8vw,32px)", color: C.ink }}>{fmtNum(it.qty * factor)} {it.unit}</td>
+              </tr>
+            ))}
+          </tbody></table>
+        </div>
+
+        {/* QUANTITY */}
+        <div style={{ ...frame, padding: "clamp(14px,2vh,20px)", flexShrink: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10, textAlign: "center" }}>Quantity</div>
+          {started ? (
+            <div className="display" style={{ textAlign: "center", fontSize: "clamp(44px,8vw,72px)", fontWeight: 800, color: C.rust, lineHeight: 1 }}>{fmtNum(qty)}<span style={{ fontSize: "0.35em", color: C.inkSoft }}> {recipe.yieldUnit}</span></div>
+          ) : (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 18, justifyContent: "center", flexWrap: "wrap" }}>
+                <button onClick={() => setQty((k) => Math.max(0.5, +((Number(k) || 0) - 1).toFixed(2)))} style={stepBtn}>−</button>
+                <div style={{ textAlign: "center" }}>
+                  <input type="number" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value === "" ? "" : Math.max(0, parseFloat(e.target.value) || 0))} onFocus={(e) => e.target.select()} style={{ width: 160, textAlign: "center", border: `2px solid ${C.line}`, borderRadius: 16, background: C.cardSoft, color: C.rust, fontFamily: "'Quicksand',sans-serif", fontSize: "clamp(44px,8vw,72px)", fontWeight: 800, lineHeight: 1, padding: "4px 0" }} />
+                  <div style={{ fontSize: 16, color: C.inkSoft, fontWeight: 600 }}>{recipe.yieldUnit}</div>
+                </div>
+                <button onClick={() => setQty((k) => +(((Number(k) || 0) + 1)).toFixed(2))} style={stepBtn}>+</button>
+              </div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 14 }}>
+                <button onClick={() => setQty((k) => +(((Number(k) || 0) / 2)).toFixed(2))} style={halfDbl}>½ Half</button>
+                <button onClick={() => setQty((k) => +(((Number(k) || 0) * 2)).toFixed(2))} style={halfDbl}>×2 Double</button>
+                {[5, 10, 20, 50].map((n) => <button key={n} onClick={() => setQty(n)} style={{ ...quickBtn, background: Number(qty) === n ? C.rust : C.cream, color: Number(qty) === n ? "#fff" : C.ink, border: `1px solid ${Number(qty) === n ? C.rust : C.line}` }}>{n}</button>)}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* METHOD — hidden under an expandable line */}
+        <div style={{ ...frame, flexShrink: 0 }}>
+          <button onClick={() => setMethodOpen((o) => !o)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: "none", padding: "clamp(13px,1.8vh,18px) clamp(16px,3vw,24px)", cursor: "pointer", color: C.ink, fontWeight: 800, fontSize: "clamp(16px,2.4vw,20px)" }}>
+            <span style={{ color: C.rust }}>{methodOpen ? "▾" : "▸"}</span> How to do it <span style={{ color: C.inkSoft, fontWeight: 600, fontSize: 14 }}>({recipe.steps?.length || 0} steps)</span>
+          </button>
+          {methodOpen && (
+            <div style={{ padding: "0 clamp(16px,3vw,24px) clamp(14px,2vh,20px)", display: "grid", gap: 14 }}>
+              {(recipe.steps || []).map((s, k) => {
+                const timed = s.isTimed && s.timerSec > 0;
+                const t = timers[k];
+                return (
+                  <div key={k} style={{ display: "flex", gap: 14, alignItems: "flex-start", borderTop: `1px solid ${C.line}`, paddingTop: 14 }}>
+                    <span className="display" style={{ fontSize: "clamp(20px,3vw,26px)", fontWeight: 800, color: C.gold, minWidth: 26, flexShrink: 0 }}>{k + 1}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: "clamp(16px,2.4vw,21px)", lineHeight: 1.5, color: C.ink, fontWeight: 500, display: "grid", gap: "0.35em" }}>{stepLines(s.text).map((ln, i) => <div key={i}>{ln}</div>)}</div>
+                      {timed && (
+                        <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                          {!started ? (
+                            <span style={{ background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "6px 14px", fontSize: 14, fontWeight: 700, color: C.gold }}>⏲ {fmtClock(s.timerSec)} timer</span>
+                          ) : (t && (t.running || t.remaining < s.timerSec)) ? (
+                            <>
+                              <span className="display" style={{ fontSize: "clamp(26px,4vw,38px)", fontWeight: 800, color: t.remaining === 0 ? C.go : C.rust }}>{fmtClock(t.remaining)}</span>
+                              <span style={{ fontSize: 13, color: t.remaining === 0 ? C.go : C.inkSoft, fontWeight: 700 }}>{t.remaining === 0 ? "✓ Done" : "counting…"}</span>
+                            </>
+                          ) : (
+                            <button onClick={() => startStep(k, s.timerSec)} style={{ background: C.gold, color: C.ink, border: "none", borderRadius: 12, padding: "10px 20px", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>▶ Start {fmtClock(s.timerSec)}</button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* action bar */}
+      {!started ? (
+        <div style={{ flexShrink: 0 }}>
+          <BigButton full tone="rust" disabled={!(Number(qty) > 0)} onClick={() => onStart(Number(qty))}>START</BigButton>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 12, flexShrink: 0 }}>
+          <button onClick={() => setConfirmCancel(true)} style={{ background: "transparent", border: `1.5px solid ${C.rust}`, color: C.rust, borderRadius: 16, padding: "0 clamp(18px,5vw,32px)", fontWeight: 800, fontSize: "clamp(15px,2.4vw,18px)", cursor: "pointer", whiteSpace: "nowrap" }}>Cancel</button>
+          <div style={{ flex: 1, display: "flex" }}><BigButton full tone="go" onClick={onFinish}>FINISH</BigButton></div>
+        </div>
+      )}
+
+      {confirmCancel && (
+        <Modal onClose={() => setConfirmCancel(false)}>
+          <div className="display" style={{ fontSize: 26, fontWeight: 800, marginBottom: 6 }}>Cancel this production?</div>
+          <p style={{ color: C.inkSoft, marginTop: 0 }}>{recipe.name} · started {fmtClock(elapsed)} ago. It will be logged as cancelled.</p>
+          <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+            <BigButton full tone="rust" onClick={() => { setConfirmCancel(false); onCancel(); }}>Yes, cancel &amp; discard</BigButton>
+            <button onClick={() => setConfirmCancel(false)} style={{ background: "transparent", border: "none", color: C.inkSoft, fontWeight: 600, fontSize: 16, cursor: "pointer", padding: 10 }}>Keep going</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 /* End-of-production yield check — confirm how much was actually made. */
-function YieldCheck({ production, onConfirm, onStop }) {
-  const { recipe, targetQty } = production;
+function YieldCheck({ production, onConfirm, onStop }) {  const { recipe, targetQty } = production;
   const unit = recipe.yieldUnit;
   const [actual, setActual] = useState(targetQty);
   const [showStop, setShowStop] = useState(false);
@@ -1815,7 +2055,46 @@ function ProductionsLog({ runs }) {
 }
 
 /* ===================== ADMIN ===================== */
-function Admin({ ingredients, setIngredients, recipes, setRecipes, staff, setStaff, cpu, setCpu, locations, setLocations, delivery, setDelivery, storeStock, centralStock, deliveryQueue, runs, cancellations, alerts, setAlerts, stores, onResetStock, onResetReports, onDeleteRuns, onStockTake, onClose }) {
+/* Collapsed admin comments (yield + time-drift). One line with a count bubble; expand to
+   select & delete, or clear all. */
+function AdminComments({ alerts, onDelete, onClear }) {
+  const [open, setOpen] = useState(false);
+  const [sel, setSel] = useState(() => new Set());
+  const toggle = (id) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const msgFor = (a) => a.kind === "yield"
+    ? `${a.recipe} — ${a.message}`
+    : `Production time for ${a.recipe} went ${a.dir} by ${fmtClock(a.diff)} over ${a.runs} runs (expected ${fmtClock(a.from)} → ${fmtClock(a.to)}).`;
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ display: "flex", alignItems: "center", gap: 10, background: C.card, border: `1px solid ${C.line}`, borderRadius: 999, padding: "10px 18px", cursor: "pointer", fontWeight: 700, color: C.ink, fontSize: 15 }}>
+        <span>Comments</span>
+        <span style={{ background: C.rust, color: "#fff", borderRadius: 999, minWidth: 24, height: 24, padding: "0 7px", display: "inline-grid", placeItems: "center", fontSize: 13, fontWeight: 800 }}>{alerts.length}</span>
+        <span style={{ color: C.inkSoft, fontSize: 13 }}>{open ? "▲ hide" : "▾ show"}</span>
+      </button>
+      {open && (
+        <div style={{ marginTop: 10, background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 14px", borderBottom: `1px solid ${C.line}`, background: C.cardSoft, flexWrap: "wrap" }}>
+            <button onClick={() => setSel(sel.size === alerts.length ? new Set() : new Set(alerts.map((a) => a.id)))} style={{ ...pillGhost, padding: "6px 12px", fontSize: 13 }}>{sel.size === alerts.length ? "Clear selection" : "Select all"}</button>
+            {sel.size > 0 && <button onClick={() => { if (window.confirm(`Delete ${sel.size} selected comment${sel.size > 1 ? "s" : ""}? This can't be undone.`)) { onDelete([...sel]); setSel(new Set()); } }} style={{ ...pillGhost, padding: "6px 12px", fontSize: 13, borderColor: C.rust, color: C.rust }}>Delete selected ({sel.size})</button>}
+            <div style={{ flex: 1 }} />
+            <button onClick={() => { if (window.confirm("Delete ALL comments? This can't be undone.")) { onClear(); setSel(new Set()); } }} style={{ ...pillGhost, padding: "6px 12px", fontSize: 13, borderColor: C.rust, color: C.rust }}>Delete all</button>
+          </div>
+          <div style={{ maxHeight: "46vh", overflowY: "auto" }}>
+            {alerts.map((a, i) => (
+              <label key={a.id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "11px 14px", borderTop: i ? `1px solid ${C.line}` : "none", cursor: "pointer", background: sel.has(a.id) ? "#F6E0D6" : "transparent" }}>
+                <input type="checkbox" checked={sel.has(a.id)} onChange={() => toggle(a.id)} style={{ width: 18, height: 18, marginTop: 2, accentColor: C.rust }} />
+                <span style={{ fontWeight: 800, color: (a.kind === "yield" || a.dir === "up") ? C.rust : C.go }}>{a.kind === "yield" ? "⚠" : a.dir === "up" ? "▲" : "▼"}</span>
+                <span style={{ flex: 1, fontSize: 14 }}>{msgFor(a)}{a.when ? <span style={{ color: C.inkSoft }}> · {a.when}</span> : null}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Admin({ ingredients, setIngredients, recipes, setRecipes, staff, setStaff, cpu, setCpu, locations, setLocations, delivery, setDelivery, storeStock, centralStock, deliveryQueue, runs, cancellations, alerts, setAlerts, stores, onResetStock, onResetReports, onDeleteRuns, onStockTake, onDeleteAlerts, onClearAlerts, onClose }) {
   const [tab, setTab] = useState("recipes");
   const tabs = [["recipes", "Recipes"], ["ingredients", "Ingredient costs"], ["staff", "Staff & wages"], ["locations", "Locations & delivery"], ["stocktake", "Stock take"], ["reports", "Reports"]];
   return (
@@ -1828,21 +2107,7 @@ function Admin({ ingredients, setIngredients, recipes, setRecipes, staff, setSta
         {tabs.map(([id, l]) => <button key={id} onClick={() => setTab(id)} style={{ background: tab === id ? C.rust : C.card, color: tab === id ? "#fff" : C.ink, border: `1px solid ${tab === id ? C.rust : C.line}`, borderRadius: 999, padding: "11px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>{l}</button>)}
       </div>
       {alerts && alerts.length > 0 && (
-        <div style={{ marginBottom: 18 }}>
-          {alerts.map((a) => a.kind === "yield" ? (
-            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "#F6E0D6", border: `1px solid ${C.rust}`, borderRadius: 14, padding: "12px 16px", marginBottom: 8 }}>
-              <span style={{ fontWeight: 800, color: C.rust }}>⚠</span>
-              <span style={{ flex: 1, fontSize: 14 }}><b>{a.recipe}</b> — {a.message}</span>
-              <button onClick={() => setAlerts((al) => al.filter((x) => x.id !== a.id))} style={{ background: "none", border: "none", color: C.inkSoft, cursor: "pointer", fontSize: 16 }}>✕</button>
-            </div>
-          ) : (
-            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, background: a.dir === "up" ? "#F6E0D6" : "#E2EFE0", border: `1px solid ${a.dir === "up" ? C.rust : C.go}`, borderRadius: 14, padding: "12px 16px", marginBottom: 8 }}>
-              <span style={{ fontWeight: 800, color: a.dir === "up" ? C.rust : C.go }}>{a.dir === "up" ? "▲" : "▼"}</span>
-              <span style={{ flex: 1, fontSize: 14 }}>Production time for <b>{a.recipe}</b> went <b>{a.dir}</b> by <b>{fmtClock(a.diff)}</b> over {a.runs} runs. Expected time updated {fmtClock(a.from)} → <b>{fmtClock(a.to)}</b>.</span>
-              <button onClick={() => setAlerts((al) => al.filter((x) => x.id !== a.id))} style={{ background: "none", border: "none", color: C.inkSoft, cursor: "pointer", fontSize: 16 }}>✕</button>
-            </div>
-          ))}
-        </div>
+        <AdminComments alerts={alerts} onDelete={onDeleteAlerts} onClear={onClearAlerts} />
       )}
       {tab === "recipes" && <AdminRecipes recipes={recipes} ingredients={ingredients} setRecipes={setRecipes} setIngredients={setIngredients} />}
       {tab === "ingredients" && <AdminIngredients ingredients={ingredients} setIngredients={setIngredients} />}
@@ -2486,6 +2751,7 @@ function AdminReports({ runs: allRuns, recipes, cancellations, storeStock, centr
   const [view, setView] = useState("runs");
   const [range, setRange] = useState("all"); // all | today | 7 | 30
   const [sel, setSel] = useState(() => new Set()); // selected run ids for deletion
+  const [expP, setExpP] = useState(null); // expanded person in the "By person" report
   const toggleSel = (id) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const recipesById = Object.fromEntries((recipes || []).map((r) => [r.id, r]));
 
@@ -2600,23 +2866,41 @@ function AdminReports({ runs: allRuns, recipes, cancellations, storeStock, centr
           <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr", minWidth: 560, gap: 10, padding: "12px 18px", borderBottom: `2px solid ${C.line}`, fontSize: 11, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5 }}>
             <span>Person</span><span>Runs</span><span>Produced</span><span>Total time</span><span>Avg / run</span><span>Labour</span>
           </div>
-          {Object.values(byPerson).length === 0 ? <div style={{ padding: 18, color: C.inkSoft }}>No runs yet.</div> : Object.values(byPerson).map((g, idx) => (
-            <div key={g.name} style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr", minWidth: 560, gap: 10, padding: "12px 18px", borderTop: idx ? `1px solid ${C.line}` : "none", fontSize: 14, alignItems: "center" }}>
-              <b>{g.name}</b><span>{g.runs}</span><span>{g.qty.toFixed(1)}</span><span>{fmtClock(g.sec)}</span><span>{fmtClock(Math.round(g.sec / g.runs))}</span><span style={{ color: C.rust }}>{fmtMoney(g.labour)}</span>
-            </div>
-          ))}
+          {Object.values(byPerson).length === 0 ? <div style={{ padding: 18, color: C.inkSoft }}>No runs in this range.</div> : Object.values(byPerson).sort((a, b) => b.runs - a.runs).map((g, idx) => {
+            const isOpen = expP === g.name;
+            const theirs = runs.filter((r) => r.by === g.name).sort((a, b) => (Date.parse(b.at || 0) || 0) - (Date.parse(a.at || 0) || 0));
+            return (
+              <div key={g.name} style={{ borderTop: idx ? `1px solid ${C.line}` : "none" }}>
+                <div onClick={() => setExpP(isOpen ? null : g.name)} title="Tap to see each run" style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.8fr 0.9fr 0.9fr 0.9fr", minWidth: 560, gap: 10, padding: "12px 18px", fontSize: 14, alignItems: "center", cursor: "pointer", background: isOpen ? C.cardSoft : "transparent" }}>
+                  <b>{isOpen ? "▾ " : "▸ "}{g.name}</b><span>{g.runs}</span><span>{fmtNum(g.qty)}</span><span>{fmtClock(g.sec)}</span><span>{fmtClock(Math.round(g.sec / g.runs))}</span><span style={{ color: C.rust }}>{fmtMoney(g.labour)}</span>
+                </div>
+                {isOpen && (
+                  <div style={{ background: C.cardSoft, padding: "4px 18px 12px", minWidth: 560 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1.7fr 0.7fr 0.9fr 1.3fr", gap: 10, padding: "8px 0 4px", fontSize: 10, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      <span>Recipe</span><span>Qty</span><span>Time taken</span><span>When</span>
+                    </div>
+                    {theirs.map((r) => (
+                      <div key={r.id} style={{ display: "grid", gridTemplateColumns: "1.7fr 0.7fr 0.9fr 1.3fr", gap: 10, padding: "8px 0", borderTop: `1px solid ${C.line}`, fontSize: 13, alignItems: "center" }}>
+                        <b>{r.recipe}</b><span>{fmtNum(r.qty)}{r.unit || ""}</span><span>{fmtClock(r.totalSec)}</span><span style={{ color: C.inkSoft }}>{r.when || (r.at ? new Date(r.at).toLocaleString("en-GB") : "—")}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
       {view === "cancelled" && (
         <div style={{ background: C.card, borderRadius: 16, overflowX: "auto", border: `1px solid ${C.line}` }}>
           <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.9fr 1fr 1.1fr", minWidth: 560, gap: 10, padding: "12px 18px", borderBottom: `2px solid ${C.line}`, fontSize: 11, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 0.5 }}>
-            <span>Recipe</span><span>Qty</span><span>Person</span><span>Stopped at</span><span>When</span>
+            <span>Recipe</span><span>Qty</span><span>Person</span><span>After start</span><span>When</span>
           </div>
           {(!cancellations || cancellations.length === 0) ? <div style={{ padding: 18, color: C.inkSoft }}>No cancelled productions. Good sign.</div> : cancellations.map((c, idx) => (
             <div key={c.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.9fr 1fr 1.1fr", minWidth: 560, gap: 10, padding: "12px 18px", borderTop: idx ? `1px solid ${C.line}` : "none", fontSize: 14, alignItems: "center" }}>
               <b>{c.recipe}</b><span>{c.qty}{c.unit}</span><span>{c.by}</span>
-              <span style={{ color: C.inkSoft }}>step {c.stoppedAtStep}/{c.totalSteps}</span>
+              <span style={{ color: C.inkSoft }}>{(c.totalSteps > 0) ? `step ${c.stoppedAtStep}/${c.totalSteps}` : `${fmtDur(c.elapsedSec != null ? c.elapsedSec : c.stoppedAtStep)} in`}</span>
               <span style={{ color: C.inkSoft, fontSize: 13 }}>{c.when}</span>
             </div>
           ))}
