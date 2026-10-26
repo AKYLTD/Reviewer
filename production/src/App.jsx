@@ -693,6 +693,9 @@ function App() {
           .rv-cols{grid-template-columns:1fr !important}
           .recipeview{height:auto !important;overflow:visible !important}
         }
+        @media (max-width: 820px){
+          .prod-cols{grid-template-columns:1fr !important;grid-template-rows:minmax(110px,28vh) minmax(0,1fr) !important}
+        }
         @media (max-width: 760px){
           .card-cols{grid-template-columns:1fr !important}
           .card-cols > div:first-child{border-right:none !important;border-bottom:1px solid ${C.line}}
@@ -1426,83 +1429,55 @@ function ProducePage({ recipe, production, ingredients, recipes = [], onStart, o
         {started && <div style={{ background: C.ink, color: C.cream, borderRadius: 999, padding: "6px 14px", display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", opacity: .8 }}>time</span><span className="display" style={{ fontSize: "clamp(18px,2.6vw,24px)", fontWeight: 800 }}>{fmtClock(elapsed)}</span></div>}
       </div>
 
-      {/* scrollable middle: image → ingredients → quantity → method */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "clamp(10px,1.6vh,16px)" }}>
-        {recipe.hero && <div style={{ ...frame, height: "clamp(120px,22vh,260px)", flexShrink: 0, background: `url(${recipe.hero}) center/cover` }} />}
-
-        {/* INGREDIENTS — the main focus */}
-        <div style={{ ...frame, padding: "clamp(14px,2vh,22px) clamp(16px,3vw,26px)" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10 }}>Ingredients — for {fmtNum(qty)} {recipe.yieldUnit}</div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody>
-            {items.length === 0 ? <tr><td style={{ color: C.inkSoft, padding: "8px 0" }}>No ingredients listed for this recipe.</td></tr> : items.map((it) => (
-              <tr key={it.key} style={{ borderBottom: `1px solid ${C.line}` }}>
-                <td style={{ padding: "clamp(10px,1.5vh,15px) 0", fontWeight: it.isRecipe ? 700 : 500, color: it.isRecipe ? C.rust : C.ink, fontSize: "clamp(19px,2.6vw,30px)" }}>{it.isRecipe ? "▸ " : ""}{it.name}</td>
-                <td className="display" style={{ padding: "clamp(10px,1.5vh,15px) 0", textAlign: "right", fontWeight: 800, whiteSpace: "nowrap", fontSize: "clamp(20px,2.8vw,32px)", color: C.ink }}>{fmtNum(it.qty * factor)} {it.unit}</td>
-              </tr>
-            ))}
-          </tbody></table>
+      {/* main area: image (left, uncropped) + ALL ingredients (right, own scroll) */}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: "clamp(10px,1.6vh,16px)" }}>
+        <div className="prod-cols" style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(10px,2vw,18px)" }}>
+          {/* image — whole picture, never cropped */}
+          <div style={{ ...frame, display: "grid", placeItems: "center", background: C.cardSoft, minHeight: 0, overflow: "hidden", padding: 8 }}>
+            {recipe.hero ? <img src={recipe.hero} alt={recipe.name} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block", borderRadius: 10 }} />
+              : <div style={{ color: C.inkSoft, fontSize: 15, padding: 20, textAlign: "center" }}>No photo for this recipe</div>}
+          </div>
+          {/* ingredients — scrolls so every one is reachable */}
+          <div style={{ ...frame, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "clamp(12px,1.6vh,18px) clamp(14px,2vw,22px) 8px", fontSize: 13, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, flexShrink: 0 }}>Ingredients — {fmtNum(qty)} {recipe.yieldUnit}</div>
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 clamp(14px,2vw,22px) clamp(10px,1.5vh,16px)" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody>
+                {items.length === 0 ? <tr><td style={{ color: C.inkSoft, padding: "8px 0" }}>No ingredients listed for this recipe.</td></tr> : items.map((it) => (
+                  <tr key={it.key} style={{ borderBottom: `1px solid ${C.line}` }}>
+                    <td style={{ padding: "clamp(9px,1.3vh,14px) 0", fontWeight: it.isRecipe ? 700 : 500, color: it.isRecipe ? C.rust : C.ink, fontSize: "clamp(17px,1.9vw,26px)" }}>{it.isRecipe ? "▸ " : ""}{it.name}</td>
+                    <td className="display" style={{ padding: "clamp(9px,1.3vh,14px) 0", textAlign: "right", fontWeight: 800, whiteSpace: "nowrap", fontSize: "clamp(18px,2vw,28px)", color: C.ink }}>{fmtNum(it.qty * factor)} {it.unit}</td>
+                  </tr>
+                ))}
+              </tbody></table>
+            </div>
+          </div>
         </div>
 
-        {/* QUANTITY */}
-        <div style={{ ...frame, padding: "clamp(14px,2vh,20px)", flexShrink: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 10, textAlign: "center" }}>Quantity</div>
+        {/* quantity (draft: editable + Half/Double; running: locked) */}
+        <div style={{ ...frame, flexShrink: 0, padding: "clamp(10px,1.5vh,16px) clamp(12px,2vw,20px)" }}>
           {started ? (
-            <div className="display" style={{ textAlign: "center", fontSize: "clamp(44px,8vw,72px)", fontWeight: 800, color: C.rust, lineHeight: 1 }}>{fmtNum(qty)}<span style={{ fontSize: "0.35em", color: C.inkSoft }}> {recipe.yieldUnit}</span></div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5 }}>Making</span>
+              <span className="display" style={{ fontSize: "clamp(30px,5vw,46px)", fontWeight: 800, color: C.rust, lineHeight: 1 }}>{fmtNum(qty)} <span style={{ fontSize: "0.5em", color: C.inkSoft }}>{recipe.yieldUnit}</span></span>
+            </div>
           ) : (
-            <>
-              <div style={{ display: "flex", alignItems: "center", gap: 18, justifyContent: "center", flexWrap: "wrap" }}>
-                <button onClick={() => setQty((k) => Math.max(0.5, +((Number(k) || 0) - 1).toFixed(2)))} style={stepBtn}>−</button>
-                <div style={{ textAlign: "center" }}>
-                  <input type="number" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value === "" ? "" : Math.max(0, parseFloat(e.target.value) || 0))} onFocus={(e) => e.target.select()} style={{ width: 160, textAlign: "center", border: `2px solid ${C.line}`, borderRadius: 16, background: C.cardSoft, color: C.rust, fontFamily: "'Quicksand',sans-serif", fontSize: "clamp(44px,8vw,72px)", fontWeight: 800, lineHeight: 1, padding: "4px 0" }} />
-                  <div style={{ fontSize: 16, color: C.inkSoft, fontWeight: 600 }}>{recipe.yieldUnit}</div>
-                </div>
-                <button onClick={() => setQty((k) => +(((Number(k) || 0) + 1)).toFixed(2))} style={stepBtn}>+</button>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "clamp(10px,2vw,20px)", flexWrap: "wrap" }}>
+              <button onClick={() => setQty((k) => Math.max(0.5, +((Number(k) || 0) - 1).toFixed(2)))} style={{ ...stepBtn, width: 60, height: 60, fontSize: 32 }}>−</button>
+              <div style={{ textAlign: "center" }}>
+                <input type="number" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value === "" ? "" : Math.max(0, parseFloat(e.target.value) || 0))} onFocus={(e) => e.target.select()} style={{ width: 130, textAlign: "center", border: `2px solid ${C.line}`, borderRadius: 14, background: C.cardSoft, color: C.rust, fontFamily: "'Quicksand',sans-serif", fontSize: "clamp(34px,5.5vw,52px)", fontWeight: 800, lineHeight: 1, padding: "2px 0" }} />
+                <div style={{ fontSize: 14, color: C.inkSoft, fontWeight: 600 }}>{recipe.yieldUnit}</div>
               </div>
-              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 14 }}>
-                <button onClick={() => setQty((k) => +(((Number(k) || 0) / 2)).toFixed(2))} style={halfDbl}>½ Half</button>
-                <button onClick={() => setQty((k) => +(((Number(k) || 0) * 2)).toFixed(2))} style={halfDbl}>×2 Double</button>
-                {[5, 10, 20, 50].map((n) => <button key={n} onClick={() => setQty(n)} style={{ ...quickBtn, background: Number(qty) === n ? C.rust : C.cream, color: Number(qty) === n ? "#fff" : C.ink, border: `1px solid ${Number(qty) === n ? C.rust : C.line}` }}>{n}</button>)}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* METHOD — hidden under an expandable line */}
-        <div style={{ ...frame, flexShrink: 0 }}>
-          <button onClick={() => setMethodOpen((o) => !o)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: "none", padding: "clamp(13px,1.8vh,18px) clamp(16px,3vw,24px)", cursor: "pointer", color: C.ink, fontWeight: 800, fontSize: "clamp(16px,2.4vw,20px)" }}>
-            <span style={{ color: C.rust }}>{methodOpen ? "▾" : "▸"}</span> How to do it <span style={{ color: C.inkSoft, fontWeight: 600, fontSize: 14 }}>({recipe.steps?.length || 0} steps)</span>
-          </button>
-          {methodOpen && (
-            <div style={{ padding: "0 clamp(16px,3vw,24px) clamp(14px,2vh,20px)", display: "grid", gap: 14 }}>
-              {(recipe.steps || []).map((s, k) => {
-                const timed = s.isTimed && s.timerSec > 0;
-                const t = timers[k];
-                return (
-                  <div key={k} style={{ display: "flex", gap: 14, alignItems: "flex-start", borderTop: `1px solid ${C.line}`, paddingTop: 14 }}>
-                    <span className="display" style={{ fontSize: "clamp(20px,3vw,26px)", fontWeight: 800, color: C.gold, minWidth: 26, flexShrink: 0 }}>{k + 1}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: "clamp(16px,2.4vw,21px)", lineHeight: 1.5, color: C.ink, fontWeight: 500, display: "grid", gap: "0.35em" }}>{stepLines(s.text).map((ln, i) => <div key={i}>{ln}</div>)}</div>
-                      {timed && (
-                        <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                          {!started ? (
-                            <span style={{ background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "6px 14px", fontSize: 14, fontWeight: 700, color: C.gold }}>⏲ {fmtClock(s.timerSec)} timer</span>
-                          ) : (t && (t.running || t.remaining < s.timerSec)) ? (
-                            <>
-                              <span className="display" style={{ fontSize: "clamp(26px,4vw,38px)", fontWeight: 800, color: t.remaining === 0 ? C.go : C.rust }}>{fmtClock(t.remaining)}</span>
-                              <span style={{ fontSize: 13, color: t.remaining === 0 ? C.go : C.inkSoft, fontWeight: 700 }}>{t.remaining === 0 ? "✓ Done" : "counting…"}</span>
-                            </>
-                          ) : (
-                            <button onClick={() => startStep(k, s.timerSec)} style={{ background: C.gold, color: C.ink, border: "none", borderRadius: 12, padding: "10px 20px", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>▶ Start {fmtClock(s.timerSec)}</button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              <button onClick={() => setQty((k) => +(((Number(k) || 0) + 1)).toFixed(2))} style={{ ...stepBtn, width: 60, height: 60, fontSize: 32 }}>+</button>
+              <button onClick={() => setQty((k) => +(((Number(k) || 0) / 2)).toFixed(2))} style={halfDbl}>½ Half</button>
+              <button onClick={() => setQty((k) => +(((Number(k) || 0) * 2)).toFixed(2))} style={halfDbl}>×2 Double</button>
             </div>
           )}
         </div>
+
+        {/* method — opens in a modal so the page stays tidy */}
+        <button onClick={() => setMethodOpen(true)} style={{ flexShrink: 0, width: "100%", display: "flex", alignItems: "center", gap: 10, background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "clamp(11px,1.5vh,15px) clamp(16px,3vw,22px)", cursor: "pointer", color: C.ink, fontWeight: 800, fontSize: "clamp(15px,2.2vw,19px)" }}>
+          <span style={{ color: C.rust }}>▸</span> How to do it <span style={{ color: C.inkSoft, fontWeight: 600, fontSize: 14 }}>({recipe.steps?.length || 0} steps{started ? " · tap to run timers" : ""})</span>
+        </button>
       </div>
 
       {/* action bar */}
@@ -1515,6 +1490,41 @@ function ProducePage({ recipe, production, ingredients, recipes = [], onStart, o
           <button onClick={() => setConfirmCancel(true)} style={{ background: "transparent", border: `1.5px solid ${C.rust}`, color: C.rust, borderRadius: 16, padding: "0 clamp(18px,5vw,32px)", fontWeight: 800, fontSize: "clamp(15px,2.4vw,18px)", cursor: "pointer", whiteSpace: "nowrap" }}>Cancel</button>
           <div style={{ flex: 1, display: "flex" }}><BigButton full tone="go" onClick={onFinish}>FINISH</BigButton></div>
         </div>
+      )}
+
+      {methodOpen && (
+        <Modal onClose={() => setMethodOpen(false)}>
+          <div className="display" style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>How to do it</div>
+          <p style={{ color: C.inkSoft, marginTop: 0, fontSize: 14 }}>{recipe.name}{started ? " — tap Start on a timed step to run its countdown." : ""}</p>
+          <div style={{ display: "grid", gap: 14, marginTop: 8 }}>
+            {(recipe.steps || []).map((s, k) => {
+              const timed = s.isTimed && s.timerSec > 0;
+              const t = timers[k];
+              return (
+                <div key={k} style={{ display: "flex", gap: 12, alignItems: "flex-start", borderTop: k ? `1px solid ${C.line}` : "none", paddingTop: k ? 12 : 0 }}>
+                  <span className="display" style={{ fontSize: 22, fontWeight: 800, color: C.gold, minWidth: 24, flexShrink: 0 }}>{k + 1}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 16, lineHeight: 1.5, color: C.ink, fontWeight: 500, display: "grid", gap: "0.3em" }}>{stepLines(s.text).map((ln, i) => <div key={i}>{ln}</div>)}</div>
+                    {timed && (
+                      <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        {!started ? (
+                          <span style={{ background: C.cream, border: `1px solid ${C.line}`, borderRadius: 999, padding: "5px 12px", fontSize: 13, fontWeight: 700, color: C.gold }}>⏲ {fmtClock(s.timerSec)} timer</span>
+                        ) : (t && (t.running || t.remaining < s.timerSec)) ? (
+                          <>
+                            <span className="display" style={{ fontSize: 28, fontWeight: 800, color: t.remaining === 0 ? C.go : C.rust }}>{fmtClock(t.remaining)}</span>
+                            <span style={{ fontSize: 13, color: t.remaining === 0 ? C.go : C.inkSoft, fontWeight: 700 }}>{t.remaining === 0 ? "✓ Done" : "counting…"}</span>
+                          </>
+                        ) : (
+                          <button onClick={() => startStep(k, s.timerSec)} style={{ background: C.gold, color: C.ink, border: "none", borderRadius: 12, padding: "9px 18px", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>▶ Start {fmtClock(s.timerSec)}</button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Modal>
       )}
 
       {confirmCancel && (
