@@ -53,6 +53,8 @@ const fmtDur = (sec) => {
 const uid = (p = "id") => p + Math.random().toString(36).slice(2, 9);
 
 const UNITS = ["kg", "litres", "boxes", "units", "slices"];
+// Production menu groups (a.k.a. departments). Each production recipe belongs to one.
+const MENU_GROUPS = ["Pastry", "Prep", "Bread"];
 const ING_UNITS = ["g", "kg", "ml", "L", "unit", "slice", "slices", "piece", "portion", "spoon", "scoop", "tbsp", "tsp", "pinch", "handful", "bunch", "leaf", "clove", "drizzle", "to taste"]; // ingredient + service measurements
 const DRIFT_THRESHOLD_SEC = 60; // alert admin if rolling avg drifts from set time by this much
 
@@ -387,6 +389,19 @@ function App() {
   const syncRef = useRef(syncNow); syncRef.current = syncNow;
   // Auto-refresh every 4 hours (silent). No constant polling.
   useEffect(() => { const id = setInterval(() => syncRef.current({ silent: true }), 4 * 60 * 60 * 1000); return () => clearInterval(id); }, []);
+
+  // iPad/mobile: when a text field gets focus, scroll it to the middle so the on-screen
+  // keyboard never hides the field you're typing in.
+  useEffect(() => {
+    const onFocus = (e) => {
+      const el = e.target;
+      if (!el || !el.matches || !el.matches("input, textarea, select")) return;
+      if (["checkbox", "radio", "button", "submit"].includes(el.type)) return;
+      setTimeout(() => { try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch {} }, 300);
+    };
+    document.addEventListener("focusin", onFocus);
+    return () => document.removeEventListener("focusin", onFocus);
+  }, []);
 
   // Remember the signed-in staff member across reloads.
   useEffect(() => { try { user ? localStorage.setItem("ronis_user", JSON.stringify(user)) : localStorage.removeItem("ronis_user"); } catch {} }, [user]);
@@ -1060,6 +1075,7 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
   const [err, setErr] = useState(false);
   const [errKind, setErrKind] = useState("wrong"); // "wrong" | "server"
   const [query, setQuery] = useState("");
+  const [grp, setGrp] = useState("All"); // menu-group filter on the production home
   const [listening, setListening] = useState(false);
   // One-shot voice search: tap the mic, say a recipe, it fills the search box.
   const startVoiceSearch = () => {
@@ -1149,20 +1165,41 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
         const q = query.trim().toLowerCase();
         // Production recipes only — service recipes live in the S.Book
         const prod = recipes.filter((r) => (r.dept2 || "Production") === "Production");
-        const filtered = q ? prod.filter((r) => r.name.toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q)) : prod;
-        if (!filtered.length) return <div style={{ background: C.card, borderRadius: 16, padding: 22, color: C.inkSoft, border: `1px solid ${C.line}`, marginTop: 18 }}>No recipes match “{query}”.</div>;
+        const filtered = q ? prod.filter((r) => r.name.toLowerCase().includes(q) || (r.department || "").toLowerCase().includes(q) || (r.category || "").toLowerCase().includes(q)) : prod;
+        const groupOf = (r) => MENU_GROUPS.includes(r.department) ? r.department : "Prep";
+        const groupsToShow = grp === "All" ? MENU_GROUPS : [grp];
+        const card = (r) => (
+          <div key={r.id} onClick={() => onPick(r)} style={{ position: "relative", background: C.card, border: `1px solid ${C.line}`, borderRadius: 22, padding: 0, overflow: "hidden", cursor: "pointer", color: C.ink, textAlign: "left" }}>
+            {onEditRecipe && <button onClick={(e) => { e.stopPropagation(); onEditRecipe(r); }} title="Edit recipe" style={{ position: "absolute", top: 10, right: 10, zIndex: 2, background: "rgba(255,255,255,.92)", border: `1px solid ${C.line}`, borderRadius: 999, width: 38, height: 38, cursor: "pointer", fontSize: 17, display: "grid", placeItems: "center", boxShadow: "0 2px 6px rgba(0,0,0,.15)" }}>✎</button>}
+            <div style={{ height: "clamp(150px,13vw,220px)", background: r.hero ? `url(${r.hero}) center/cover` : `linear-gradient(135deg,${C.goldSoft},${C.rust})` }} />
+            <div style={{ padding: "18px 22px" }}>
+              <div className="display" style={{ fontSize: "clamp(26px,2vw,38px)", fontWeight: 700 }}>{r.name}</div>
+              <div style={{ fontSize: "clamp(16px,1.2vw,21px)", color: C.inkSoft, marginTop: 5 }}>{r.steps.length} steps · yields {r.yieldKg} {r.yieldUnit}</div>
+            </div>
+          </div>
+        );
         return (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(340px,1fr))", gap: 20, marginTop: 20 }}>
-            {filtered.map((r) => (
-              <div key={r.id} onClick={() => onPick(r)} style={{ position: "relative", background: C.card, border: `1px solid ${C.line}`, borderRadius: 22, padding: 0, overflow: "hidden", cursor: "pointer", color: C.ink, textAlign: "left" }}>
-                {onEditRecipe && <button onClick={(e) => { e.stopPropagation(); onEditRecipe(r); }} title="Edit recipe" style={{ position: "absolute", top: 10, right: 10, zIndex: 2, background: "rgba(255,255,255,.92)", border: `1px solid ${C.line}`, borderRadius: 999, width: 38, height: 38, cursor: "pointer", fontSize: 17, display: "grid", placeItems: "center", boxShadow: "0 2px 6px rgba(0,0,0,.15)" }}>✎</button>}
-                <div style={{ height: "clamp(150px,13vw,220px)", background: r.hero ? `url(${r.hero}) center/cover` : `linear-gradient(135deg,${C.goldSoft},${C.rust})` }} />
-                <div style={{ padding: "18px 22px" }}>
-                  <div className="display" style={{ fontSize: "clamp(26px,2vw,38px)", fontWeight: 700 }}>{r.name}</div>
-                  <div style={{ fontSize: "clamp(16px,1.2vw,21px)", color: C.inkSoft, marginTop: 5 }}>{r.steps.length} steps · yields {r.yieldKg} {r.yieldUnit}</div>
+          <div style={{ marginTop: 16 }}>
+            {/* menu-group filter chips */}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+              {["All", ...MENU_GROUPS].map((g) => {
+                const on = grp === g;
+                const count = g === "All" ? filtered.length : filtered.filter((r) => groupOf(r) === g).length;
+                return <button key={g} onClick={() => setGrp(g)} style={{ background: on ? C.rust : C.card, color: on ? "#fff" : C.ink, border: `1.5px solid ${on ? C.rust : C.line}`, borderRadius: 999, padding: "10px 20px", fontSize: "clamp(15px,1.3vw,19px)", fontWeight: 700, cursor: "pointer" }}>{g} <span style={{ opacity: .7, fontWeight: 600 }}>{count}</span></button>;
+              })}
+            </div>
+            {filtered.length === 0 ? (
+              <div style={{ background: C.card, borderRadius: 16, padding: 22, color: C.inkSoft, border: `1px solid ${C.line}`, marginTop: 14 }}>No recipes match “{query}”.</div>
+            ) : groupsToShow.map((g) => {
+              const inG = filtered.filter((r) => groupOf(r) === g).sort((a, b) => a.name.localeCompare(b.name));
+              if (!inG.length) return null;
+              return (
+                <div key={g} style={{ marginTop: 18 }}>
+                  <div className="display" style={{ fontSize: "clamp(22px,2.2vw,32px)", fontWeight: 800, color: C.rust, marginBottom: 12, display: "flex", alignItems: "baseline", gap: 10 }}>{g} <span style={{ fontSize: "0.55em", color: C.inkSoft, fontWeight: 600 }}>{inG.length} recipe{inG.length > 1 ? "s" : ""}</span></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(340px,1fr))", gap: 20 }}>{inG.map(card)}</div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         );
       })()}
@@ -1367,6 +1404,35 @@ function RunRecipe({ production, ingredients, recipes = [], onStep, onComplete, 
   );
 }
 
+/* Big on-screen number pad for tablets — avoids the native keyboard hiding the field. */
+function NumPad({ title, unit, value, onClose, onConfirm }) {
+  const [v, setV] = useState(value == null ? "" : String(value));
+  const press = (d) => setV((x) => {
+    if (d === ".") return x.includes(".") ? x : (x === "" ? "0." : x + ".");
+    if (x === "0") return d;
+    return (x + d).slice(0, 8);
+  });
+  const pad = { background: C.cream, color: C.ink, border: `1px solid ${C.line}`, borderRadius: 14, padding: "clamp(14px,2vh,20px) 0", fontSize: 28, fontWeight: 700, cursor: "pointer" };
+  return (
+    <Modal onClose={onClose}>
+      <div style={{ textAlign: "center" }}>
+        {title && <div style={{ fontSize: 13, fontWeight: 700, color: C.rust, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>{title}</div>}
+        <div className="display" style={{ fontSize: 56, fontWeight: 800, color: C.rust, lineHeight: 1, minHeight: 60 }}>{v || "0"}<span style={{ fontSize: "0.4em", color: C.inkSoft }}> {unit}</span></div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 14 }}>
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => <button key={d} onClick={() => press(d)} style={pad}>{d}</button>)}
+          <button onClick={() => press(".")} style={pad}>.</button>
+          <button onClick={() => press("0")} style={pad}>0</button>
+          <button onClick={() => setV((x) => x.slice(0, -1))} style={{ ...pad, fontSize: 22 }}>⌫</button>
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button onClick={() => setV("")} style={{ ...pillGhost, flex: 1, padding: "14px 0" }}>Clear</button>
+          <button onClick={() => onConfirm(Math.max(0, parseFloat(v) || 0))} style={{ ...pillGhost, flex: 2, padding: "14px 0", background: C.go, color: "#fff", border: "none", fontWeight: 800 }}>OK</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 /* ---- The single Produce page: image → ingredients (big) → quantity (+Half/Double) →
    expandable method with per-step timers. Start begins the labour clock; Finish asks the
    yield; Cancel logs who/recipe/how-long-after-start. Labour excludes timed waits run. ---- */
@@ -1382,6 +1448,7 @@ function ProducePage({ recipe, production, ingredients, recipes = [], onStart, o
   const [methodOpen, setMethodOpen] = useState(false);
   const [timers, setTimers] = useState({});          // stepIdx -> { running, remaining }
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [numpad, setNumpad] = useState(false);
   const [nowTick, setNowTick] = useState(Date.now());
   useEffect(() => { const i = setInterval(() => setNowTick(Date.now()), 1000); return () => clearInterval(i); }, []);
   const elapsed = started ? Math.max(0, Math.floor((nowTick - production.startedAt) / 1000)) : 0;
@@ -1463,10 +1530,10 @@ function ProducePage({ recipe, production, ingredients, recipes = [], onStart, o
           ) : (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "clamp(10px,2vw,20px)", flexWrap: "wrap" }}>
               <button onClick={() => setQty((k) => Math.max(0.5, +((Number(k) || 0) - 1).toFixed(2)))} style={{ ...stepBtn, width: 60, height: 60, fontSize: 32 }}>−</button>
-              <div style={{ textAlign: "center" }}>
-                <input type="number" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value === "" ? "" : Math.max(0, parseFloat(e.target.value) || 0))} onFocus={(e) => e.target.select()} style={{ width: 130, textAlign: "center", border: `2px solid ${C.line}`, borderRadius: 14, background: C.cardSoft, color: C.rust, fontFamily: "'Quicksand',sans-serif", fontSize: "clamp(34px,5.5vw,52px)", fontWeight: 800, lineHeight: 1, padding: "2px 0" }} />
-                <div style={{ fontSize: 14, color: C.inkSoft, fontWeight: 600 }}>{recipe.yieldUnit}</div>
-              </div>
+              <button onClick={() => setNumpad(true)} title="Tap to type" style={{ textAlign: "center", border: `2px solid ${C.line}`, borderRadius: 14, background: C.cardSoft, cursor: "pointer", padding: "4px 18px" }}>
+                <div className="display" style={{ color: C.rust, fontSize: "clamp(34px,5.5vw,52px)", fontWeight: 800, lineHeight: 1 }}>{fmtNum(qty)}</div>
+                <div style={{ fontSize: 14, color: C.inkSoft, fontWeight: 600 }}>{recipe.yieldUnit} · tap to type</div>
+              </button>
               <button onClick={() => setQty((k) => +(((Number(k) || 0) + 1)).toFixed(2))} style={{ ...stepBtn, width: 60, height: 60, fontSize: 32 }}>+</button>
               <button onClick={() => setQty((k) => +(((Number(k) || 0) / 2)).toFixed(2))} style={halfDbl}>½ Half</button>
               <button onClick={() => setQty((k) => +(((Number(k) || 0) * 2)).toFixed(2))} style={halfDbl}>×2 Double</button>
@@ -1490,6 +1557,10 @@ function ProducePage({ recipe, production, ingredients, recipes = [], onStart, o
           <button onClick={() => setConfirmCancel(true)} style={{ background: "transparent", border: `1.5px solid ${C.rust}`, color: C.rust, borderRadius: 16, padding: "0 clamp(18px,5vw,32px)", fontWeight: 800, fontSize: "clamp(15px,2.4vw,18px)", cursor: "pointer", whiteSpace: "nowrap" }}>Cancel</button>
           <div style={{ flex: 1, display: "flex" }}><BigButton full tone="go" onClick={onFinish}>FINISH</BigButton></div>
         </div>
+      )}
+
+      {numpad && (
+        <NumPad title="Quantity to make" unit={recipe.yieldUnit} value={qty} onClose={() => setNumpad(false)} onConfirm={(n) => { setQty(n); setNumpad(false); }} />
       )}
 
       {methodOpen && (
@@ -1546,6 +1617,7 @@ function YieldCheck({ production, onConfirm, onStop }) {  const { recipe, target
   const unit = recipe.yieldUnit;
   const [actual, setActual] = useState(targetQty);
   const [showStop, setShowStop] = useState(false);
+  const [numpad, setNumpad] = useState(false);
   return (
     <div className="scr" style={{ maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
@@ -1556,17 +1628,17 @@ function YieldCheck({ production, onConfirm, onStop }) {  const { recipe, target
       <p style={{ fontSize: 17, color: C.inkSoft, marginTop: 0 }}>Confirm what you actually got — this keeps the recipe's yield accurate. (Within 5% adjusts automatically; bigger gaps are flagged for admin.)</p>
       <div style={{ display: "flex", alignItems: "center", gap: 20, justifyContent: "center", margin: "22px 0", flexWrap: "wrap" }}>
         <button onClick={() => setActual((a) => Math.max(0, +((Number(a) || 0) - 1).toFixed(1)))} style={stepBtn}>−</button>
-        <div style={{ textAlign: "center" }}>
-          <input type="number" inputMode="decimal" value={actual} onChange={(e) => setActual(e.target.value)} onFocus={(e) => e.target.select()}
-            style={{ width: 180, textAlign: "center", border: `2px solid ${C.line}`, borderRadius: 16, background: C.card, color: C.rust, fontFamily: "'Quicksand',sans-serif", fontSize: 72, fontWeight: 800, lineHeight: 1, padding: "6px 0" }} />
-          <div style={{ fontSize: 18, color: C.inkSoft, fontWeight: 600 }}>{unit} — tap the number to type</div>
-        </div>
+        <button onClick={() => setNumpad(true)} title="Tap to type" style={{ textAlign: "center", border: `2px solid ${C.line}`, borderRadius: 16, background: C.card, cursor: "pointer", padding: "6px 22px" }}>
+          <div className="display" style={{ color: C.rust, fontSize: 72, fontWeight: 800, lineHeight: 1 }}>{fmtNum(actual)}</div>
+          <div style={{ fontSize: 18, color: C.inkSoft, fontWeight: 600 }}>{unit} — tap to type</div>
+        </button>
         <button onClick={() => setActual((a) => +((Number(a) || 0) + 1).toFixed(1))} style={stepBtn}>+</button>
       </div>
       <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>
         {(Number(actual) || 0) !== targetQty && <button onClick={() => setActual(targetQty)} style={pillGhost}>Reset to {targetQty}</button>}
       </div>
       <BigButton full tone="go" onClick={() => onConfirm(Number(actual) || 0)}>{(Number(actual) || 0) === targetQty ? "Yes — that's right" : `Confirm ${Number(actual) || 0} ${unit}`}</BigButton>
+      {numpad && <NumPad title="How many made" unit={unit} value={actual} onClose={() => setNumpad(false)} onConfirm={(n) => { setActual(n); setNumpad(false); }} />}
       {showStop && (
         <Modal onClose={() => setShowStop(false)}>
           <div className="display" style={{ fontSize: 26, fontWeight: 800, marginBottom: 8 }}>Stop this production?</div>
@@ -2379,6 +2451,7 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
   const [dept2, setDept2] = useState(initial?.dept2 || "Production");
   const [asComponent, setAsComponent] = useState(initial?.asComponent || false);
   const [category, setCategory] = useState(initial?.category || "");
+  const [department, setDepartment] = useState(initial?.department || "Prep"); // "Menu group" for production recipes
   const [allergens, setAllergens] = useState(initial?.allergens || []);
   const [dietary, setDietary] = useState(initial?.dietary || []);
   const [steps, setSteps] = useState(initial?.steps?.map((s) => ({ text: s.text, image: s.image || null, use: s.use || [], isTimed: s.isTimed ?? !!s.timerSec, timerMin: s.timerSec ? s.timerSec / 60 : 0 })) || [{ text: "", image: null, use: [], isTimed: false, timerMin: 0 }]);
@@ -2401,7 +2474,7 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
     const clean = {
       id: idRef.current,
       name: name.trim() || "Untitled recipe",
-      yieldKg: parseFloat(yieldKg) || 1, yieldUnit, hero, dept2, category, allergens, dietary, asComponent,
+      yieldKg: parseFloat(yieldKg) || 1, yieldUnit, hero, dept2, category, department: department || null, allergens, dietary, asComponent,
       expectedSec: expectedMin > 0 ? Math.round(expectedMin * 60) : (initial?.expectedSec || 0),
       steps: steps.filter((s) => s.text.trim()).map((s) => {
         const est = estimateStepSec({ text: s.text, use: s.use }, ingredients);
@@ -2431,7 +2504,7 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
     if (!initial && !hasContent) return;
     const t = setTimeout(() => { onAutoSave(buildClean()); setSavedTick((n) => n + 1); }, 900);
     return () => clearTimeout(t);
-  }, [name, yieldKg, yieldUnit, expectedMin, hero, dept2, category, allergens, dietary, steps]);
+  }, [name, yieldKg, yieldUnit, expectedMin, hero, dept2, category, department, allergens, dietary, steps]);
 
   return (
     <div className="scr">
@@ -2465,10 +2538,18 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
         <div style={{ display: "grid", gap: 14 }}>
           <Field label="Recipe name"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sesame Bagels" style={bigInput} /></Field>
           <div className="row3">
-            <Field label="Category">
-              <input list="cat-suggestions" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Sandwich, Cake…" style={bigInput} />
-              <datalist id="cat-suggestions">{ALL_CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
-            </Field>
+            {dept2 === "Production" ? (
+              <Field label="Menu group">
+                <select value={MENU_GROUPS.includes(department) ? department : "Prep"} onChange={(e) => setDepartment(e.target.value)} style={bigInput}>
+                  {MENU_GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </Field>
+            ) : (
+              <Field label="Category">
+                <input list="cat-suggestions" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Sandwich, Cake…" style={bigInput} />
+                <datalist id="cat-suggestions">{ALL_CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
+              </Field>
+            )}
             <Field label="Yield unit">
               <select value={yieldUnit} onChange={(e) => setYieldUnit(e.target.value)} style={bigInput}>{UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
             </Field>
