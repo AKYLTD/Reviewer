@@ -2657,12 +2657,15 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: C.inkSoft, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Ingredients for this step</div>
               {s.use.map((u, j) => (
-                <div key={j} style={{ display: "grid", gridTemplateColumns: "1fr 70px 50px 28px", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                <div key={j} style={{ display: "grid", gridTemplateColumns: "1fr 70px 50px 66px 28px", gap: 8, marginBottom: 8, alignItems: "center" }}>
                   <button onClick={() => setPicker({ step: i, use: j })} style={{ ...cellInput, textAlign: "left", cursor: "pointer", background: u.recipeId ? "#F2E7CF" : C.cream, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.recipeId ? "▸ " : ""}{compName(u, m)}</button>
                   <input type="number" step="0.01" value={u.qty} onChange={(e) => setUse(i, j, { qty: e.target.value })} style={cellInput} />
                   {u.recipeId
                     ? <select value={u.unit || "units"} onChange={(e) => setUse(i, j, { unit: e.target.value })} style={{ ...cellInput, padding: "8px 4px", fontSize: 12 }}>{ING_UNITS.map((un) => <option key={un} value={un}>{un}</option>)}</select>
                     : <select value={u.unit || m[u.ingId]?.unit || "g"} onChange={(e) => setUse(i, j, { unit: e.target.value })} style={{ ...cellInput, padding: "8px 4px", fontSize: 12 }}>{ING_UNITS.map((un) => <option key={un} value={un}>{un}</option>)}</select>}
+                  {u.recipeId
+                    ? <span style={{ fontSize: 12, color: C.inkSoft, textAlign: "right" }}>—</span>
+                    : (() => { const ing = m[u.ingId]; const noCost = !ing || !(ing.cost > 0); const line = ing ? (ing.cost || 0) * convertQty(Number(u.qty) || 0, u.unit || ing.unit, ing.unit) : 0; return <span title={noCost ? "This ingredient has no cost set — add it in Ingredient costs" : `${fmtMoney(ing.cost)} per ${ing.unit}`} style={{ fontSize: 12, fontWeight: 800, textAlign: "right", color: noCost ? C.rust : C.ink }}>{noCost ? "no £" : fmtMoney(line)}</span>; })()}
                   <button onClick={() => delUse(i, j)} style={{ background: "none", border: "none", color: C.rust, cursor: "pointer", fontSize: 15 }}>✕</button>
                 </div>
               ))}
