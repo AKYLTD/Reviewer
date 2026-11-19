@@ -122,13 +122,39 @@ const DELIVERY0 = { perMile: 1.10, perHour: 12.0 };
 
 /* derive recipe ingredient totals from steps for costing */
 function recipeItems(recipe) {
+  // aggregate by ingredient id; keep the unit from the use (per-recipe unit, which may
+  // differ from the ingredient's stock unit, e.g. g in a recipe vs kg in stock).
   const tot = {};
-  recipe.steps.forEach((s) => (s.use || []).forEach((u) => { tot[u.ingId] = (tot[u.ingId] || 0) + u.qty; }));
-  return Object.entries(tot).map(([ingId, qty]) => ({ ingId, qty }));
+  recipe.steps.forEach((s) => (s.use || []).forEach((u) => {
+    if (!u.ingId) return;
+    if (!tot[u.ingId]) tot[u.ingId] = { ingId: u.ingId, qty: 0, unit: u.unit };
+    tot[u.ingId].qty += Number(u.qty) || 0;
+    if (!tot[u.ingId].unit && u.unit) tot[u.ingId].unit = u.unit;
+  }));
+  return Object.values(tot);
+}
+// Convert a quantity between compatible units (mass g↔kg, volume ml↔L). Incompatible or
+// countable units (unit, slice, tbsp…) are returned unchanged.
+function convertQty(qty, fromUnit, toUnit) {
+  const q = Number(qty) || 0;
+  const f = String(fromUnit || "").toLowerCase().trim(), t = String(toUnit || "").toLowerCase().trim();
+  if (!f || !t || f === t) return q;
+  const mass = { g: 1, gram: 1, grams: 1, kg: 1000, kilogram: 1000, kilograms: 1000 };
+  const vol = { ml: 1, millilitre: 1, millilitres: 1, l: 1000, litre: 1000, litres: 1000, liter: 1000, liters: 1000 };
+  if (f in mass && t in mass) return q * mass[f] / mass[t];
+  if (f in vol && t in vol) return q * vol[f] / vol[t];
+  return q; // not convertible — treat as same unit
 }
 function recipeCost(recipe, ings) {
   const m = ingMap(ings);
-  return recipeItems(recipe).reduce((s, it) => s + (m[it.ingId] ? m[it.ingId].cost * it.qty : 0), 0);
+  let cost = 0;
+  recipe.steps.forEach((s) => (s.use || []).forEach((u) => {
+    if (!u.ingId) return;
+    const ing = m[u.ingId]; if (!ing) return;
+    // ingredient.cost is priced per ing.unit — convert the recipe-unit qty to that unit.
+    cost += (ing.cost || 0) * convertQty(Number(u.qty) || 0, u.unit || ing.unit, ing.unit);
+  }));
+  return cost;
 }
 function deliveryCost(loc, delivery) {
   if (!loc) return 0;
@@ -582,20 +608,38 @@ function App() {
       .catch((e) => { console.error("Persist cancellation failed", e); flash("Database write failed"); });
   };
 
-  // End-of-production yield check. Learn the real yield when close (≤5%), or flag
-  // the admin when it's off by more.
+  // End-of-production yield check. When close (≤5%) we OFFER to update the recipe's base
+  // yield (with approval); when off by more we flag the admin. Either way the batch is
+  // then distributed.
+  const proceedAfterYield = (fin) => {
+    if (singleSite || stores.length === 0) { commitDistribution([], fin.actualQty, fin); } // produce for itself → own stock
+    else { setScreen("distribute"); }
+  };
+  const applyYieldDecision = (approve) => {
+    const ya = yieldApproval; setYieldApproval(null);
+    if (!ya) return;
+    if (approve) {
+      setRecipes((rs) => rs.map((r) => r.id === ya.recipeId ? { ...r, yieldKg: ya.to } : r));
+      if (readyRef.current) updateRecipeFields(ya.recipeId, { yield_kg: ya.to }).catch((e) => { console.error("yield save failed", e); flash("Couldn't save the amended yield"); });
+      flash(`Yield updated: ${ya.name} → ${ya.to} ${ya.unit}`, 3000);
+    }
+    proceedAfterYield(ya.fin);
+  };
   const confirmYield = (actual) => {
     const p = finishing;
     const target = p.targetQty;
     const recipe = p.recipe;
+    const fin = { ...p, actualQty: actual };
+    setFinishing(fin);
     if (target > 0 && actual > 0 && actual !== target) {
       const diffPct = Math.abs(actual - target) / target;
       if (diffPct <= 0.05) {
         const newBase = +(actual * recipe.yieldKg / target).toFixed(2);
-        // targeted column write — never rewrites the whole recipe row (keeps images safe)
-        setRecipes((rs) => rs.map((r) => r.id === recipe.id ? { ...r, yieldKg: newBase } : r));
-        if (readyRef.current) updateRecipeFields(recipe.id, { yield_kg: newBase }).catch((e) => { console.error("yield save failed", e); flash("Couldn't save the amended yield"); });
-        flash(`Yield auto-adjusted: ${recipe.name} → ${newBase} ${recipe.yieldUnit}`, 3500);
+        if (newBase !== recipe.yieldKg) {
+          // Ask for approval before changing the recipe's stored yield.
+          setYieldApproval({ recipeId: recipe.id, name: recipe.name, from: recipe.yieldKg, to: newBase, unit: recipe.yieldUnit, target, actual, fin });
+          return;
+        }
       } else {
         const pct = Math.round(diffPct * 100);
         const dir = actual > target ? "higher" : "lower";
@@ -604,10 +648,7 @@ function App() {
         flash(`Yield off by ${pct}% — flagged for admin review`, 4000);
       }
     }
-    const fin = { ...p, actualQty: actual };
-    setFinishing(fin);
-    if (singleSite || stores.length === 0) { commitDistribution([], actual, fin); } // produce for itself → own stock
-    else { setScreen("distribute"); }
+    proceedAfterYield(fin);
   };
 
   const requestSignOut = () => {
@@ -669,6 +710,7 @@ function App() {
   const [sbookPrompt, setSbookPrompt] = useState(false); // PIN gate to open S.Book
   const [produceGate, setProduceGate] = useState(null);  // recipe pending PIN gate to produce
   const [yieldPopup, setYieldPopup] = useState(false);   // admin login pop-up for yield warnings
+  const [yieldApproval, setYieldApproval] = useState(null); // pending recipe-yield change awaiting approval
   const hasServiceRecipes = recipes.some((r) => (r.dept2 || "Production") === "Service");
   const yieldAlerts = alerts.filter((a) => a.kind === "yield");
   // pop the yield warnings when an admin signs in
@@ -788,6 +830,21 @@ function App() {
             ))}
           </div>
           <BigButton full tone="go" onClick={() => setYieldPopup(false)}>Got it</BigButton>
+        </Modal>
+      )}
+
+      {yieldApproval && (
+        <Modal onClose={() => applyYieldDecision(false)}>
+          <div className="display" style={{ fontSize: 24, fontWeight: 800, marginBottom: 4, color: C.rust }}>Update recipe yield?</div>
+          <p style={{ color: C.inkSoft, marginTop: 0, fontSize: 15 }}>You aimed for <b>{fmtNum(yieldApproval.target)}</b> and made <b>{fmtNum(yieldApproval.actual)} {yieldApproval.unit}</b> of <b>{yieldApproval.name}</b>.</p>
+          <div style={{ background: C.cardSoft, border: `1px solid ${C.line}`, borderRadius: 12, padding: "14px 16px", margin: "10px 0 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 13, color: C.inkSoft, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Base yield for future batches</div>
+            <div className="display" style={{ fontSize: 26, fontWeight: 800, marginTop: 6 }}>{fmtNum(yieldApproval.from)} <span style={{ color: C.inkSoft }}>→</span> <span style={{ color: C.go }}>{fmtNum(yieldApproval.to)}</span> {yieldApproval.unit}</div>
+          </div>
+          <div style={{ display: "grid", gap: 12 }}>
+            <BigButton full tone="go" onClick={() => applyYieldDecision(true)}>Yes — update to {fmtNum(yieldApproval.to)} {yieldApproval.unit}</BigButton>
+            <button onClick={() => applyYieldDecision(false)} style={{ background: "transparent", border: `1.5px solid ${C.line}`, color: C.ink, borderRadius: 12, padding: "12px", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>No — keep {fmtNum(yieldApproval.from)} {yieldApproval.unit}</button>
+          </div>
         </Modal>
       )}
 
@@ -1245,7 +1302,7 @@ function Quantity({ recipe, ingredients, onBack, onStart }) {
 function RunRecipe({ production, ingredients, recipes = [], onStep, onComplete, onCancel, onBack }) {
   const rcById = Object.fromEntries(recipes.map((r) => [r.id, r]));
   const cName = (u) => u.recipeId ? (rcById[u.recipeId]?.name || "Recipe") : ingMap(ingredients)[u.ingId]?.name;
-  const cUnit = (u) => u.recipeId ? (u.unit || "units") : ingMap(ingredients)[u.ingId]?.unit;
+  const cUnit = (u) => u.recipeId ? (u.unit || "units") : (u.unit || ingMap(ingredients)[u.ingId]?.unit);
   const { recipe, targetQty, stepIndex } = production;
   const factor = targetQty / recipe.yieldKg;
   const m = ingMap(ingredients);
@@ -1441,7 +1498,7 @@ function ProducePage({ recipe, production, ingredients, recipes = [], onStart, o
   const m = ingMap(ingredients);
   const rcById = Object.fromEntries(recipes.map((r) => [r.id, r]));
   const cName = (u) => u.recipeId ? (rcById[u.recipeId]?.name || "Recipe") : (m[u.ingId]?.name || "");
-  const cUnit = (u) => u.recipeId ? (u.unit || "units") : (m[u.ingId]?.unit || "");
+  const cUnit = (u) => u.recipeId ? (u.unit || "units") : (u.unit || m[u.ingId]?.unit || "");
 
   const [qty, setQty] = useState(started ? production.targetQty : (recipe.yieldKg || 1));
   const factor = (Number(qty) || 0) / (recipe.yieldKg || 1);
@@ -1862,7 +1919,7 @@ function RecipeView({ recipe, ingredients, recipes = [], onBack, onNavigate, onE
   const agg = {};
   (recipe.steps || []).forEach((s) => (s.use || []).forEach((u) => {
     const key = u.recipeId ? "r:" + u.recipeId : "i:" + u.ingId;
-    if (!agg[key]) agg[key] = { key, qty: 0, name: u.recipeId ? (recById[u.recipeId]?.name || "Recipe") : (m[u.ingId]?.name || ""), unit: u.recipeId ? (u.unit || "units") : (m[u.ingId]?.unit || ""), isRecipe: !!u.recipeId };
+    if (!agg[key]) agg[key] = { key, qty: 0, name: u.recipeId ? (recById[u.recipeId]?.name || "Recipe") : (m[u.ingId]?.name || ""), unit: u.recipeId ? (u.unit || "units") : (u.unit || m[u.ingId]?.unit || ""), isRecipe: !!u.recipeId };
     agg[key].qty += Number(u.qty) || 0;
   }));
   const items = Object.values(agg);
@@ -2367,7 +2424,7 @@ function RecipeCard({ recipe, ingredients, recipes = [], onEdit, onDelete }) {
   const m = ingMap(ingredients);
   const recById = Object.fromEntries(recipes.map((r) => [r.id, r]));
   const cName = (u) => u.recipeId ? (recById[u.recipeId]?.name || "Recipe") : (m[u.ingId]?.name || "");
-  const cUnit = (u) => u.recipeId ? (u.unit || "units") : (m[u.ingId]?.unit || "");
+  const cUnit = (u) => u.recipeId ? (u.unit || "units") : (u.unit || m[u.ingId]?.unit || "");
   // component-aware totals (ingredients + recipe components)
   const agg = {};
   (recipe.steps || []).forEach((s) => (s.use || []).forEach((u) => {
@@ -2440,7 +2497,7 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
   const recById = Object.fromEntries(recipes.map((r) => [r.id, r]));
   // A step item can be a raw ingredient OR a produced recipe used as a component.
   const compName = (u, mm) => u.recipeId ? (recById[u.recipeId]?.name || "Recipe") : (mm[u.ingId]?.name || "Choose…");
-  const compUnit = (u, mm) => u.recipeId ? (u.unit || recById[u.recipeId]?.yieldUnit || "units") : (mm[u.ingId]?.unit || "");
+  const compUnit = (u, mm) => u.recipeId ? (u.unit || recById[u.recipeId]?.yieldUnit || "units") : (u.unit || mm[u.ingId]?.unit || "");
   const [picker, setPicker] = useState(null); // { step, use } when choosing an ingredient/component
   const [savedTick, setSavedTick] = useState(0);
   const [name, setName] = useState(initial?.name || "");
@@ -2466,7 +2523,7 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
   };
 
   const setStep = (i, patch) => setSteps((a) => a.map((x, idx) => idx === i ? { ...x, ...patch } : x));
-  const addUse = (i, pick) => setStep(i, { use: [...steps[i].use, pick.recipeId ? { recipeId: pick.recipeId, qty: 1, unit: pick.unit || "units" } : { ingId: pick.ingId, qty: 1 }] });
+  const addUse = (i, pick) => setStep(i, { use: [...steps[i].use, pick.recipeId ? { recipeId: pick.recipeId, qty: 1, unit: pick.unit || "units" } : { ingId: pick.ingId, qty: 1, unit: m[pick.ingId]?.unit || "g" }] });
   const setUse = (i, j, patch) => setStep(i, { use: steps[i].use.map((u, idx) => idx === j ? { ...u, ...patch } : u) });
   const delUse = (i, j) => setStep(i, { use: steps[i].use.filter((_, idx) => idx !== j) });
 
@@ -2481,7 +2538,7 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
         const timed = !!s.isTimed;
         return {
           text: s.text.trim(), image: s.image || null,
-          use: s.use.filter((u) => (u.ingId || u.recipeId) && u.qty > 0).map((u) => u.recipeId ? { recipeId: u.recipeId, qty: parseFloat(u.qty) || 0, unit: u.unit || "units" } : { ingId: u.ingId, qty: parseFloat(u.qty) || 0 }),
+          use: s.use.filter((u) => (u.ingId || u.recipeId) && u.qty > 0).map((u) => u.recipeId ? { recipeId: u.recipeId, qty: parseFloat(u.qty) || 0, unit: u.unit || "units" } : { ingId: u.ingId, qty: parseFloat(u.qty) || 0, unit: u.unit || m[u.ingId]?.unit || "g" }),
           isTimed: timed,
           timerSec: timed ? (s.timerMin > 0 ? Math.round(s.timerMin * 60) : waitStepSec(s.text)) : 0,
           estSec: est,
@@ -2605,7 +2662,7 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
                   <input type="number" step="0.01" value={u.qty} onChange={(e) => setUse(i, j, { qty: e.target.value })} style={cellInput} />
                   {u.recipeId
                     ? <select value={u.unit || "units"} onChange={(e) => setUse(i, j, { unit: e.target.value })} style={{ ...cellInput, padding: "8px 4px", fontSize: 12 }}>{ING_UNITS.map((un) => <option key={un} value={un}>{un}</option>)}</select>
-                    : <span style={{ fontSize: 13, color: C.inkSoft, fontWeight: 600 }}>{compUnit(u, m)}</span>}
+                    : <select value={u.unit || m[u.ingId]?.unit || "g"} onChange={(e) => setUse(i, j, { unit: e.target.value })} style={{ ...cellInput, padding: "8px 4px", fontSize: 12 }}>{ING_UNITS.map((un) => <option key={un} value={un}>{un}</option>)}</select>}
                   <button onClick={() => delUse(i, j)} style={{ background: "none", border: "none", color: C.rust, cursor: "pointer", fontSize: 15 }}>✕</button>
                 </div>
               ))}
@@ -2618,7 +2675,7 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
 
       {picker && (
         <IngredientPicker ingredients={ingredients} recipes={recipes} onClose={() => setPicker(null)}
-          onPick={(pick) => { if (picker.use == null) addUse(picker.step, pick); else setUse(picker.step, picker.use, pick.recipeId ? { ingId: undefined, recipeId: pick.recipeId, unit: pick.unit || "units" } : { ingId: pick.ingId, recipeId: undefined }); setPicker(null); }} />
+          onPick={(pick) => { if (picker.use == null) addUse(picker.step, pick); else setUse(picker.step, picker.use, pick.recipeId ? { ingId: undefined, recipeId: pick.recipeId, unit: pick.unit || "units" } : { ingId: pick.ingId, recipeId: undefined, unit: m[pick.ingId]?.unit || "g" }); setPicker(null); }} />
       )}
     </div>
   );
