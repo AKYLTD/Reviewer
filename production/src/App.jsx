@@ -2533,11 +2533,13 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
       name: name.trim() || "Untitled recipe",
       yieldKg: parseFloat(yieldKg) || 1, yieldUnit, hero, dept2, category, department: department || null, allergens, dietary, asComponent,
       expectedSec: expectedMin > 0 ? Math.round(expectedMin * 60) : (initial?.expectedSec || 0),
-      steps: steps.filter((s) => s.text.trim()).map((s) => {
+      // Keep a step if it has typed text OR at least one real ingredient — otherwise
+      // adding ingredients to an untitled step would silently discard them on save.
+      steps: steps.filter((s) => s.text.trim() || s.image || (s.use || []).some((u) => (u.ingId || u.recipeId) && (parseFloat(u.qty) || 0) > 0)).map((s, idx) => {
         const est = estimateStepSec({ text: s.text, use: s.use }, ingredients);
         const timed = !!s.isTimed;
         return {
-          text: s.text.trim(), image: s.image || null,
+          text: s.text.trim() || `Step ${idx + 1}`, image: s.image || null,
           use: s.use.filter((u) => (u.ingId || u.recipeId) && u.qty > 0).map((u) => u.recipeId ? { recipeId: u.recipeId, qty: parseFloat(u.qty) || 0, unit: u.unit || "units" } : { ingId: u.ingId, qty: parseFloat(u.qty) || 0, unit: u.unit || m[u.ingId]?.unit || "g" }),
           isTimed: timed,
           timerSec: timed ? (s.timerMin > 0 ? Math.round(s.timerMin * 60) : waitStepSec(s.text)) : 0,
