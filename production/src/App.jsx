@@ -55,7 +55,7 @@ const uid = (p = "id") => p + Math.random().toString(36).slice(2, 9);
 const UNITS = ["kg", "litres", "boxes", "units", "slices"];
 // Production menu groups (a.k.a. departments). Each production recipe belongs to one.
 const MENU_GROUPS = ["Pastry", "Prep", "Bread"];
-const ING_UNITS = ["g", "kg", "ml", "L", "unit", "slice", "slices", "piece", "portion", "spoon", "scoop", "tbsp", "tsp", "pinch", "handful", "bunch", "leaf", "clove", "drizzle", "to taste"]; // ingredient + service measurements
+const ING_UNITS = ["g", "kg", "ml", "L", "unit", "units", "slice", "slices", "piece", "portion", "spoon", "scoop", "tbsp", "tsp", "pinch", "handful", "bunch", "leaf", "clove", "drizzle", "to taste"]; // ingredient + service measurements
 const DRIFT_THRESHOLD_SEC = 60; // alert admin if rolling avg drifts from set time by this much
 
 const C = {
@@ -2660,9 +2660,7 @@ function RecipeBuilder({ ingredients, recipes = [], initial, onCancel, onSave, o
                 <div key={j} style={{ display: "grid", gridTemplateColumns: "1fr 70px 50px 66px 28px", gap: 8, marginBottom: 8, alignItems: "center" }}>
                   <button onClick={() => setPicker({ step: i, use: j })} style={{ ...cellInput, textAlign: "left", cursor: "pointer", background: u.recipeId ? "#F2E7CF" : C.cream, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.recipeId ? "▸ " : ""}{compName(u, m)}</button>
                   <input type="number" step="0.01" value={u.qty} onChange={(e) => setUse(i, j, { qty: e.target.value })} style={cellInput} />
-                  {u.recipeId
-                    ? <select value={u.unit || "units"} onChange={(e) => setUse(i, j, { unit: e.target.value })} style={{ ...cellInput, padding: "8px 4px", fontSize: 12 }}>{ING_UNITS.map((un) => <option key={un} value={un}>{un}</option>)}</select>
-                    : <select value={u.unit || m[u.ingId]?.unit || "g"} onChange={(e) => setUse(i, j, { unit: e.target.value })} style={{ ...cellInput, padding: "8px 4px", fontSize: 12 }}>{ING_UNITS.map((un) => <option key={un} value={un}>{un}</option>)}</select>}
+                  {(() => { const cur = u.recipeId ? (u.unit || "units") : (u.unit || m[u.ingId]?.unit || "g"); const opts = ING_UNITS.includes(cur) ? ING_UNITS : [cur, ...ING_UNITS]; return <select value={cur} onChange={(e) => setUse(i, j, { unit: e.target.value })} style={{ ...cellInput, padding: "8px 4px", fontSize: 12 }}>{opts.map((un) => <option key={un} value={un}>{un}</option>)}</select>; })()}
                   {u.recipeId
                     ? <span style={{ fontSize: 12, color: C.inkSoft, textAlign: "right" }}>—</span>
                     : (() => { const ing = m[u.ingId]; const noCost = !ing || !(ing.cost > 0); const line = ing ? (ing.cost || 0) * convertQty(Number(u.qty) || 0, u.unit || ing.unit, ing.unit) : 0; return <span title={noCost ? "This ingredient has no cost set — add it in Ingredient costs" : `${fmtMoney(ing.cost)} per ${ing.unit}`} style={{ fontSize: 12, fontWeight: 800, textAlign: "right", color: noCost ? C.rust : C.ink }}>{noCost ? "no £" : fmtMoney(line)}</span>; })()}
