@@ -721,6 +721,7 @@ function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito+Sans:ital,opsz,wght@0,6..12,400;0,6..12,600;0,6..12,700;0,6..12,800;0,6..12,900;1,6..12,400&display=swap');
         *{box-sizing:border-box}
+        html,body{margin:0;max-width:100%;overflow-x:hidden}
         .display{font-family:'Quicksand',sans-serif;letter-spacing:-.01em}
         @keyframes pop{from{transform:scale(.98);opacity:0}to{transform:scale(1);opacity:1}}
         @keyframes ring{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
@@ -744,7 +745,8 @@ function App() {
           .admin-tabs > button{white-space:nowrap}
           .hide-sm{display:none !important}
           .admin-title{font-size:26px !important}
-          .topbar{padding:10px 12px !important;gap:8px !important}
+          .topbar > div{padding:10px 12px !important;gap:8px !important;flex-wrap:wrap}
+          .tb-spacer{display:none !important}
         }
         @media (max-width: 900px){
           .rv-cols{grid-template-columns:1fr !important}
@@ -909,7 +911,7 @@ function TopBar({ user, voiceOn, voiceSupported, onToggleVoice, onHome, onAdmin,
         <span className="display" style={{ fontSize: "clamp(28px,2.1vw,44px)", fontWeight: 800, color: C.ink, whiteSpace: "nowrap" }}>Roni's<span style={{ color: C.rust }}>.</span></span>
         <span className="display hide-sm" style={{ fontSize: "clamp(17px,1.3vw,24px)", fontStyle: "italic", fontWeight: 500, color: C.inkSoft, whiteSpace: "nowrap" }}>Production Floor</span>
       </div>
-      <div style={{ flex: 1 }} />
+      <div className="tb-spacer" style={{ flex: 1 }} />
       {onSync && (
         <button onClick={onSync} disabled={syncing} title={lastSync ? `Last synced ${timeAgo(lastSync)}` : "Not synced yet"}
           style={{ ...pillGhost, flexShrink: 0, display: "flex", alignItems: "center", gap: 7, opacity: syncing ? 0.6 : 1, cursor: syncing ? "default" : "pointer" }}>
@@ -1202,7 +1204,7 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
   return (
     <div className="scr">
       <Eyebrow>Production</Eyebrow>
-      <h1 className="display" style={{ fontSize: "clamp(46px,5.4vw,92px)", fontWeight: 800, margin: "0 0 6px", lineHeight: 1.02 }}>What are we <span style={{ color: C.rust }}>making?</span></h1>
+      <h1 className="display" style={{ fontSize: "clamp(34px,5.4vw,92px)", fontWeight: 800, margin: "0 0 6px", lineHeight: 1.02, overflowWrap: "break-word" }}>What are we <span style={{ color: C.rust }}>making?</span></h1>
       <p style={{ fontSize: "clamp(17px,1.6vw,26px)", color: C.inkSoft, marginTop: 0, fontWeight: 400 }}>Pick a recipe — start as many as you like and switch between them up top.</p>
       {user?.role === "production" && <MyProduction runs={runs} user={user} />}
       <div style={{ marginTop: 18 }}>
@@ -1253,7 +1255,7 @@ function Home({ user, staff, recipes, ingredients, onSignIn, onPick, verifyPin, 
               return (
                 <div key={g} style={{ marginTop: 18 }}>
                   <div className="display" style={{ fontSize: "clamp(22px,2.2vw,32px)", fontWeight: 800, color: C.rust, marginBottom: 12, display: "flex", alignItems: "baseline", gap: 10 }}>{g} <span style={{ fontSize: "0.55em", color: C.inkSoft, fontWeight: 600 }}>{inG.length} recipe{inG.length > 1 ? "s" : ""}</span></div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(340px,1fr))", gap: 20 }}>{inG.map(card)}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,320px),1fr))", gap: 20 }}>{inG.map(card)}</div>
                 </div>
               );
             })}
